@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { makeRepo } from "../tooling/harness/testing/temp-repo.ts";
-import { installCodexHooks, WORKTREE_COMMAND } from "./install-codex-hooks.ts";
+import { makeRepo } from "../../testing/temp-repo.ts";
+import { installCodexHooks, WORKTREE_COMMAND } from "./codex-user.ts";
 
 const projectHooks = {
   hooks: {

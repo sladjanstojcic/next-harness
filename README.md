@@ -160,6 +160,11 @@ the browser test starts its own production server.
 Another repository then adds the harness with
 `git subtree add --prefix=tooling/harness <this repo> harness --squash` and updates it with
 `git subtree pull`. Its `harness.config.ts` stays outside that folder, so a pull never overwrites it.
+After the subtree add, `node tooling/harness/cli.ts init` writes the same hook wiring this repo uses:
+`.claude/settings.json` hooks, `.codex/hooks.json`, `.codex/config.toml`, `.githooks/pre-push`,
+`core.hooksPath` and the package scripts. It keeps other keys and hooks, refuses changed harness wiring
+unless `--force` is given, and prints the CI steps to add. `--codex-user` also installs the Codex
+user-level hooks.
 
 ## The lock
 

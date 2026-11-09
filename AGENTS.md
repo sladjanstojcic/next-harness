@@ -26,7 +26,7 @@ src/
     lib/                     cross-cutting infrastructure; flat
     hooks/                   generic React hooks; flat
 tooling/harness/
-  cli.ts                     hook, check, audit, blocks, legacy init, lock, unlock
+  cli.ts                     hook, check, audit, blocks, legacy init, init, lock, unlock
   config.ts                  reads harness.config.ts; workspaces and their defaults
   core/                      guards, audit, gates, state, root layout, path classes
   shapes/                    a workspace's paths, names, content rules, size limits
