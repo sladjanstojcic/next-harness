@@ -31,10 +31,10 @@ try {
   }
   const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd: process.cwd(), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
   if (command === "hook" && (mode === "claude" || mode === "codex")) {
-    const { parseEvent } = await import("./hooks/event.ts");
-    const { handleEvent } = await import("./hooks/handle.ts");
-    const { renderResponse } = await import("./hooks/respond.ts");
-    const { recordBlock } = await import("./telemetry.ts");
+    const { parseEvent } = await import("./core/hooks/event.ts");
+    const { handleEvent } = await import("./core/hooks/handle.ts");
+    const { renderResponse } = await import("./core/hooks/respond.ts");
+    const { recordBlock } = await import("./core/telemetry.ts");
     const event = parseEvent(mode, input, root);
     const outcome = await handleEvent(event, root);
     recordBlock(root, event, outcome);
@@ -45,20 +45,20 @@ try {
   } else if (command === "check" && (mode === "fast" || mode === "done" || mode === "ci")) {
     const result =
       mode === "ci"
-        ? await (await import("./gates/ci-gate.ts")).ciGate(root)
+        ? await (await import("./core/gates/ci-gate.ts")).ciGate(root)
         : mode === "fast"
-          ? await (await import("./gates/fast-gate.ts")).fastGate(root, paths)
-          : await (await import("./gates/done-gate.ts")).doneGate(root, paths);
+          ? await (await import("./core/gates/fast-gate.ts")).fastGate(root, paths)
+          : await (await import("./core/gates/done-gate.ts")).doneGate(root, paths);
     if (result.report) process.stdout.write(`${result.report}\n`);
     process.exitCode = result.passed ? 0 : 1;
   } else if (command === "audit" && mode === undefined) {
-    const { audit } = await import("./audit/audit.ts");
-    const { formatFindings } = await import("./audit/finding.ts");
+    const { audit } = await import("./core/audit/audit.ts");
+    const { formatFindings } = await import("./core/audit/finding.ts");
     const findings = audit(root);
     if (findings.length > 0) process.stdout.write(`${formatFindings(findings)}\n`);
     process.exitCode = findings.length === 0 ? 0 : 1;
   } else if (command === "blocks" && (mode === undefined || mode === "--false")) {
-    const { markFalseBlock, summarizeBlocks } = await import("./telemetry.ts");
+    const { markFalseBlock, summarizeBlocks } = await import("./core/telemetry.ts");
     if (mode === undefined) process.stdout.write(`${summarizeBlocks(root)}\n`);
     else {
       const [id, ...note] = paths;
@@ -67,7 +67,7 @@ try {
       process.stdout.write(`Marked ${id} as a false block.\n`);
     }
   } else if ((command === "lock" || command === "unlock") && mode === undefined) {
-    const { lock, unlock, UNLOCK_HOURS } = await import("./lock.ts");
+    const { lock, unlock, UNLOCK_HOURS } = await import("./core/lock.ts");
     if (command === "unlock") {
       unlock(root);
       process.stdout.write(`Harness unlocked for ${String(UNLOCK_HOURS)} hours in ${root}. Run \`pnpm harness:lock\` when the change is done.\n`);

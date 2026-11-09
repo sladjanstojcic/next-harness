@@ -25,15 +25,18 @@ src/
     components/              composed shared UI; one optional area subfolder
     lib/                     cross-cutting infrastructure; flat
     hooks/                   generic React hooks; flat
-tooling/harness/             guards, audit, gates, state and their tests
+tooling/harness/
+  core/                      guards, audit, gates, state and their tests
+  shapes/                    path rules and size limits
 scripts/                     repository automation
 e2e/                         Playwright browser tests
 docs/                        review guidance
 ```
 
 The closed shape prevents helper folders from becoming parallel architectures.
-`tooling/harness/structure.ts` defines allowed roots, names and limits for both the
-pre-write guard and audit; change that source of truth when a rule must change.
+`tooling/harness/shapes/next-modules.ts` defines allowed roots and names, and
+`shapes/limits.ts` the size limits, for both the pre-write guard and audit; change
+that source of truth when a rule must change.
 
 - Use kebab-case file and folder names in `src/`, `tooling/`, `scripts/` and `e2e/`.
   Next route segments are exceptions. Names in docs, public assets and tool config
@@ -41,7 +44,7 @@ pre-write guard and audit; change that source of truth when a rule must change.
 - Root config may include `.mcp.json`, `.npmrc`, `.nvmrc`, `.node-version`,
   `.editorconfig`, `.gitattributes`, `LICENSE` and `CHANGELOG.md`. Deployment files
   such as `vercel.json`, `Dockerfile` and `.vscode/` require a deliberate addition
-  to `structure.ts` before use.
+  to `shapes/next-modules.ts` before use.
 - Keep files at most 250 lines, including blanks and comments; pages at most 60.
 - Keep folders at most 10 source files. Colocated `*.test.ts(x)` files do not count.
 - Components, server and domain permit one level of area folders named after the
@@ -49,7 +52,7 @@ pre-write guard and audit; change that source of truth when a rule must change.
   `helpers/`, `common/` or `misc/` are denied. Keep actions, shared lib and hooks flat.
   Split a module when responsibility warrants it and report why.
 - Use TypeScript everywhere. A tool unable to read TS config needs an explicit
-  `JS_EXCEPTIONS` entry in `structure.ts`.
+  `JS_EXCEPTIONS` entry in `shapes/next-modules.ts`.
 - `shared/` must never depend on modules. Module dependencies must have no cycles.
   Domain code has no React or I/O dependencies and has a test beside each file.
 - Generated `shared/ui/` and `shared/lib/utils.ts` are vendored and exempt from size
@@ -69,7 +72,7 @@ pre-write guard and audit; change that source of truth when a rule must change.
 - Need environment values → validate them in `src/shared/lib/env.ts` with Zod and
   declare their names in `.env.example`. The tool runner passes those shell/CI
   values and every `NEXT_PUBLIC_*` variable, plus its base allowlist in
-  `tooling/harness/gates/run-tool.ts`; extend `.env.example` for product variables.
+  `tooling/harness/core/gates/run-tool.ts`; extend `.env.example` for product variables.
 - Need user-facing errors → use `UserError` from `shared/lib/user-error.ts`.
 - Need formatting or logging → reuse `shared/lib/format.ts` or `shared/lib/log.ts`.
 - Need a generic hook or composed component → use `shared/hooks/` or `shared/components/`.

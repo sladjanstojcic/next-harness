@@ -15,7 +15,7 @@ export function templateRepo(files: Record<string, string> = {}) {
     ".dependency-cruiser.json",
     ".jscpd.json",
     ".gitignore",
-    "tooling/harness/structure.ts",
+    "tooling/harness/shapes/limits.ts",
   ];
   const repo = makeRepo({
     ...Object.fromEntries(configs.map((file) => [file, fs.readFileSync(path.join(template, file), "utf8")])),

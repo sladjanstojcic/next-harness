@@ -4,7 +4,7 @@ import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import prettier from "eslint-config-prettier/flat";
 import tseslint from "typescript-eslint";
-import { MAX_FILE_LINES } from "./tooling/harness/structure.ts";
+import { MAX_FILE_LINES } from "./tooling/harness/shapes/limits.ts";
 
 const namedExports = {
   selector: "ExportAllDeclaration",

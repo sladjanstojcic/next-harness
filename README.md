@@ -46,7 +46,7 @@ where the code belongs, and the agent cannot edit the rules.
 
 **One shape.** Routes in `src/app/`, features in `src/modules/<module>/`, cross-cutting code in
 `src/shared/`. Nothing else under `src/`, and nothing new at the repository root without a deliberate
-entry in [`tooling/harness/structure.ts`](tooling/harness/structure.ts).
+entry in [`tooling/harness/shapes/next-modules.ts`](tooling/harness/shapes/next-modules.ts).
 
 ```text
 src/
@@ -188,16 +188,19 @@ up to five minutes.
 ## Inside `tooling/harness/`
 
 ```text
-structure.ts        the one definition: roots, shape, names, limits
-lock.ts             what is locked, and the four-hour unlock
-telemetry.ts        the block log and the false-block marker
-code-index.ts       the public-export index handed over at session start
 cli.ts              hook <claude|codex> · check <fast|done|ci> · audit · blocks · lock · unlock
-hooks/              event parsing for both clients, guards, responses, apply_patch paths
-audit/              path rules, content rules, duplicate exports
-gates/              fast, done and ci gates, the tool runner, the repair budget
-state/              tree snapshots, per-session state files and the gate lock under .git/harness/
-testing/            disposable git repositories for the tests
+shapes/
+  next-modules.ts   the one definition: roots, shape, names
+  limits.ts         file, folder and page size limits
+core/
+  lock.ts           what is locked, and the four-hour unlock
+  telemetry.ts      the block log and the false-block marker
+  code-index.ts     the public-export index handed over at session start
+  hooks/            event parsing for both clients, guards, responses, apply_patch paths
+  audit/            path rules, content rules, duplicate exports
+  gates/            fast, done and ci gates, the tool runner, the repair budget
+  state/            tree snapshots, per-session state files and the gate lock under .git/harness/
+testing/            disposable git repositories, the decision corpus and config tests
 ```
 
 Every file obeys the same rules as application code.

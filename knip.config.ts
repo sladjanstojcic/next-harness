@@ -5,7 +5,8 @@ export default {
   entry: [
     "scripts/*.ts",
     "e2e/**",
-    "tooling/harness/structure.ts",
+    "tooling/harness/shapes/limits.ts",
+    "tooling/harness/shapes/next-modules.ts",
     "src/shared/lib/env.ts",
     "src/shared/lib/user-error.ts",
     "src/shared/lib/format.ts",
