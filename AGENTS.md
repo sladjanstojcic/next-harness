@@ -126,7 +126,8 @@ export default defineHarness({
   final `/*` means every non-hidden folder under it. A file belongs to the workspace
   with the longest matching path, and its shape sees the path inside that workspace.
   A file in no workspace gets only the root layout rules from `core/root-layout.ts`.
-  In a configured workspace `tools` defaults to `eslint-prettier` and `next` to false.
+  In a configured workspace `next` defaults to false and `tools` follows the shape:
+  `eslint-prettier` for next-modules, `oxc` for the Makerkit shapes, `none` for supabase.
 - Each file has a path class. Vendored files are the shape's generated code, such as
   `src/shared/ui/`. Legacy files are listed in the legacy file. Owned files match an
   `owned` prefix, or every file when `owned` is absent. All other files are upstream.
@@ -140,13 +141,43 @@ export default defineHarness({
   The list may sit at the root or under an approved folder such as `tooling/`.
 - A config that fails to load denies every PreToolUse call with the loader's error;
   one that fails validation names the field. Other hook events allow and print it.
-- In this phase the gates run tools only for a workspace at the root (`path: "."`).
-  Other workspaces get the audit, lock and legacy checks.
+- Each workspace's tools run in its own folder, once per gate, and findings name
+  git-root paths. A binary is looked up from the workspace folder up to the root. A
+  missing type checker, linter or formatter is `<tool>-failed`; a missing `vitest`
+  skips the test step. `next build` and the browser smoke run only for a Next
+  workspace at the root.
+
+### Shapes, tool sets and the other config fields
+
+- Shapes: `next-modules` (the layout above, at any workspace root), `makerkit-app`
+  (a Makerkit `apps/web`: `app/[locale]`, `_components/`, `_lib/server/`, `config/`,
+  `lib/`), `makerkit-feature` (a package under `packages/features/*` with
+  `components`, `hooks`, `schema`, `server/{actions,services,policies}`, `shared`) and
+  `supabase` (`migrations/` named `<14 digits>_<name>.sql`, `schemas/NN-name.sql`,
+  seeds, tests, templates). Denials in the Makerkit shapes say "(Makerkit layout)".
+- Tool sets: `eslint-prettier` (ESLint, Prettier, tsc and Vitest, as without a config),
+  `oxc` (`oxlint -f json`, `oxfmt --list-different`, project `tsc`, Vitest) and `none`.
+- `env: "local"` denies only `.env*.local` and allows the committed `.env`,
+  `.env.development`, `.env.production` and `.env.test`. Without it every `.env*`
+  but `.env.example` is denied.
+- `analysis` lists which of `depcruise`, `knip` and `jscpd` run in Done and CI. With
+  no config file all three run; with a config, only the listed ones.
+- A committed migration under a supabase workspace's `migrations/` cannot be edited,
+  deleted or moved, by tool or by shell; add a new one with
+  `supabase migration new <name>`. Applying schema changes to a linked project is the
+  user's step: `supabase db push`, `supabase link`, `supabase migration up --linked`
+  and a package runner starting the `supabase:deploy` script are denied in every project.
+- `pnpm harness:split` creates or moves the local `harness` branch to a
+  `git subtree split` of `tooling/harness/`. Another repository consumes it with
+  `git subtree add --prefix=tooling/harness <repo> harness --squash`. Pushing the
+  branch is the user's step. `tooling/harness/package.json` pins the harness's own
+  `typescript` (for the compiler API) and `zod`.
 
 ## Checks and when they run
 
-- PreToolUse blocks disallowed paths, direct secret/lockfile/vendor edits, and named
-  destructive shell operations. Denials explain where code belongs.
+- PreToolUse blocks disallowed paths, direct secret/lockfile/vendor edits, committed
+  migrations, and named destructive or deploying shell operations. Denials explain
+  where code belongs.
 - PostToolUse on a file runs the fast gate: Prettier writes, syntax lint and the path
   and content audit of that file. Typed ESLint rules and duplicate-export detection run
   in Done and CI. After Bash, only the path and content audit runs on the files changed

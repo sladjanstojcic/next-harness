@@ -49,7 +49,10 @@ where the code belongs, and the agent cannot edit the rules.
 entry. [`tooling/harness/shapes/next-modules.ts`](tooling/harness/shapes/next-modules.ts) defines the
 shape inside a workspace; [`tooling/harness/core/root-layout.ts`](tooling/harness/core/root-layout.ts)
 defines the repository root. An optional `harness.config.ts` adds workspaces, root entries and path
-classes; AGENTS.md describes it.
+classes; AGENTS.md describes it. With it, a monorepo can give each folder its own shape: `next-modules`
+(below), `makerkit-app` and `makerkit-feature` for a Makerkit app and its feature packages, and
+`supabase` for append-only migrations. Each workspace also gets a tool set: `eslint-prettier`, `oxc`
+(oxlint and oxfmt) or `none`.
 
 ```text
 src/
@@ -82,16 +85,16 @@ no inline disables, no `@ts-ignore`.
 The harness is a small TypeScript CLI that both agent clients call from their hooks. Node 24 runs it
 directly, with no build step.
 
-| Moment                      | What runs                                                                                                                              | Takes    |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| Session start               | A code index of every module's public exports, so the agent reuses before it writes                                                    | one read |
-| User prompt                 | A snapshot of the working tree; Done judges only what this turn changed                                                                | ms       |
-| Before a write              | Guards: structure, secrets (`.env*`), the lockfile, vendored UI, the harness lock                                                      | ms       |
-| Before a command            | Guards: force push, `rm` outside the checkout, destructive Prisma and Supabase migrations, the unlock and false-block commands         | ms       |
-| After a write               | Fast gate: Prettier writes, syntax-level lint, path and content audit of that file                                                     | ≈ 1–2 s  |
-| After a command             | Path and content audit of whatever the command created or changed, plus the lock                                                       | ≈ 1 s    |
-| Stop                        | Done gate: `next typegen`, `tsc`, typed ESLint on changed files, full audit, dependency-cruiser, knip, jscpd, `vitest related`         | seconds  |
-| Pre-push and GitHub Actions | The full gate: format check, typed lint, typegen, types, audit, boundaries, dead code, copies, all tests, `next build`, Chromium smoke | minutes  |
+| Moment                      | What runs                                                                                                                                                            | Takes    |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| Session start               | A code index of every module's public exports, so the agent reuses before it writes                                                                                  | one read |
+| User prompt                 | A snapshot of the working tree; Done judges only what this turn changed                                                                                              | ms       |
+| Before a write              | Guards: structure, secrets (`.env*`), the lockfile, vendored UI, committed migrations, the harness lock                                                              | ms       |
+| Before a command            | Guards: force push, `rm` outside the checkout, destructive Prisma and Supabase migrations, Supabase deploys to a linked project, the unlock and false-block commands | ms       |
+| After a write               | Fast gate: Prettier writes, syntax-level lint, path and content audit of that file                                                                                   | ≈ 1–2 s  |
+| After a command             | Path and content audit of whatever the command created or changed, plus the lock                                                                                     | ≈ 1 s    |
+| Stop                        | Done gate: `next typegen`, `tsc`, typed ESLint on changed files, full audit, dependency-cruiser, knip, jscpd, `vitest related`                                       | seconds  |
+| Pre-push and GitHub Actions | The full gate: format check, typed lint, typegen, types, audit, boundaries, dead code, copies, all tests, `next build`, Chromium smoke                               | minutes  |
 
 When the Done gate fails, the agent's turn does not end: it gets the findings and fixes them. Changed
 files and their importers block; older problems elsewhere are reported, not blamed on this turn.
@@ -146,11 +149,17 @@ pnpm vitest run <file>     # focused unit tests
 pnpm harness:blocks        # the block log
 pnpm harness:unlock        # open the harness for four hours; pnpm harness:lock closes it
 pnpm codex:hooks           # user-level Codex hooks for linked worktrees
+pnpm harness:split         # point the local harness branch at a subtree split of tooling/harness/
 pnpm rename --name <pkg> --port <n> --title "<title>"
 ```
 
 Smoke uses `127.0.0.1:3210`; set `SMOKE_PORT` when that port is taken. The gate forces CI mode, so
 the browser test starts its own production server.
+
+`harness:split` only moves a local branch. Publishing it with `git push origin harness` is your step.
+Another repository then adds the harness with
+`git subtree add --prefix=tooling/harness <this repo> harness --squash` and updates it with
+`git subtree pull`. Its `harness.config.ts` stays outside that folder, so a pull never overwrites it.
 
 ## The lock
 
@@ -194,13 +203,20 @@ up to five minutes.
 ```text
 cli.ts              hook <claude|codex> · check <fast|done|ci> · audit · blocks · legacy init · lock · unlock
 config.ts           defineHarness, loading harness.config.ts, workspaces and the longest-path match
+package.json        the harness's own pins (typescript for the compiler API, zod), so the folder works as a subtree
 shapes/
   next-modules.ts   the next-modules shape: folders, names, content rules, vendored files
+  makerkit-app.ts   a Makerkit apps/web; its content rules sit in makerkit-app-content.ts
+  makerkit-feature.ts a Makerkit feature package and its package.json exports
+  supabase.ts       a Supabase folder: migration, schema, seed and test names
   limits.ts         file, folder and page size limits
   shape.ts          the contract every shape implements
 tools/
+  tool-set.ts       the contract every tool set implements, and binary lookup per workspace
   eslint-prettier.ts the eslint-prettier tool set: format, lint, type check and test steps
+  oxc.ts            the oxc tool set: oxlint JSON findings, oxfmt --list-different
   typescript.ts     Next type generation, tsc steps and the compiler API
+  vitest.ts         related and full test runs
   analysis.ts       depcruise, knip, jscpd, build and browser smoke steps
 core/
   root-layout.ts    what may sit at the repository root, and JS_EXCEPTIONS
@@ -214,7 +230,8 @@ core/
   audit/            path rules, content rules, duplicate exports
   gates/            fast, done and ci gates, the tool runner, the repair budget
   state/            tree snapshots, per-session state files and the gate lock under .git/harness/
-testing/            disposable git repositories, the decision corpus, the lint-config and server-only tests
+testing/            disposable git repositories (template, Makerkit and Plint miniatures), the decision corpus,
+                    the Makerkit and Plint acceptance tests, the lint-config and server-only tests
 ```
 
 Every file obeys the same rules as application code.
@@ -240,8 +257,21 @@ Exact versions, no ranges; every config file is TypeScript.
   code is what the block log will tell. Say so rather than work around a wrong block.
 - Content rules are mostly regular expressions; the duplicate check is the only syntax-tree rule.
 - The fast gate was measured at about 1.6 s per edit on the empty template, not on a large project.
-- With a `harness.config.ts`, the gates run tools only for a workspace at the repository root.
-  Other workspaces get the audit, lock and legacy checks until the harness runs tools per workspace.
+- The `oxc` tool set runs oxlint without `--type-aware`, because oxlint-tsgolint is not installed
+  where it was measured. Type-aware rules such as `no-floating-promises` do not run there. oxlint's
+  default rules also miss `any`; a project enables the rules it wants in its locked `.oxlintrc.json`.
+- Shell guards match the command's text. A command built through a variable
+  (`SB=supabase; $SB db push`) passes them. Text that merely quotes a guarded command, such as an
+  `echo` or a script holding it, is denied; mark such a block false.
+- After a shell command, the lock check reports a locked file only while it differs from HEAD. A
+  locked file edited and committed in the same command therefore passes. The migration check compares
+  with the tree before the command and catches that case, but CI does not check migrations, and
+  `cli.ts check done` run by hand compares with HEAD.
+- Inside a workspace, denials name paths relative to that workspace: `src/shared/lib/`, not
+  `apps/dashboard/src/shared/lib/`. A stray top-level file in a Makerkit app or package still gets the
+  next-modules advice that application code belongs in `src/`.
+- `pnpm install` inside a subtree copy of `tooling/harness/` writes its own `pnpm-lock.yaml`. Whether a
+  consumer commits it is not decided yet.
 - A cloned project keeps the harness version it was cloned with until the harness ships as a package.
 - The user-level Codex hook relies on Codex skipping project hooks in linked worktrees. If a later
   Codex loads them there, remove the user-level entries to avoid a double run.
