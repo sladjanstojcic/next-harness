@@ -6,7 +6,6 @@ import {
   GENERIC_FOLDERS,
   INTERCEPTING_SEGMENT,
   KEBAB,
-  matchesEntry,
   nameDenial,
   ROUTE_SEGMENT,
   sortedEntries,
@@ -18,10 +17,6 @@ import {
 export const VENDORED: readonly string[] = ["src/shared/ui/", "src/shared/lib/utils.ts"];
 export const TEST_FILE = /\.test\.tsx?$/;
 export const MODULE_ENTRIES: readonly string[] = ["index.ts", "server.ts", "schemas.ts", "types.ts"];
-
-export function isVendored(file: string): boolean {
-  return matchesEntry(VENDORED, file);
-}
 
 const topFolders = ["src", "e2e", "public"];
 const topEntries = [

@@ -1,7 +1,12 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ciGate } from "./core/gates/ci-gate.ts";
+import { doneGate } from "./core/gates/done-gate.ts";
+import { fastGate, selectedPaths } from "./core/gates/fast-gate.ts";
+import * as runner from "./core/gates/run-tool.ts";
+import { resolveHarness } from "./core/path-check.ts";
 import { stateDir } from "./core/state/state-file.ts";
 import { DEFAULT_CONFIG, expandWorkspaces, loadConfig, workspaceOf, type WorkspaceEntry } from "./config.ts";
 import { makeRepo } from "./testing/temp-repo.ts";
@@ -72,6 +77,37 @@ describe("workspaceOf", () => {
     expect(workspaceOf(entries, "docs/x.md")).toEqual({ entry: entry(""), path: "docs/x.md" });
     expect(workspaceOf(entries, "apps/website/x.ts")).toEqual({ entry: entry(""), path: "apps/website/x.ts" });
     expect(workspaceOf([entry("apps/web")], "docs/x.md")).toBeUndefined();
+  });
+});
+
+describe("gates without a workspace at the root", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("run no tool steps and still audit the nested workspace", async () => {
+    const file = "apps/web/src/utils/x.ts";
+    const repo = makeRepo({
+      "harness.config.ts": 'export default { workspaces: [{ path: "apps/web", shape: "next-modules" }] };\n',
+      [file]: "export const x = 1;\n",
+    });
+    const run = vi.spyOn(runner, "runTool").mockResolvedValue([]);
+    const done = await doneGate(repo.root, [file]);
+    const fast = await fastGate(repo.root, [file]);
+    const ci = await ciGate(repo.root);
+    expect(run).not.toHaveBeenCalled();
+    expect(done.passed).toBe(false);
+    expect(done.findings).toContainEqual(expect.objectContaining({ rule: "src-shape", file }));
+    expect(fast.findings).toContainEqual(expect.objectContaining({ rule: "src-shape", file }));
+    expect(ci.report.match(/^[a-z]+: (?:passed|failed)$/gm)).toEqual(["audit: failed"]);
+  });
+
+  it("skips files vendored by the workspace's shape, not by the git-root layout", () => {
+    const files = ["apps/web/src/shared/ui/b.tsx", "src/shared/ui/b.tsx"];
+    const repo = makeRepo({
+      "harness.config.ts": 'export default { workspaces: [{ path: "apps/web", shape: "next-modules" }] };\n',
+      ...Object.fromEntries(files.map((file) => [file, "export const b = 1;\n"])),
+    });
+    const root = fs.realpathSync(repo.root);
+    expect(selectedPaths(root, files, resolveHarness(root))).toEqual(["src/shared/ui/b.tsx"]);
   });
 });
 

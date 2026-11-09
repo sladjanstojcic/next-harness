@@ -1,8 +1,11 @@
 import path from "node:path";
 import { audit } from "../audit/audit.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
+import { resolveHarness } from "../path-check.ts";
+import { build, depcruise, jscpd, knip, playwright } from "../../tools/analysis.ts";
+import { rootTools } from "../../tools/index.ts";
 import type { GateResult } from "./gate-result.ts";
-import { runTool } from "./run-tool.ts";
+import { runTool, type ToolStep } from "./run-tool.ts";
 
 export async function ciGate(root: string): Promise<GateResult> {
   const directory = path.resolve(root);
@@ -23,18 +26,23 @@ export async function ciGate(root: string): Promise<GateResult> {
         "Fix application code in src/modules/ or src/shared/; harness code belongs in tooling/harness/ and automation in scripts/.",
       );
   };
-  const run = (name: string, tool: string, args: string[], timeoutMs = 120_000): Promise<void> =>
-    record(name, () => runTool(directory, { name, command: [path.join(directory, "node_modules/.bin", tool), ...args], timeoutMs, findings: () => [] }));
-  await run("prettier", "prettier", ["--check", "."]);
-  await run("eslint", "eslint", [".", "--max-warnings", "0"]);
-  await run("typegen", "next", ["typegen"]);
-  await run("tsc", "tsc", ["--noEmit"]);
+  const workspace = rootTools(resolveHarness(directory).workspaces);
+  const run = async (steps: ToolStep[]): Promise<void> => {
+    for (const step of steps) await record(step.name, () => runTool(directory, step));
+  };
+  if (workspace) {
+    const { tools, next } = workspace;
+    await run([tools.format.check(directory), tools.lint.all(directory), ...tools.typecheck.all(directory, next)]);
+  }
   await record("audit", () => audit(directory));
-  await run("depcruise", "depcruise", ["src", "--config", ".dependency-cruiser.json"]);
-  await run("knip", "knip", []);
-  await run("jscpd", "jscpd", ["src", "tooling", "--config", ".jscpd.json"]);
-  await run("vitest", "vitest", ["run"], 600_000);
-  await run("build", "next", ["build"], 600_000);
-  await run("playwright", "playwright", ["test"], 300_000);
+  if (workspace)
+    await run([
+      depcruise.check(directory),
+      knip.check(directory),
+      jscpd.check(directory),
+      workspace.tools.test.all(directory),
+      build(directory),
+      playwright(directory),
+    ]);
   return { passed: findings.length === 0, findings, preExisting: [], report: reports.join("\n") };
 }
