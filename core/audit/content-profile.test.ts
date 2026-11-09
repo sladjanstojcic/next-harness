@@ -20,6 +20,20 @@ describe("action builders", () => {
   });
 });
 
+describe("NEXT_PUBLIC_* reads", () => {
+  const source = "export const url = process.env.NEXT_PUBLIC_SITE_URL;\n";
+
+  it("stay env-access in next-modules, which has no publicEnvAllowed", () => {
+    const file = "src/modules/a/components/x.tsx";
+    expect(auditSource(makeRepo().root, { file, path: file, profile: nextModules.content }, source).map(({ rule }) => rule)).toEqual(["env-access"]);
+  });
+
+  it("pass in a makerkit profile", () => {
+    const file = "app/home/_components/x.tsx";
+    expect(auditSource(makeRepo().root, { file, path: file, profile: makerkitApp.content }, source)).toEqual([]);
+  });
+});
+
 describe("alias resolution", () => {
   it("picks the longest matching alias prefix whatever the key order", () => {
     const file = "app/home/_components/x.tsx";

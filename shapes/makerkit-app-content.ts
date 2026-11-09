@@ -1,7 +1,7 @@
 import type { ContentProfile } from "./shape.ts";
 
 export const ROUTE_ACTION_FILE = /(?:^|\/)_lib\/server\/(?:[a-z0-9-]+-)?server-actions\.ts$/;
-const MAKERKIT_ACTION_BUILDERS: readonly string[] = ["authActionClient", "publicActionClient", "captchaActionClient", "adminActionClient"];
+export const MAKERKIT_ACTION_BUILDERS: readonly string[] = ["authActionClient", "publicActionClient", "captchaActionClient", "adminActionClient"];
 
 export const makerkitAppContent: ContentProfile = {
   actionFile: ROUTE_ACTION_FILE,
@@ -11,6 +11,7 @@ export const makerkitAppContent: ContentProfile = {
   clientFile: /^(?:app\/(?:.*\/)?_components\/|components\/|app\/(?:.*\/)?error\.tsx$|app\/global-error\.tsx$)/,
   aliases: { "~/config/": "config/", "~/components/": "components/", "~/lib/": "lib/", "~/": "app/" },
   envScope: /^/,
+  publicEnvAllowed: true,
   envAllowed: /^(?:config\/[^/]+\.config\.tsx?|proxy\.ts|i18n\/request\.ts|lib\/create-csp-response\.ts|next\.config\.mjs)$/,
   messages: {
     serverOnly: 'Import "server-only" in the route\'s _lib/server/ files; client-safe helpers belong in _lib/ (Makerkit layout).',
