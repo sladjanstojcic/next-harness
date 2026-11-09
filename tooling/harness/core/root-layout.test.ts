@@ -4,6 +4,7 @@ import { makeRepo } from "../testing/temp-repo.ts";
 import { auditContent } from "./audit/content-rules.ts";
 import { codeIndex } from "./code-index.ts";
 import { nextModules } from "../shapes/next-modules.ts";
+import type { Shape } from "../shapes/shape.ts";
 import { checkPath, resolveHarness } from "./path-check.ts";
 import { rootEntries } from "./root-layout.ts";
 
@@ -102,5 +103,25 @@ describe("checkPath with a configured workspace", () => {
   it("lists a configured workspace under its path", () => {
     const repo = makeRepo({ "harness.config.ts": `export default ${JSON.stringify(config)};\n`, "apps/web/src/shared/lib/format.ts": "export const f = 1;\n" });
     expect(codeIndex(repo.root)).toContain("\n\n# apps/web\n\n## shared/lib\n\n- `format.ts`: `f`\n");
+  });
+});
+
+describe("a shape's JS exceptions", () => {
+  it("allow the file inside that shape's workspace only", () => {
+    const config: HarnessConfig = {
+      workspaces: [
+        { path: "apps/web", shape: "next-modules" },
+        { path: "apps/api", shape: "next-modules" },
+      ],
+      root: { entries: ["apps"] },
+    };
+    const resolved = resolveHarness(makeRepo({ "harness.config.ts": `export default ${JSON.stringify(config)};\n` }).root);
+    const withConfig = (jsExceptions: string[]): Shape => ({ ...nextModules, topEntries: [...nextModules.topEntries, "next.config.mjs"], jsExceptions });
+    const harness = {
+      ...resolved,
+      workspaces: resolved.workspaces.map((workspace) => ({ ...workspace, shapeImpl: withConfig(workspace.path === "apps/web" ? ["next.config.mjs"] : []) })),
+    };
+    expect(checkPath("apps/web/next.config.mjs", harness)).toEqual({ ok: true });
+    expect(checkPath("apps/api/next.config.mjs", harness)).toMatchObject({ ok: false, rule: "js-file" });
   });
 });

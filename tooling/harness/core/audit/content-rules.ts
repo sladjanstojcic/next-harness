@@ -32,8 +32,10 @@ function importTarget(node: ts.Node): string | undefined {
   return undefined;
 }
 
-function resolveTarget(file: string, target: string): string {
-  if (target.startsWith("@/")) return posix.normalize(`src/${target.slice(2)}`);
+function resolveTarget(profile: ContentProfile, file: string, target: string): string {
+  for (const [prefix, folder] of Object.entries(profile.aliases)) {
+    if (target.startsWith(prefix)) return posix.normalize(`${folder}${target.slice(prefix.length)}`);
+  }
   if (target.startsWith(".")) return posix.normalize(posix.join(posix.dirname(file), target));
   return target;
 }
@@ -54,7 +56,7 @@ function auditDirectives({ file, path, profile }: ContentTarget, source: ts.Sour
   const visit = (node: ts.Node): void => {
     if (ts.isExpressionStatement(node) && ts.isStringLiteral(node.expression)) directives.push({ node, text: node.expression.text });
     const target = importTarget(node);
-    if (target !== undefined) imports.push({ node, target: resolveTarget(path, target) });
+    if (target !== undefined) imports.push({ node, target: resolveTarget(profile, path, target) });
     if (ts.isImportDeclaration(node) && target === "server-only" && !node.importClause?.isTypeOnly) hasServerOnly = true;
     if (ts.isCallExpression(node) && profile.actionBuilders.includes(calleeRoot(node.expression) ?? "")) hasBuilder = true;
     ts.forEachChild(node, visit);
@@ -131,7 +133,7 @@ export function auditSource(root: string, target: ContentTarget, text: string): 
     const test = file.replace(/\.ts$/, ".test.ts");
     if (!existsSync(join(root, test))) add("domain-test", message(profile, "domainTest", { test }));
   }
-  const checkEnvironment = profile?.envScope?.test(path) === true && path !== profile.envFile;
+  const checkEnvironment = profile?.envScope?.test(path) === true && path !== profile.envFile && profile.envAllowed?.test(path) !== true;
   const checkErrors = !TEST_FILE.test(path) && profile?.errorScope?.test(path) === true;
   const checkDeterminism = TEST_FILE.test(file) && !seedMarkers.some((marker) => source.text.includes(marker));
   const visit = (node: ts.Node): void => {
