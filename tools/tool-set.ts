@@ -1,11 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { ToolSetName } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
 
 /** Formatter, linter, type checker and test runner of one workspace; commands are built for the workspace directory. */
 export interface ToolSet {
-  name: "eslint-prettier";
+  name: Exclude<ToolSetName, "none">;
   format: { write(dir: string, files: string[]): ToolStep; check(dir: string): ToolStep };
   lint: { files(dir: string, files: string[], fast: boolean): ToolStep; all(dir: string): ToolStep };
   typecheck: { incremental(dir: string, next: boolean): ToolStep[]; all(dir: string, next: boolean): ToolStep[] };

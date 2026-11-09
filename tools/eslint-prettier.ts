@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Finding } from "../core/audit/finding.ts";
 import { bin, CHECK_TIMEOUT_MS, type ToolSet } from "./tool-set.ts";
 import { fullTypecheck, incrementalTypecheck } from "./typescript.ts";
+import { vitest } from "./vitest.ts";
 
 const lintOutput = z.array(
   z.object({
@@ -47,8 +48,5 @@ export const eslintPrettier: ToolSet = {
     all: (dir) => ({ name: "eslint", command: [bin(dir, "eslint"), ".", "--max-warnings", "0"], timeoutMs: CHECK_TIMEOUT_MS, findings: () => [] }),
   },
   typecheck: { incremental: incrementalTypecheck, all: fullTypecheck },
-  test: {
-    related: (dir, files) => ({ name: "vitest", command: [bin(dir, "vitest"), "related", "--run", "--passWithNoTests", ...files], findings: () => [] }),
-    all: (dir) => ({ name: "vitest", command: [bin(dir, "vitest"), "run"], timeoutMs: 600_000, findings: () => [] }),
-  },
+  test: vitest,
 };
