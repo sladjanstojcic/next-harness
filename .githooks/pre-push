@@ -1,0 +1,3 @@
+#!/bin/sh
+# Call the harness directly, so a changed package.json script cannot weaken the gate.
+exec node tooling/harness/cli.ts check ci

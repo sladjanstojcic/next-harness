@@ -1,0 +1,8 @@
+{
+  "session_id": "thr_123",
+  "transcript_path": "/workspace/.codex/rollout.jsonl",
+  "cwd": "/repo",
+  "hook_event_name": "SessionStart",
+  "model": "gpt-5-codex",
+  "source": "startup"
+}

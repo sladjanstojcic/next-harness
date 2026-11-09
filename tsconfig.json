@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
+    "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
@@ -20,15 +20,26 @@
     ],
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "types": ["node"]
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "tooling/**/*.ts",
+    "e2e/**/*.ts",
+    "scripts/**/*.ts",
+    "*.ts",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

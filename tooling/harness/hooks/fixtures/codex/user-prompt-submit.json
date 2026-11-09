@@ -1,0 +1,10 @@
+{
+  "session_id": "thr_123",
+  "transcript_path": "/tmp/transcript.jsonl",
+  "cwd": "/repo",
+  "permission_mode": "default",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "Implement the requested change.",
+  "model": "gpt-5",
+  "turn_id": "turn_123"
+}

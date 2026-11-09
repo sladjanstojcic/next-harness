@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  agentRules: false,
+  logging: { browserToTerminal: "warn" },
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

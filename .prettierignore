@@ -1,0 +1,6 @@
+src/shared/ui
+pnpm-lock.yaml
+.next
+docs/superpowers
+.superpowers
+.serena
