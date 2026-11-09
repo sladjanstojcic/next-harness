@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
@@ -49,7 +50,16 @@ export function lockReason(file: string): string {
   return `${file} is part of the harness and is locked. Ask the user to run \`pnpm harness:unlock\` in their own terminal (valid ${String(UNLOCK_HOURS)} hours), make the change with them, then \`pnpm harness:lock\`.`;
 }
 
+/** A tracked file whose working copy equals its committed version: a revert restored it rather than changed it. */
+function matchesHead(root: string, file: string): boolean {
+  const options = { cwd: root, stdio: "ignore" } as const;
+  const tracked = spawnSync("git", ["cat-file", "-e", `HEAD:${file}`], options).status === 0;
+  return tracked && spawnSync("git", ["diff", "--quiet", "HEAD", "--", file], options).status === 0;
+}
+
 export function lockFindings(root: string, changed: Iterable<string>): Finding[] {
   if (unlocked(root)) return [];
-  return [...changed].filter(isLocked).map((file): Finding => ({ rule: "harness-lock", file, message: lockReason(file) }));
+  return [...changed]
+    .filter((file) => isLocked(file) && !matchesHead(root, file))
+    .map((file): Finding => ({ rule: "harness-lock", file, message: lockReason(file) }));
 }
