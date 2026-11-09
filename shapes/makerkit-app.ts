@@ -8,6 +8,7 @@ import {
   INTERCEPTING_SEGMENT,
   isNextSpecialFile,
   KEBAB,
+  onlyGitkeepHidden,
   ROUTE_SEGMENT,
   sortedEntries,
   type PathVerdict,
@@ -156,16 +157,10 @@ export const makerkitApp: Shape = {
   topEntries,
   topFolders,
   kebabFolders: [],
-  checkHidden(path) {
-    const [top = "", ...inside] = path.split("/");
-    if (CODE_FOLDERS.includes(top) && inside.some((part) => part.startsWith(".") && part !== ".gitkeep")) {
-      return deny(
-        "hidden-file",
-        `Keep visible source files in app/, components/, config/, lib/ and the other app folders; only .gitkeep may be hidden ${LAYOUT}.`,
-      );
-    }
-    return ok;
-  },
+  checkHidden: onlyGitkeepHidden(
+    CODE_FOLDERS,
+    () => `Keep visible source files in app/, components/, config/, lib/ and the other app folders; only .gitkeep may be hidden ${LAYOUT}.`,
+  ),
   isNameExempt: () => false,
   checkPath,
   vendored: [],

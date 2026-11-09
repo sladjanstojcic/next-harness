@@ -3,8 +3,9 @@ import { makerkitApp } from "./makerkit-app.ts";
 import { makerkitFeature } from "./makerkit-feature.ts";
 import { nextModules } from "./next-modules.ts";
 import type { Shape } from "./shape.ts";
+import { supabase } from "./supabase.ts";
 
-const SHAPES: Partial<Record<ShapeName, Shape>> = { "next-modules": nextModules, "makerkit-app": makerkitApp, "makerkit-feature": makerkitFeature };
+const SHAPES: Partial<Record<ShapeName, Shape>> = { "next-modules": nextModules, "makerkit-app": makerkitApp, "makerkit-feature": makerkitFeature, supabase };
 
 export function shapeOf(name: ShapeName): Shape {
   const shape = SHAPES[name];

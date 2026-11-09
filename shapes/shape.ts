@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { dirname, join } from "node:path";
+import { MAX_FILE_LINES, MAX_FOLDER_FILES, MAX_PAGE_LINES } from "./limits.ts";
 
 export type PathRule =
   "unknown-root" | "src-shape" | "app-file" | "module-shape" | "shared-shape" | "nesting" | "generic-folder" | "file-name" | "js-file" | "hidden-file";
@@ -8,6 +9,8 @@ export type PathVerdict = { ok: true } | { ok: false; rule: PathRule; reason: st
 export interface Shape {
   name: string;
   topEntries: readonly string[];
+  /** Top-level file names the shape accepts beyond topEntries, such as README-<topic>.md. */
+  topEntryPattern?: RegExp;
   topFolders: readonly string[];
   kebabFolders: readonly string[];
   checkHidden(path: string): PathVerdict;
@@ -39,6 +42,25 @@ export function isNextSpecialFile(file: string, atAppRoot: boolean): boolean {
 export function deny(rule: PathRule, reason: string): PathVerdict {
   return { ok: false, rule, reason };
 }
+
+/** Hidden files below the given top folders are denied; only .gitkeep may keep an empty folder. */
+export function onlyGitkeepHidden(folders: readonly string[], reason: (top: string) => string): Shape["checkHidden"] {
+  return (path) => {
+    const [top = "", ...inside] = path.split("/");
+    const hidden = folders.includes(top) && inside.some((part) => part.startsWith(".") && part !== ".gitkeep");
+    return hidden ? deny("hidden-file", reason(top)) : { ok: true };
+  };
+}
+
+/** Fields of a shape with no exempt names, generated code, JS configs or same-name scopes, at the default size limits. */
+export const PLAIN_SHAPE = {
+  kebabFolders: [],
+  isNameExempt: () => false,
+  vendored: [],
+  jsExceptions: [],
+  limits: { fileLines: MAX_FILE_LINES, folderFiles: MAX_FOLDER_FILES, pageLines: MAX_PAGE_LINES },
+  sameNameScope: () => undefined,
+} satisfies Partial<Shape>;
 
 export function nameDenial(): PathVerdict {
   return deny("file-name", "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/.");

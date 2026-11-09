@@ -1988,9 +1988,18 @@
       "reason": "Marking a false block is the user's judgement: name the wrong block in your handoff and let them run `pnpm harness:blocks --false <id>`."
     },
     "pnpm install": null,
-    "supabase db push": null,
-    "supabase link": null,
-    "pnpm supabase:deploy": null,
+    "supabase db push": {
+      "guard": "supabase-push",
+      "reason": "Applying schema changes to a linked project is the user's step; leave migrations committed and ask them to deploy."
+    },
+    "supabase link": {
+      "guard": "supabase-link",
+      "reason": "Applying schema changes to a linked project is the user's step; leave migrations committed and ask them to deploy."
+    },
+    "pnpm supabase:deploy": {
+      "guard": "supabase-deploy",
+      "reason": "Applying schema changes to a linked project is the user's step; leave migrations committed and ask them to deploy."
+    },
     "rm -rf \"${HOME}/x\"": {
       "guard": "rm-outside-repo",
       "reason": "Remove files inside the checkout only; removals outside the repository or in .git belong to the user."

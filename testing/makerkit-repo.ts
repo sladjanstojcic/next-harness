@@ -3,14 +3,17 @@ import { makeRepo, type RepoFixture } from "./temp-repo.ts";
 export const MAKERKIT_ROUTE = "apps/web/app/[locale]/home/[account]/journal";
 export const MAKERKIT_KIT_ROUTE = "apps/web/app/[locale]/home/[account]/billing";
 
-export function makerkitConfig(owned: readonly string[] = [`${MAKERKIT_ROUTE}/`, "packages/features/journal/", "apps/web/supabase/"]): string {
+export const MAKERKIT_MIGRATION = "apps/web/supabase/migrations/20221215192558_schema.sql";
+
+export function makerkitConfig(owned: readonly string[] = [`${MAKERKIT_ROUTE}/`, "packages/features/journal/", "apps/web/supabase/"], env?: "local"): string {
   return `export default {
   workspaces: [
     { path: "apps/web", shape: "makerkit-app", next: true },
+    { path: "apps/web/supabase", shape: "supabase" },
     { path: "packages/features/*", shape: "makerkit-feature" },
   ],
   owned: ${JSON.stringify(owned)},
-  root: { entries: ["apps", "packages"] },
+  root: { entries: ["apps", "packages"] },${env === undefined ? "" : `\n  env: "${env}",`}
 };
 `;
 }
@@ -49,6 +52,7 @@ export function makerkitRepo(files: Record<string, string> = {}): RepoFixture {
     "apps/web/styles/globals.css": "\n",
     "apps/web/content/posts/hello.mdoc": "# Hello\n",
     "apps/web/supabase/config.toml": "\n",
+    [MAKERKIT_MIGRATION]: "create table public.accounts (id uuid primary key);\n",
     "packages/features/accounts/package.json": ACCOUNTS_PACKAGE,
     "packages/features/accounts/src/server/api.ts": "export function createAccountsApi() { return {}; }\n",
     "packages/features/accounts/src/hooks/use-update-account.ts": "export function useUpdateAccount() { return null; }\n",

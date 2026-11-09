@@ -53,7 +53,7 @@ export function lockReason(file: string): string {
 }
 
 /** A tracked file whose working copy equals its committed version: a revert restored it rather than changed it. */
-function matchesHead(root: string, file: string): boolean {
+export function matchesHead(root: string, file: string): boolean {
   const options = { cwd: root, stdio: "ignore" } as const;
   const tracked = spawnSync("git", ["cat-file", "-e", `HEAD:${file}`], options).status === 0;
   return tracked && spawnSync("git", ["diff", "--quiet", "HEAD", "--", file], options).status === 0;

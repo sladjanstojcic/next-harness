@@ -4,11 +4,15 @@ import { isLocked, lockReason, UNLOCK_COMMAND, unlocked } from "../lock.ts";
 import { isIgnored } from "../state/git-ignore.ts";
 import { checkPath, isVendoredIn, resolveHarness } from "../path-check.ts";
 import type { HookEvent } from "./event.ts";
+import { isAppliedMigration, MIGRATION_RULE, migrationReason } from "./migration-guard.ts";
 import { isInside, realPath, removesOutside } from "./shell.ts";
 export interface Denial {
   guard: string;
   reason: string;
 }
+/** Option tokens a CLI skips while looking for its subcommand: `--debug`, `--workdir apps/web`, `-x a,b`. */
+const OPTIONS = String.raw`(?:\s+-{1,2}[\w-]+(?:[=\s]\S+)?)*`;
+const SUPABASE_CLI = String.raw`\bsupabase(?:@\S+)?\)?${OPTIONS}`;
 const shellGuards = [
   {
     guard: "destructive-prisma",
@@ -18,12 +22,21 @@ const shellGuards = [
   },
   {
     guard: "destructive-supabase",
-    pattern: /\bsupabase\s+db\s+reset\b[^;&|]*--(project-ref|linked)\b/i,
+    pattern: /\bsupabase\s+db\s+reset\b[^;&|\n]*--(project-ref|linked)\b/i,
     reason: "Reset only the local stack with supabase db reset; linked-project schema changes belong in reviewed migrations applied by the user.",
   },
+  ...[
+    { guard: "supabase-push", pattern: new RegExp(String.raw`${SUPABASE_CLI}\s+db${OPTIONS}\s+push\b`, "i") },
+    { guard: "supabase-link", pattern: new RegExp(String.raw`${SUPABASE_CLI}\s+link(?![\w-])`, "i") },
+    { guard: "supabase-migration-up", pattern: new RegExp(String.raw`${SUPABASE_CLI}\s+migration${OPTIONS}\s+up\b[^;&|\n]*--linked\b`, "i") },
+    { guard: "supabase-deploy", pattern: /\b(?:pnpm|npm|yarn|bun|npx|turbo)\b[^;&|]*\bsupabase:deploy\b/i },
+  ].map((guard) => ({
+    ...guard,
+    reason: "Applying schema changes to a linked project is the user's step; leave migrations committed and ask them to deploy.",
+  })),
   {
     guard: "harness-telemetry",
-    pattern: /\bblocks\b[^|&;]*--false\b/,
+    pattern: /\bblocks\b[^|&;\n]*--false\b/,
     reason: "Marking a false block is the user's judgement: name the wrong block in your handoff and let them run `pnpm harness:blocks --false <id>`.",
   },
   {
@@ -40,8 +53,12 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
     if (UNLOCK_COMMAND.test(event.command)) {
       return { guard: "harness-lock", reason: "Unlocking the harness is the user's step: ask them to run `pnpm harness:unlock` in their own terminal." };
     }
+    const unquoted = event.command
+      .replace(/\\(.)/g, "$1")
+      .replace(/\$(?=["'])/g, "")
+      .replace(/["']/g, "");
     for (const guard of shellGuards) {
-      if (guard.pattern.test(event.command)) return { guard: guard.guard, reason: guard.reason };
+      if (guard.pattern.test(event.command) || guard.pattern.test(unquoted)) return { guard: guard.guard, reason: guard.reason };
     }
     if (removesOutside(event.command, event.cwd, root)) {
       return { guard: "rm-outside-repo", reason: "Remove files inside the checkout only; removals outside the repository or in .git belong to the user." };
@@ -62,11 +79,13 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
     const relative = relativePath(file);
     if (relative === null) continue;
     const name = path.posix.basename(relative);
-    if (/^\.env(\..*)?$/.test(name) && name !== ".env.example") {
-      return { guard: "env-file-write", reason: `${relative} holds the user's secrets; agent-authored configuration belongs in .env.example.` };
+    if (harness.config.env === "local" ? /^\.env(?:\..*)?\.local$/.test(name) : /^\.env(\..*)?$/.test(name) && name !== ".env.example") {
+      const destination = harness.config.env === "local" ? "the committed .env files without .local" : ".env.example";
+      return { guard: "env-file-write", reason: `${relative} holds the user's secrets; agent-authored configuration belongs in ${destination}.` };
     }
     if (relative === "pnpm-lock.yaml")
       return { guard: "lockfile-write", reason: "Dependency edits belong in package.json; regenerate pnpm-lock.yaml with pnpm install." };
+    if (isAppliedMigration(canonicalRoot, harness, relative)) return { guard: MIGRATION_RULE, reason: migrationReason(relative) };
     if (isVendoredIn(harness, relative)) {
       return { guard: "vendored-write", reason: "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" };
     }

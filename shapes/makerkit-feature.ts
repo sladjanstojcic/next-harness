@@ -1,8 +1,18 @@
 import fs from "node:fs";
 import { join, posix } from "node:path";
-import { MAX_FILE_LINES, MAX_FOLDER_FILES, MAX_PAGE_LINES } from "./limits.ts";
 import { MAKERKIT_ACTION_BUILDERS } from "./makerkit-app-content.ts";
-import { deny, exportLine, GENERIC_FOLDERS, KEBAB, sortedEntries, type ContentProfile, type PathVerdict, type Shape } from "./shape.ts";
+import {
+  deny,
+  exportLine,
+  GENERIC_FOLDERS,
+  KEBAB,
+  onlyGitkeepHidden,
+  PLAIN_SHAPE,
+  sortedEntries,
+  type ContentProfile,
+  type PathVerdict,
+  type Shape,
+} from "./shape.ts";
 
 const LAYOUT = "(Makerkit layout)";
 const topEntries = ["src", "package.json", "tsconfig.json", "README.md", "AGENTS.md", "CLAUDE.md", "vitest.config.ts"];
@@ -146,24 +156,13 @@ function codeIndex(workspaceDir: string): string[] {
 }
 
 export const makerkitFeature: Shape = {
+  ...PLAIN_SHAPE,
   name: "makerkit-feature",
   topEntries,
   topFolders: ["src"],
-  kebabFolders: [],
-  checkHidden(path) {
-    const [top = "", ...inside] = path.split("/");
-    if (top === "src" && inside.some((part) => part.startsWith(".") && part !== ".gitkeep")) {
-      return deny("hidden-file", `Keep visible source files in src/; only .gitkeep may be hidden ${LAYOUT}.`);
-    }
-    return ok;
-  },
-  isNameExempt: () => false,
+  checkHidden: onlyGitkeepHidden(["src"], () => `Keep visible source files in src/; only .gitkeep may be hidden ${LAYOUT}.`),
   checkPath,
-  vendored: [],
-  jsExceptions: [],
-  limits: { fileLines: MAX_FILE_LINES, folderFiles: MAX_FOLDER_FILES, pageLines: MAX_PAGE_LINES },
   folderGuidance: () => `Group the files in an area subfolder named after the area, or split the feature into a second package ${LAYOUT}.`,
-  sameNameScope: () => undefined,
   content: makerkitFeatureContent,
   codeIndex,
 };
