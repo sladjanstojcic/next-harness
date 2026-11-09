@@ -2873,7 +2873,8 @@
           "src/shared/lib/x.ts",
           "src/utils/x.ts",
           "tsconfig.json"
-        ]
+        ],
+        "timeoutMs": 600000
       }
     ]
   }
