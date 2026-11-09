@@ -1,0 +1,16 @@
+{
+  "session_id": "abc123",
+  "transcript_path": "/tmp/transcript.jsonl",
+  "cwd": "/repo",
+  "permission_mode": "default",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "NotebookEdit",
+  "tool_use_id": "toolu_notebook",
+  "tool_input": {
+    "notebook_path": "/repo/docs/analysis.ipynb",
+    "cell_id": "cell-1",
+    "new_source": "print(1)",
+    "cell_type": "code",
+    "edit_mode": "replace"
+  }
+}

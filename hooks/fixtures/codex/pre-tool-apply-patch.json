@@ -1,0 +1,14 @@
+{
+  "session_id": "thr_123",
+  "transcript_path": "/workspace/.codex/rollout.jsonl",
+  "cwd": "/repo",
+  "hook_event_name": "PreToolUse",
+  "model": "gpt-5-codex",
+  "permission_mode": "default",
+  "turn_id": "turn_1",
+  "tool_name": "apply_patch",
+  "tool_use_id": "call_2",
+  "tool_input": {
+    "command": "*** Begin Patch\n*** Update File: src/example.ts\n*** Move to: src/answer.ts\n@@\n-export const answer = 41;\n+export const answer = 42;\n*** Add File: .env.local\n+SECRET=1\n*** End Patch"
+  }
+}

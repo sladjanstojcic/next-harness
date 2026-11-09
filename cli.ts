@@ -1,0 +1,91 @@
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+
+const INSTALL_COMMAND = /^\s*(?:cd\s+\S+\s*&&\s*)?(?:corepack\s+)?(?:pnpm|npm)\s+(?:install|i|ci)(?:\s|$)/;
+const INSTALL_HINT = "Harness dependencies are missing: run `pnpm install --frozen-lockfile` and `pnpm run prepare` before other tool calls.";
+
+function isMissingDependency(error: unknown): boolean {
+  return error instanceof Error && "code" in error && error.code === "ERR_MODULE_NOT_FOUND";
+}
+
+function isInstallCommand(input: unknown): boolean {
+  if (typeof input !== "object" || input === null || !("tool_name" in input) || input.tool_name !== "Bash" || !("tool_input" in input)) return false;
+  const toolInput = input.tool_input;
+  return (
+    typeof toolInput === "object" &&
+    toolInput !== null &&
+    "command" in toolInput &&
+    typeof toolInput.command === "string" &&
+    INSTALL_COMMAND.test(toolInput.command)
+  );
+}
+
+const [command, mode, ...paths] = process.argv.slice(2);
+let preTool = false;
+let input: unknown;
+try {
+  // Parse the event header before resolving the checkout so pre-tool errors fail closed.
+  if (command === "hook") {
+    input = JSON.parse(fs.readFileSync(0, "utf8"));
+    preTool = typeof input === "object" && input !== null && "hook_event_name" in input && input.hook_event_name === "PreToolUse";
+  }
+  const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd: process.cwd(), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  if (command === "hook" && (mode === "claude" || mode === "codex")) {
+    const { parseEvent } = await import("./hooks/event.ts");
+    const { handleEvent } = await import("./hooks/handle.ts");
+    const { renderResponse } = await import("./hooks/respond.ts");
+    const { recordBlock } = await import("./telemetry.ts");
+    const event = parseEvent(mode, input, root);
+    const outcome = await handleEvent(event, root);
+    recordBlock(root, event, outcome);
+    const response = renderResponse(mode, event.event, outcome);
+    process.stdout.write(response.stdout);
+    process.stderr.write(response.stderr);
+    process.exitCode = response.exitCode;
+  } else if (command === "check" && (mode === "fast" || mode === "done" || mode === "ci")) {
+    const result =
+      mode === "ci"
+        ? await (await import("./gates/ci-gate.ts")).ciGate(root)
+        : mode === "fast"
+          ? await (await import("./gates/fast-gate.ts")).fastGate(root, paths)
+          : await (await import("./gates/done-gate.ts")).doneGate(root, paths);
+    if (result.report) process.stdout.write(`${result.report}\n`);
+    process.exitCode = result.passed ? 0 : 1;
+  } else if (command === "audit" && mode === undefined) {
+    const { audit } = await import("./audit/audit.ts");
+    const { formatFindings } = await import("./audit/finding.ts");
+    const findings = audit(root);
+    if (findings.length > 0) process.stdout.write(`${formatFindings(findings)}\n`);
+    process.exitCode = findings.length === 0 ? 0 : 1;
+  } else if (command === "blocks" && (mode === undefined || mode === "--false")) {
+    const { markFalseBlock, summarizeBlocks } = await import("./telemetry.ts");
+    if (mode === undefined) process.stdout.write(`${summarizeBlocks(root)}\n`);
+    else {
+      const [id, ...note] = paths;
+      if (id === undefined) throw new Error("Usage: blocks --false <id> [note…]");
+      if (!markFalseBlock(root, id, note.join(" "))) throw new Error(`No block ${id}; run \`pnpm harness:blocks\` to list them.`);
+      process.stdout.write(`Marked ${id} as a false block.\n`);
+    }
+  } else if ((command === "lock" || command === "unlock") && mode === undefined) {
+    const { lock, unlock, UNLOCK_HOURS } = await import("./lock.ts");
+    if (command === "unlock") {
+      unlock(root);
+      process.stdout.write(`Harness unlocked for ${String(UNLOCK_HOURS)} hours in ${root}. Run \`pnpm harness:lock\` when the change is done.\n`);
+    } else {
+      lock(root);
+      process.stdout.write(`Harness locked in ${root}.\n`);
+    }
+  } else {
+    throw new Error("Usage: hook <claude|codex> | check <fast|done|ci> [paths…] | audit | blocks [--false <id> [note…]] | lock | unlock");
+  }
+} catch (error) {
+  if (command === "hook" && isMissingDependency(error)) {
+    // A fresh clone has no node_modules yet: let the install through and tell the agent what to run first.
+    const allowed = !preTool || isInstallCommand(input);
+    if (!allowed || !preTool) process.stderr.write(`${INSTALL_HINT}\n`);
+    process.exitCode = allowed ? 0 : 2;
+  } else {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = command === "hook" ? (preTool ? 2 : 0) : 1;
+  }
+}
