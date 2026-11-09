@@ -1,6 +1,7 @@
 import path from "node:path";
 import { audit } from "../audit/audit.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
+import { PRE_EXISTING_HEADING, splitLegacy } from "../classes.ts";
 import { resolveHarness } from "../path-check.ts";
 import { build, depcruise, jscpd, knip, playwright } from "../../tools/analysis.ts";
 import { rootTools } from "../../tools/index.ts";
@@ -34,7 +35,12 @@ export async function ciGate(root: string): Promise<GateResult> {
     const { tools, next } = workspace;
     await run([tools.format.check(directory), tools.lint.all(directory), ...tools.typecheck.all(directory, next)]);
   }
-  await record("audit", () => audit(directory));
+  const preExisting: Finding[] = [];
+  await record("audit", () => {
+    const split = splitLegacy(directory, audit(directory));
+    preExisting.push(...split.preExisting);
+    return split.blocking;
+  });
   if (workspace)
     await run([
       depcruise.check(directory),
@@ -44,5 +50,6 @@ export async function ciGate(root: string): Promise<GateResult> {
       build(directory),
       playwright(directory),
     ]);
-  return { passed: findings.length === 0, findings, preExisting: [], report: reports.join("\n") };
+  if (preExisting.length > 0) reports.push(PRE_EXISTING_HEADING, formatFindings(preExisting));
+  return { passed: findings.length === 0, findings, preExisting, report: reports.join("\n") };
 }

@@ -1,8 +1,11 @@
+import { spawnSync } from "node:child_process";
+import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadConfig } from "../config.ts";
 import { makeRepo } from "../testing/temp-repo.ts";
 import { auditChanged } from "./audit/audit.ts";
-import { classify, legacyInvalidFindings, readLegacy } from "./classes.ts";
+import { classify, legacyInvalidFindings, PRE_EXISTING_HEADING, readLegacy } from "./classes.ts";
+import { ciGate } from "./gates/ci-gate.ts";
 import { doneGate } from "./gates/done-gate.ts";
 import * as runner from "./gates/run-tool.ts";
 import { parseEvent, type HookEvent } from "./hooks/event.ts";
@@ -183,5 +186,29 @@ describe("legacy list", () => {
     expect(JSON.parse(repo.read(LEGACY))).toEqual({ version: 1, files: ["src/modules/mine/helpers/x.ts"] });
     expect(() => initLegacy(repo.root, config)).toThrow("already exists");
     expect(() => initLegacy(repo.root, { workspaces: config.workspaces })).toThrow("legacy");
+  });
+});
+
+describe("whole-repository audits", () => {
+  const nested = `export default { workspaces: [{ path: "apps/web", shape: "next-modules" }], legacy: "${LEGACY}" };\n`;
+  const nestedRepo = () => makeRepo({ "harness.config.ts": nested, [LEGACY]: list(["apps/web/src/utils/x.ts"]), "apps/web/src/utils/x.ts": "export {};\n" });
+
+  it("reports legacy findings in CI as pre-existing and still fails on owned files", async () => {
+    const repo = nestedRepo();
+    const clean = await ciGate(repo.root);
+    expect(clean.passed).toBe(true);
+    expect(clean.preExisting).toEqual([expect.objectContaining({ rule: "src-shape", file: "apps/web/src/utils/x.ts" })]);
+    expect(clean.report).toContain(`audit: passed\n${PRE_EXISTING_HEADING}\napps/web/src/utils/x.ts:1 src-shape`);
+    repo.write("apps/web/src/utils/y.ts", "export {};\n");
+    const failing = await ciGate(repo.root);
+    expect(failing.passed).toBe(false);
+    expect(failing.findings.map(({ rule, file }) => `${file} ${rule}`)).toEqual(["apps/web/src/utils/y.ts src-shape"]);
+  });
+
+  it("exits 0 from the audit command when only legacy findings remain", () => {
+    const repo = nestedRepo();
+    const result = spawnSync(process.execPath, [path.resolve(import.meta.dirname, "../cli.ts"), "audit"], { cwd: repo.root, encoding: "utf8" });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toMatch(new RegExp(`^${PRE_EXISTING_HEADING.replace(/[()]/g, "\\$&")}\napps/web/src/utils/x\\.ts:1 src-shape`));
   });
 });

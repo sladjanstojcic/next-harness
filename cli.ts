@@ -72,9 +72,11 @@ try {
   } else if (command === "audit" && mode === undefined) {
     const { audit } = await import("./core/audit/audit.ts");
     const { formatFindings } = await import("./core/audit/finding.ts");
-    const findings = audit(root);
-    if (findings.length > 0) process.stdout.write(`${formatFindings(findings)}\n`);
-    process.exitCode = findings.length === 0 ? 0 : 1;
+    const { PRE_EXISTING_HEADING, splitLegacy } = await import("./core/classes.ts");
+    const { blocking, preExisting } = splitLegacy(root, audit(root));
+    if (blocking.length > 0) process.stdout.write(`${formatFindings(blocking)}\n`);
+    if (preExisting.length > 0) process.stdout.write(`${PRE_EXISTING_HEADING}\n${formatFindings(preExisting)}\n`);
+    process.exitCode = blocking.length === 0 ? 0 : 1;
   } else if (command === "blocks" && (mode === undefined || mode === "--false")) {
     const { markFalseBlock, summarizeBlocks } = await import("./core/telemetry.ts");
     if (mode === undefined) process.stdout.write(`${summarizeBlocks(root)}\n`);

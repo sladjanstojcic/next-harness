@@ -34,7 +34,13 @@ export function rootEntries(config: HarnessConfig, hasConfigFile = false): RootL
   const extra = config.root?.entries ?? [];
   const jsExceptions = new Set([...JS_EXCEPTIONS, ...(config.root?.jsExceptions ?? [])]);
   return {
-    entries: new Set([...ROOT_ENTRIES, ...extra, ...jsExceptions, ...(hasConfigFile ? [CONFIG_FILE] : [])]),
+    entries: new Set([
+      ...ROOT_ENTRIES,
+      ...extra,
+      ...jsExceptions,
+      ...(hasConfigFile ? [CONFIG_FILE] : []),
+      ...(config.legacy === undefined ? [] : [config.legacy]),
+    ]),
     folders: new Set([...ROOT_FOLDERS, ...extra]),
     jsExceptions,
   };
