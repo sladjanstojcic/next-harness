@@ -106,8 +106,8 @@ export function expandWorkspaces(gitRoot: string, config: HarnessConfig): Worksp
   });
 }
 
-export function workspaceOf(entries: readonly WorkspaceEntry[], file: string): { entry: WorkspaceEntry; path: string } | undefined {
-  let match: WorkspaceEntry | undefined;
+export function workspaceOf<T extends WorkspaceEntry>(entries: readonly T[], file: string): { entry: T; path: string } | undefined {
+  let match: T | undefined;
   for (const entry of entries) {
     const contains = entry.path === "" || file === entry.path || file.startsWith(`${entry.path}/`);
     if (contains && (match === undefined || entry.path.length > match.path.length)) match = entry;

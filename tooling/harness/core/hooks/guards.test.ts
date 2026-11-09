@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { makeRepo } from "../../testing/temp-repo.ts";
-import { checkPath } from "../../shapes/next-modules.ts";
+import { checkPath } from "../path-check.ts";
 import { parseEvent, type HookEvent } from "./event.ts";
 import { unlock } from "../lock.ts";
 import { checkGuards } from "./guards.ts";

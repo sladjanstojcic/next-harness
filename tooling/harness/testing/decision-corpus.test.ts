@@ -9,7 +9,7 @@ import * as runner from "../core/gates/run-tool.ts";
 import { parseEvent, type Client } from "../core/hooks/event.ts";
 import { checkGuards } from "../core/hooks/guards.ts";
 import { handleEvent } from "../core/hooks/handle.ts";
-import { checkPath } from "../shapes/next-modules.ts";
+import { checkPath } from "../core/path-check.ts";
 import { COMMANDS, GATE_SEEDS, PATHS, PRE_EXISTING_SEEDS } from "./decision-inputs.ts";
 import { templateRepo } from "./template-repo.ts";
 

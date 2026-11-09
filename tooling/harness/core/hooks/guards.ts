@@ -1,7 +1,7 @@
 import path from "node:path";
 import { isLocked, lockReason, UNLOCK_COMMAND, unlocked } from "../lock.ts";
 import { isIgnored } from "../state/git-ignore.ts";
-import { checkPath, isVendored } from "../../shapes/next-modules.ts";
+import { checkPath, isVendoredIn, resolveHarness } from "../path-check.ts";
 import type { HookEvent } from "./event.ts";
 import { isInside, realPath, removesOutside } from "./shell.ts";
 export interface Denial {
@@ -48,6 +48,7 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
     return null;
   }
   const canonicalRoot = realPath(root);
+  const harness = resolveHarness(canonicalRoot);
   const relativePath = (file: string): string | null => {
     const target = realPath(path.resolve(canonicalRoot, file));
     return isInside(canonicalRoot, target) ? path.relative(canonicalRoot, target).split(path.sep).join("/") : null;
@@ -62,12 +63,12 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
     }
     if (relative === "pnpm-lock.yaml")
       return { guard: "lockfile-write", reason: "Dependency edits belong in package.json; regenerate pnpm-lock.yaml with pnpm install." };
-    if (isVendored(relative)) {
+    if (isVendoredIn(harness, relative)) {
       return { guard: "vendored-write", reason: "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" };
     }
     if (isLocked(relative) && !unlocked(canonicalRoot)) return { guard: "harness-lock", reason: lockReason(relative) };
     if (writePaths.has(relative)) {
-      const verdict = checkPath(relative);
+      const verdict = checkPath(relative, harness);
       if (!verdict.ok && !isIgnored(canonicalRoot, relative)) return { guard: "structure-write", reason: `${verdict.rule}: ${verdict.reason}` };
     }
   }
