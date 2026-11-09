@@ -3,6 +3,7 @@ import path from "node:path";
 import { z } from "zod";
 import { auditChanged } from "../audit/audit.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
+import { dropUnownedHarnessFindings } from "../classes.ts";
 import { isInside, realPath } from "../hooks/shell.ts";
 import { isIgnored } from "../state/git-ignore.ts";
 import { isVendored } from "../../shapes/next-modules.ts";
@@ -84,6 +85,6 @@ export async function fastGate(root: string, paths: string[]): Promise<GateResul
       );
     findings.push(...auditChanged(directory, files));
   }
-  const scoped = findings.filter((finding) => finding.file === "" || files.includes(finding.file));
+  const scoped = dropUnownedHarnessFindings(directory, findings).filter((finding) => finding.file === "" || files.includes(finding.file));
   return { passed: scoped.length === 0, findings: scoped, preExisting: [], report: formatFindings(scoped) };
 }

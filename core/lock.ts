@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
+import { CONFIG_FILE, loadConfig, type HarnessConfig } from "../config.ts";
 import type { Finding } from "./audit/finding.ts";
 import { readState, stateDir, writeState } from "./state/state-file.ts";
 
@@ -27,8 +28,9 @@ const LOCKED_PATHS: readonly string[] = [
 export const UNLOCK_COMMAND = /\bharness:unlock\b|cli\.ts\s+unlock\b|harness\/unlock\.json/;
 const unlockState = z.object({ until: z.number() });
 
-export function isLocked(file: string): boolean {
-  return LOCKED_PATHS.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) : file === entry));
+export function isLocked(file: string, config?: HarnessConfig): boolean {
+  const entries = [...LOCKED_PATHS, CONFIG_FILE, ...(config?.locked ?? []), ...(config?.legacy === undefined ? [] : [config.legacy])];
+  return entries.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) : file === entry));
 }
 
 export function unlocked(root: string, now = Date.now()): boolean {
@@ -57,9 +59,9 @@ function matchesHead(root: string, file: string): boolean {
   return tracked && spawnSync("git", ["diff", "--quiet", "HEAD", "--", file], options).status === 0;
 }
 
-export function lockFindings(root: string, changed: Iterable<string>): Finding[] {
+export function lockFindings(root: string, changed: Iterable<string>, config: HarnessConfig = loadConfig(root)): Finding[] {
   if (unlocked(root)) return [];
   return [...changed]
-    .filter((file) => isLocked(file) && !matchesHead(root, file))
+    .filter((file) => isLocked(file, config) && !matchesHead(root, file))
     .map((file): Finding => ({ rule: "harness-lock", file, message: lockReason(file) }));
 }

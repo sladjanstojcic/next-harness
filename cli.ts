@@ -84,6 +84,10 @@ try {
       if (!markFalseBlock(root, id, note.join(" "))) throw new Error(`No block ${id}; run \`pnpm harness:blocks\` to list them.`);
       process.stdout.write(`Marked ${id} as a false block.\n`);
     }
+  } else if (command === "legacy" && mode === "init" && paths.length === 0) {
+    const { initLegacy } = await import("./core/legacy.ts");
+    const { loadConfig } = await import("./config.ts");
+    process.stdout.write(`${initLegacy(root, loadConfig(root))}\n`);
   } else if ((command === "lock" || command === "unlock") && mode === undefined) {
     const { lock, unlock, UNLOCK_HOURS } = await import("./core/lock.ts");
     if (command === "unlock") {
@@ -94,7 +98,7 @@ try {
       process.stdout.write(`Harness locked in ${root}.\n`);
     }
   } else {
-    throw new Error("Usage: hook <claude|codex> | check <fast|done|ci> [paths…] | audit | blocks [--false <id> [note…]] | lock | unlock");
+    throw new Error("Usage: hook <claude|codex> | check <fast|done|ci> [paths…] | audit | blocks [--false <id> [note…]] | legacy init | lock | unlock");
   }
 } catch (error) {
   if (command === "hook" && isMissingDependency(error)) {

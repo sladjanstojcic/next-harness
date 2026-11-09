@@ -1,4 +1,5 @@
 import path from "node:path";
+import { classify, legacyInvalidFindings, readLegacy } from "../classes.ts";
 import { isLocked, lockReason, UNLOCK_COMMAND, unlocked } from "../lock.ts";
 import { isIgnored } from "../state/git-ignore.ts";
 import { checkPath, isVendoredIn, resolveHarness } from "../path-check.ts";
@@ -49,6 +50,9 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
   }
   const canonicalRoot = realPath(root);
   const harness = resolveHarness(canonicalRoot);
+  const [invalid] = legacyInvalidFindings(canonicalRoot, harness.config);
+  if (invalid !== undefined) throw new Error(invalid.message);
+  const legacy = readLegacy(canonicalRoot, harness.config);
   const relativePath = (file: string): string | null => {
     const target = realPath(path.resolve(canonicalRoot, file));
     return isInside(canonicalRoot, target) ? path.relative(canonicalRoot, target).split(path.sep).join("/") : null;
@@ -66,8 +70,8 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
     if (isVendoredIn(harness, relative)) {
       return { guard: "vendored-write", reason: "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" };
     }
-    if (isLocked(relative) && !unlocked(canonicalRoot)) return { guard: "harness-lock", reason: lockReason(relative) };
-    if (writePaths.has(relative)) {
+    if (isLocked(relative, harness.config) && !unlocked(canonicalRoot)) return { guard: "harness-lock", reason: lockReason(relative) };
+    if (writePaths.has(relative) && classify(relative, harness, legacy) === "owned") {
       const verdict = checkPath(relative, harness);
       if (!verdict.ok && !isIgnored(canonicalRoot, relative)) return { guard: "structure-write", reason: `${verdict.rule}: ${verdict.reason}` };
     }
