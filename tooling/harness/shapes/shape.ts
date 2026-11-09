@@ -29,6 +29,13 @@ export const INTERCEPTING_SEGMENT = /^(?:\(\.{1,3}\))+[a-z0-9]+(?:-[a-z0-9]+)*$/
 /** Area subfolders are named after their area; these names describe nothing and become junk drawers. */
 export const GENERIC_FOLDERS: readonly string[] = ["utils", "helpers", "common", "misc", "shared", "lib", "core", "base", "stuff", "other", "general"];
 
+/** Next.js special and metadata files a route folder may hold; globals.css only at the app root. */
+export function isNextSpecialFile(file: string, atAppRoot: boolean): boolean {
+  const special = /^(?:page|layout|loading|error|global-error|not-found|template|default|forbidden|unauthorized|global-not-found)\.tsx$/;
+  const metadata = /^(?:(?:icon\d*|apple-icon\d*|opengraph-image|twitter-image)\..+|sitemap\.(?:ts|xml)|robots\.(?:ts|txt)|manifest\.(?:ts|json|webmanifest))$/;
+  return special.test(file) || metadata.test(file) || file === "route.ts" || file === "favicon.ico" || (file === "globals.css" && atAppRoot);
+}
+
 export function deny(rule: PathRule, reason: string): PathVerdict {
   return { ok: false, rule, reason };
 }

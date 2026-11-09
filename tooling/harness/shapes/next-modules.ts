@@ -5,6 +5,7 @@ import {
   exportLine,
   GENERIC_FOLDERS,
   INTERCEPTING_SEGMENT,
+  isNextSpecialFile,
   KEBAB,
   nameDenial,
   ROUTE_SEGMENT,
@@ -48,11 +49,7 @@ function genericDenial(folder: string): PathVerdict {
 function checkApp(parts: string[]): PathVerdict {
   const file = parts.at(-1) ?? "";
   if (parts.slice(0, -1).some((part) => !KEBAB.test(part) && !ROUTE_SEGMENT.test(part) && !INTERCEPTING_SEGMENT.test(part))) return nameDenial();
-  const special = /^(?:page|layout|loading|error|global-error|not-found|template|default|forbidden|unauthorized|global-not-found)\.tsx$/;
-  const metadata = /^(?:(?:icon\d*|apple-icon\d*|opengraph-image|twitter-image)\..+|sitemap\.(?:ts|xml)|robots\.(?:ts|txt)|manifest\.(?:ts|json|webmanifest))$/;
-  if (special.test(file) || metadata.test(file) || file === "route.ts" || file === "favicon.ico" || (file === "globals.css" && parts.length === 1)) {
-    return { ok: true };
-  }
+  if (isNextSpecialFile(file, parts.length === 1)) return { ok: true };
   return deny("app-file", "move it into a module's components/ and import it from the module's index.ts");
 }
 
