@@ -6,9 +6,10 @@ import { dropUnownedHarnessFindings } from "../classes.ts";
 import { isInside, realPath } from "../hooks/shell.ts";
 import { isVendoredIn, resolveHarness, type Harness } from "../path-check.ts";
 import { isIgnored } from "../state/git-ignore.ts";
-import { rootTools } from "../../tools/index.ts";
+import { workspaceTools } from "../../tools/index.ts";
+import { placeStep } from "../../tools/tool-set.ts";
 import type { GateResult } from "./gate-result.ts";
-import { runTool } from "./run-tool.ts";
+import { runTool, type ToolStep } from "./run-tool.ts";
 
 export function selectedPaths(root: string, paths: string[], harness: Harness): string[] {
   const selected = new Set<string>();
@@ -25,17 +26,23 @@ export function selectedPaths(root: string, paths: string[], harness: Harness): 
   return [...selected].sort();
 }
 
+/** Runs a step in its workspace folder; a binary found nowhere up to the git root is a finding, or nothing for an optional step. */
+export async function runInWorkspace(root: string, workspacePath: string, step: ToolStep, optional = false): Promise<Finding[]> {
+  const placed = placeStep(root, workspacePath, step);
+  if ("finding" in placed) return optional ? [] : [placed.finding];
+  return runTool(root, placed);
+}
+
 export async function fastGate(root: string, paths: string[]): Promise<GateResult> {
   const directory = realPath(path.resolve(root));
   const harness = resolveHarness(directory);
   const files = selectedPaths(directory, paths, harness);
-  const workspace = rootTools(harness.workspaces);
   const findings: Finding[] = [];
   if (files.length > 0) {
-    if (workspace !== undefined) {
-      findings.push(...(await runTool(directory, workspace.tools.format.write(directory, files))));
-      const sources = files.filter((file) => /\.tsx?$/.test(file));
-      if (sources.length > 0) findings.push(...(await runTool(directory, workspace.tools.lint.files(directory, sources, true))));
+    for (const { workspace, tools, dir, files: local } of workspaceTools(directory, harness.workspaces, files)) {
+      findings.push(...(await runInWorkspace(directory, workspace.path, tools.format.write(dir, local))));
+      const sources = local.filter((file) => /\.tsx?$/.test(file));
+      if (sources.length > 0) findings.push(...(await runInWorkspace(directory, workspace.path, tools.lint.files(dir, sources, true))));
     }
     findings.push(...auditChanged(directory, files));
   }
