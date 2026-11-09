@@ -28,3 +28,14 @@ export function fullTypecheck(dir: string, next: boolean): ToolStep[] {
   const tsc: ToolStep = { name: "tsc", command: [bin(dir, "tsc"), "--noEmit"], timeoutMs: CHECK_TIMEOUT_MS, findings: () => [] };
   return next ? [{ name: "typegen", command: [bin(dir, "next"), "typegen"], timeoutMs: CHECK_TIMEOUT_MS, findings: () => [] }, tsc] : [tsc];
 }
+
+/** oxc workspaces: the same order, plain project tsc in Done and CI, with parsed findings. */
+export function projectTypecheck(dir: string, next: boolean): ToolStep[] {
+  const tsc: ToolStep = {
+    name: "tsc",
+    command: [bin(dir, "tsc"), "--noEmit", "--pretty", "false"],
+    timeoutMs: CHECK_TIMEOUT_MS,
+    findings: (stdout) => typeFindings(dir, stdout),
+  };
+  return next ? [{ name: "next", command: [bin(dir, "next"), "typegen"], timeoutMs: CHECK_TIMEOUT_MS, findings: () => [] }, tsc] : [tsc];
+}

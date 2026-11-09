@@ -1,15 +1,14 @@
 import path from "node:path";
-import { CONFIG_FILE, workspaceOf, type ToolSetName, type WorkspaceEntry } from "../config.ts";
+import { workspaceOf, type ToolSetName, type WorkspaceEntry } from "../config.ts";
 import { eslintPrettier } from "./eslint-prettier.ts";
+import { oxc } from "./oxc.ts";
 import type { ToolSet } from "./tool-set.ts";
 
-const TOOL_SETS: Partial<Record<Exclude<ToolSetName, "none">, ToolSet>> = { "eslint-prettier": eslintPrettier };
+const TOOL_SETS: Record<Exclude<ToolSetName, "none">, ToolSet> = { "eslint-prettier": eslintPrettier, oxc };
 
 function toolSetOf(name: ToolSetName): ToolSet | undefined {
   if (name === "none") return undefined;
-  const tools = TOOL_SETS[name];
-  if (tools === undefined) throw new Error(`${CONFIG_FILE}: tool set "${name}" is not implemented yet`);
-  return tools;
+  return TOOL_SETS[name];
 }
 
 export interface WorkspaceTools {
