@@ -105,6 +105,29 @@ describe("makerkit-app content", () => {
     expect(rulesOf(repo.root, [action])).toEqual([]);
   });
 
+  it.each(["publicActionClient", "captchaActionClient", "adminActionClient"])("accepts an owned server action built with %s", (client) => {
+    const repo = makerkitRepo({ [action]: `"use server";\n${chain.replaceAll("authActionClient", client)}` });
+    expect(rulesOf(repo.root, [action])).toEqual([]);
+    repo.write(action, chain.replaceAll("authActionClient", client));
+    expect(rulesOf(repo.root, [action])).toEqual([`${action} use-server-placement`]);
+  });
+
+  it("limits an owned page to 60 lines with thin-page and a Makerkit location", () => {
+    const page = `${MAKERKIT_ROUTE}/page.tsx`;
+    const repo = makerkitRepo({ [page]: `export default function Page() {\n${"  void 0;\n".repeat(60)}  return null;\n}\n` });
+    const findings = auditChanged(repo.root, [page]);
+    expect(findings.map(({ rule }) => rule)).toEqual(["thin-page"]);
+    expect(findings[0]?.message).toContain("(Makerkit layout)");
+  });
+
+  it("leaves raw error text to the kit's i18n rule: no error-text in owned files", () => {
+    const view = `${MAKERKIT_ROUTE}/_components/journal-error.tsx`;
+    const boundary = `${MAKERKIT_ROUTE}/error.tsx`;
+    const text = "export const View = ({ error }: { error: Error }) => <p>{error.message}</p>;\n";
+    const repo = makerkitRepo({ [view]: text, [boundary]: `"use client";\n${text}` });
+    expect(rulesOf(repo.root, [view, boundary])).toEqual([]);
+  });
+
   it("requires use server first in an owned action file", () => {
     const repo = makerkitRepo({ [action]: chain });
     expect(rulesOf(repo.root, [action])).toEqual([`${action} use-server-placement`]);
