@@ -1,13 +1,22 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, posix } from "node:path";
-import ts from "typescript";
-import { MAX_PAGE_LINES } from "../../shapes/limits.ts";
-import { isVendored, TEST_FILE } from "../../shapes/next-modules.ts";
+import { workspaceOf } from "../../config.ts";
+import { TEST_FILE } from "../../shapes/next-modules.ts";
+import type { ContentMessage, ContentProfile } from "../../shapes/shape.ts";
+import { ts } from "../../tools/typescript.ts";
+import { isVendoredIn, resolveHarness, type Harness } from "../path-check.ts";
 import type { Finding } from "./finding.ts";
 
-const actionFile = /^src\/modules\/[^/]+\/actions\/[^/]+-action\.ts$/;
-const serverFile = /^src\/modules\/[^/]+\/server(?:\.ts$|\/)/;
-const clientFile = /^(?:src\/modules\/[^/]+\/components\/|src\/shared\/(?:components|ui|hooks)\/|src\/app\/(?:.*\/)?error\.tsx$|src\/app\/global-error\.tsx$)/;
+export interface ContentTarget {
+  file: string;
+  path: string;
+  profile?: ContentProfile;
+  pageLines?: number;
+}
+
+function message(profile: ContentProfile, key: ContentMessage, values: Record<string, string> = {}): string {
+  return profile.messages[key].replace(/\{(\w+)\}/g, (placeholder, name: string) => values[name] ?? placeholder);
+}
 
 function importTarget(node: ts.Node): string | undefined {
   if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
@@ -29,58 +38,48 @@ function resolveTarget(file: string, target: string): string {
   return target;
 }
 
-function auditDirectives(file: string, source: ts.SourceFile): Finding[] {
+function calleeRoot(node: ts.Expression): string | undefined {
+  if (ts.isIdentifier(node)) return node.text;
+  if (ts.isPropertyAccessExpression(node) || ts.isCallExpression(node)) return calleeRoot(node.expression);
+  return undefined;
+}
+
+function auditDirectives({ file, path, profile }: ContentTarget, source: ts.SourceFile): Finding[] {
+  const findings: Finding[] = [];
+  if (profile === undefined) return findings;
   const directives: { node: ts.Node; text: string }[] = [];
   const imports: { node: ts.Node; target: string }[] = [];
   let hasServerOnly = false;
-  let hasDefineAction = false;
+  let hasBuilder = false;
   const visit = (node: ts.Node): void => {
     if (ts.isExpressionStatement(node) && ts.isStringLiteral(node.expression)) directives.push({ node, text: node.expression.text });
     const target = importTarget(node);
-    if (target !== undefined) imports.push({ node, target: resolveTarget(file, target) });
+    if (target !== undefined) imports.push({ node, target: resolveTarget(path, target) });
     if (ts.isImportDeclaration(node) && target === "server-only" && !node.importClause?.isTypeOnly) hasServerOnly = true;
-    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "defineAction") hasDefineAction = true;
+    if (ts.isCallExpression(node) && profile.actionBuilders.includes(calleeRoot(node.expression) ?? "")) hasBuilder = true;
     ts.forEachChild(node, visit);
   };
   visit(source);
-  const findings: Finding[] = [];
-  const add = (rule: string, message: string, node?: ts.Node): void => {
-    findings.push({ file, rule, line: node ? source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 : 1, message });
+  const add = (rule: string, key: ContentMessage, node?: ts.Node): void => {
+    findings.push({ file, rule, line: node ? source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 : 1, message: message(profile, key) });
   };
-  if (serverFile.test(file) && !TEST_FILE.test(file) && !hasServerOnly) {
-    add("server-only", 'Import "server-only" in module server.ts and server/ files; client-safe code belongs in components/ or index.ts.');
-  }
+  if (profile.serverFile?.test(path) && !TEST_FILE.test(path) && !hasServerOnly) add("server-only", "serverOnly");
   const serverDirectives = directives.filter(({ text }) => text === "use server");
-  const isAction = actionFile.test(file);
-  const invalidServer = serverDirectives.find(({ node }) => !isAction || node !== source.statements[0]);
-  if (invalidServer || (isAction && (!serverDirectives.some(({ node }) => node === source.statements[0]) || !hasDefineAction))) {
-    add(
-      "use-server-placement",
-      'Put "use server" first in src/modules/<module>/actions/<name>-action.ts and call defineAction from src/shared/lib/define-action.ts.',
-      invalidServer?.node ?? serverDirectives[0]?.node,
-    );
+  if (profile.actionFile) {
+    const isAction = profile.actionFile.test(path);
+    const invalidServer = serverDirectives.find(({ node }) => !isAction || node !== source.statements[0]);
+    if (invalidServer || (isAction && (!serverDirectives.some(({ node }) => node === source.statements[0]) || !hasBuilder))) {
+      add("use-server-placement", "useServer", invalidServer?.node ?? serverDirectives[0]?.node);
+    }
   }
   const clientDirectives = directives.filter(({ text }) => text === "use client");
   for (const directive of clientDirectives) {
-    if (!clientFile.test(file))
-      add(
-        "use-client-placement",
-        'Put "use client" in module components/, shared components/ui/hooks, or src/app error.tsx and global-error.tsx.',
-        directive.node,
-      );
+    if (profile.clientFile && !profile.clientFile.test(path)) add("use-client-placement", "useClient", directive.node);
   }
   for (const { node, target } of imports) {
     const isServer = /(?:^|\/)server(?:\.tsx?$|\/|$)/.test(target);
-    if (clientDirectives.length > 0 && isServer) {
-      add(
-        "client-imports-server",
-        "Import client-safe code through a module's index.ts or actions/<name>-action.ts; server.ts and server/ belong on the server.",
-        node,
-      );
-    }
-    if (/^src\/modules\/[^/]+\/index\.ts$/.test(file) && (isServer || /^src\/modules\/[^/]+\/actions(?:\/|$)/.test(target))) {
-      add("index-exports", "Keep index.ts client-safe: expose queries through server.ts and import mutations directly from actions/<name>-action.ts.", node);
-    }
+    if (clientDirectives.length > 0 && isServer) add("client-imports-server", "clientImportsServer", node);
+    if (profile.publicIndex?.test(path) && (isServer || profile.actionImport?.test(target))) add("index-exports", "indexExports", node);
   }
   return findings;
 }
@@ -116,34 +115,31 @@ function rawError(node: ts.Node): boolean {
   return false;
 }
 
-function inspect(root: string, file: string, source: ts.SourceFile): Finding[] {
-  const findings = auditDirectives(file, source);
+/** Content findings for one file against the given target's profile; auditContent resolves the target from the workspace. */
+export function auditSource(root: string, target: ContentTarget, text: string): Finding[] {
+  const source = ts.createSourceFile(target.file, text, ts.ScriptTarget.Latest, true);
+  const { file, path, profile } = target;
+  const findings = auditDirectives(target, source);
   const add = (rule: string, message: string, node?: ts.Node): void => {
     findings.push({ rule, file, line: node ? source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 : 1, message });
   };
   const count = source.text.split(/\r\n|\r|\n/).length - (/(?:\r\n|\r|\n)$/.test(source.text) ? 1 : 0);
-  if (/(?:^|\/)page\.tsx$/.test(file) && count > MAX_PAGE_LINES) {
-    add("thin-page", `page.tsx has ${count} lines (maximum ${MAX_PAGE_LINES}); move UI into src/modules/<module>/components/ and import it through index.ts.`);
+  if (profile && target.pageLines !== undefined && /(?:^|\/)page\.tsx$/.test(path) && count > target.pageLines) {
+    add("thin-page", message(profile, "thinPage", { count: String(count), max: String(target.pageLines) }));
   }
-  if (/^src\/modules\/[^/]+\/domain\/(?:[^/]+\/)?[^/]+\.ts$/.test(file) && !TEST_FILE.test(file)) {
+  if (profile?.domainFile?.test(path) && !TEST_FILE.test(path)) {
     const test = file.replace(/\.ts$/, ".test.ts");
-    if (!existsSync(join(root, test))) add("domain-test", `Put the domain rule's test beside it at ${test}.`);
+    if (!existsSync(join(root, test))) add("domain-test", message(profile, "domainTest", { test }));
   }
-  const checkEnvironment = file.startsWith("src/") && file !== "src/shared/lib/env.ts";
-  const checkErrors = !TEST_FILE.test(file) && (file.startsWith("src/app/") || /(?:^|\/)components\//.test(file));
+  const checkEnvironment = profile?.envScope?.test(path) === true && path !== profile.envFile;
+  const checkErrors = !TEST_FILE.test(path) && profile?.errorScope?.test(path) === true;
   const checkDeterminism = TEST_FILE.test(file) && !seedMarkers.some((marker) => source.text.includes(marker));
   const visit = (node: ts.Node): void => {
     const access = property(node);
-    if (checkEnvironment && access?.name === "env" && isName(access.object, "process")) {
-      add("env-access", "Read and validate environment variables in src/shared/lib/env.ts; import its typed env value here.", node);
-    }
+    if (profile && checkEnvironment && access?.name === "env" && isName(access.object, "process")) add("env-access", message(profile, "envAccess"), node);
     const errorString = ts.isCallExpression(node) && isName(node.expression, "String") && node.arguments.some(rawError);
-    if (checkErrors && ((access && rawError(access.object) && ["message", "stack"].includes(access.name)) || errorString)) {
-      add(
-        "error-text",
-        "Use UserError and user-facing error helpers from src/shared/lib/user-error.ts; keep raw error details in src/shared/lib/log.ts.",
-        node,
-      );
+    if (profile && checkErrors && ((access && rawError(access.object) && ["message", "stack"].includes(access.name)) || errorString)) {
+      add("error-text", message(profile, "errorText"), node);
     }
     const leak = checkDeterminism ? nondeterminism(node) : undefined;
     if (leak)
@@ -154,11 +150,16 @@ function inspect(root: string, file: string, source: ts.SourceFile): Finding[] {
   return findings;
 }
 
+function targetOf(harness: Harness, file: string): ContentTarget {
+  const found = workspaceOf(harness.workspaces, file);
+  if (found === undefined) return { file, path: file };
+  const shape = found.entry.shapeImpl;
+  return { file, path: found.path, profile: shape.content, pageLines: shape.limits.pageLines };
+}
+
 export function auditContent(root: string, files: string[]): Finding[] {
+  const harness = resolveHarness(root);
   return files
-    .filter((file) => /\.tsx?$/.test(file) && !isVendored(file))
-    .flatMap((file) => {
-      const source = ts.createSourceFile(file, readFileSync(join(root, file), "utf8"), ts.ScriptTarget.Latest, true);
-      return inspect(root, file, source);
-    });
+    .filter((file) => /\.tsx?$/.test(file) && !isVendoredIn(harness, file))
+    .flatMap((file) => auditSource(root, targetOf(harness, file), readFileSync(join(root, file), "utf8")));
 }

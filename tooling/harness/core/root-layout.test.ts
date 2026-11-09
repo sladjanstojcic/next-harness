@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG, type HarnessConfig } from "../config.ts";
 import { makeRepo } from "../testing/temp-repo.ts";
+import { auditContent } from "./audit/content-rules.ts";
+import { codeIndex } from "./code-index.ts";
 import { nextModules } from "../shapes/next-modules.ts";
 import { checkPath, resolveHarness } from "./path-check.ts";
 import { rootEntries } from "./root-layout.ts";
@@ -76,5 +78,16 @@ describe("checkPath with a configured workspace", () => {
 
   it.each(["apps/web/src/modules/a/index.ts", "turbo.json", "docs/x.md", "apps/web/package.json", "harness.config.ts"])("allows %s", (file) => {
     expect(checkPath(file, harness)).toEqual({ ok: true });
+  });
+
+  it("reads the content profile against the workspace-relative path", () => {
+    const file = "apps/web/src/modules/a/server/get.ts";
+    const repo = makeRepo({ "harness.config.ts": `export default ${JSON.stringify(config)};\n`, [file]: "export const get = 1;\n" });
+    expect(auditContent(repo.root, [file]).map((finding) => finding.rule)).toEqual(["server-only"]);
+  });
+
+  it("lists a configured workspace under its path", () => {
+    const repo = makeRepo({ "harness.config.ts": `export default ${JSON.stringify(config)};\n`, "apps/web/src/shared/lib/format.ts": "export const f = 1;\n" });
+    expect(codeIndex(repo.root)).toContain("\n\n# apps/web\n\n## shared/lib\n\n- `format.ts`: `f`\n");
   });
 });

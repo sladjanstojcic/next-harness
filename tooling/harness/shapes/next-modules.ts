@@ -1,5 +1,19 @@
+import { join } from "node:path";
 import { MAX_FILE_LINES, MAX_FOLDER_FILES, MAX_PAGE_LINES } from "./limits.ts";
-import { deny, GENERIC_FOLDERS, INTERCEPTING_SEGMENT, KEBAB, matchesEntry, nameDenial, ROUTE_SEGMENT, type PathVerdict, type Shape } from "./shape.ts";
+import {
+  deny,
+  exportLine,
+  GENERIC_FOLDERS,
+  INTERCEPTING_SEGMENT,
+  KEBAB,
+  matchesEntry,
+  nameDenial,
+  ROUTE_SEGMENT,
+  sortedEntries,
+  type ContentProfile,
+  type PathVerdict,
+  type Shape,
+} from "./shape.ts";
 
 export const VENDORED: readonly string[] = ["src/shared/ui/", "src/shared/lib/utils.ts"];
 export const TEST_FILE = /\.test\.tsx?$/;
@@ -88,6 +102,54 @@ function checkShared(parts: string[]): PathVerdict {
   return { ok: true };
 }
 
+const content: ContentProfile = {
+  actionFile: /^src\/modules\/[^/]+\/actions\/[^/]+-action\.ts$/,
+  actionBuilders: ["defineAction"],
+  serverFile: /^src\/modules\/[^/]+\/server(?:\.ts$|\/)/,
+  clientFile: /^(?:src\/modules\/[^/]+\/components\/|src\/shared\/(?:components|ui|hooks)\/|src\/app\/(?:.*\/)?error\.tsx$|src\/app\/global-error\.tsx$)/,
+  publicIndex: /^src\/modules\/[^/]+\/index\.ts$/,
+  actionImport: /^src\/modules\/[^/]+\/actions(?:\/|$)/,
+  envFile: "src/shared/lib/env.ts",
+  envScope: /^src\//,
+  domainFile: /^src\/modules\/[^/]+\/domain\/(?:[^/]+\/)?[^/]+\.ts$/,
+  errorScope: /^src\/app\/|(?:^|\/)components\//,
+  messages: {
+    serverOnly: 'Import "server-only" in module server.ts and server/ files; client-safe code belongs in components/ or index.ts.',
+    useServer: 'Put "use server" first in src/modules/<module>/actions/<name>-action.ts and call defineAction from src/shared/lib/define-action.ts.',
+    useClient: 'Put "use client" in module components/, shared components/ui/hooks, or src/app error.tsx and global-error.tsx.',
+    clientImportsServer: "Import client-safe code through a module's index.ts or actions/<name>-action.ts; server.ts and server/ belong on the server.",
+    indexExports: "Keep index.ts client-safe: expose queries through server.ts and import mutations directly from actions/<name>-action.ts.",
+    thinPage: "page.tsx has {count} lines (maximum {max}); move UI into src/modules/<module>/components/ and import it through index.ts.",
+    domainTest: "Put the domain rule's test beside it at {test}.",
+    envAccess: "Read and validate environment variables in src/shared/lib/env.ts; import its typed env value here.",
+    errorText: "Use UserError and user-facing error helpers from src/shared/lib/user-error.ts; keep raw error details in src/shared/lib/log.ts.",
+  },
+};
+
+function codeIndex(workspaceDir: string): string[] {
+  const lines: string[] = [];
+  const append = (base: string, file: string): void => {
+    const line = exportLine(base, file);
+    if (line !== undefined) lines.push(line);
+  };
+  const modules = join(workspaceDir, "src/modules");
+  for (const entry of sortedEntries(modules).filter((entry) => entry.isDirectory())) {
+    lines.push("", `## ${entry.name}`, "");
+    const base = join(modules, entry.name);
+    append(base, "index.ts");
+    append(base, "server.ts");
+    for (const action of sortedEntries(join(base, "actions")).filter((entry) => entry.isFile() && entry.name.endsWith("-action.ts"))) {
+      append(base, `actions/${action.name}`);
+    }
+  }
+  lines.push("", "## shared/lib", "");
+  const shared = join(workspaceDir, "src/shared/lib");
+  for (const entry of sortedEntries(shared).filter((entry) => entry.isFile() && /\.tsx?$/.test(entry.name) && !TEST_FILE.test(entry.name))) {
+    append(shared, entry.name);
+  }
+  return lines;
+}
+
 export const nextModules: Shape = {
   name: "next-modules",
   topEntries,
@@ -129,4 +191,6 @@ export const nextModules: Shape = {
     if (parts[0] !== "src" || parts[1] !== "modules" || !parts[2] || parts.length < 4 || TEST_FILE.test(path)) return undefined;
     return MODULE_ENTRIES.includes(name) ? undefined : parts[2];
   },
+  content,
+  codeIndex,
 };
