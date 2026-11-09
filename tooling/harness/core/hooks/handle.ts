@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { formatFindings } from "../audit/finding.ts";
+import { loadConfig } from "../../config.ts";
+import { formatFindings, type Finding } from "../audit/finding.ts";
+import { legacyInvalidFindings } from "../classes.ts";
 import { decideStop, startTask, taskState } from "../gates/repair-budget.ts";
 import { lockFindings } from "../lock.ts";
 import { changedSince, snapshotTree } from "../state/snapshot.ts";
@@ -30,9 +32,16 @@ export async function handleEvent(event: HookEvent, root: string): Promise<Outco
       if (event.toolName === "Bash") {
         const shell = readState(root, sessionFile("shell", event.sessionId), z.object({ tree: z.string() }));
         if (!shell) return { kind: "allow" };
-        const { auditChanged } = await import("../audit/audit.ts");
         const changed = changedSince(root, shell.tree);
-        const findings = [...lockFindings(root, changed), ...auditChanged(root, changed)];
+        const config = loadConfig(root);
+        const findings: Finding[] = [...lockFindings(root, changed, config), ...legacyInvalidFindings(root, config)];
+        try {
+          const { auditChanged } = await import("../audit/audit.ts");
+          const { dropUnownedHarnessFindings } = await import("../classes.ts");
+          findings.push(...dropUnownedHarnessFindings(root, auditChanged(root, changed)));
+        } catch (error) {
+          findings.push({ rule: "audit-failed", file: "", message: error instanceof Error ? error.message : String(error) });
+        }
         return findings.length === 0 ? { kind: "allow" } : { kind: "block", reason: formatFindings(findings), findings };
       }
       const { fastGate } = await import("../gates/fast-gate.ts");

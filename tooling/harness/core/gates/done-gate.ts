@@ -4,8 +4,11 @@ import { stripVTControlCharacters } from "node:util";
 import { z } from "zod";
 import { audit } from "../audit/audit.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
+import { ALWAYS_BLOCKS, classify, HARNESS_RULES, legacyInvalidFindings, readLegacy, type PathClass } from "../classes.ts";
 import { realPath } from "../hooks/shell.ts";
+import { legacyAppendFindings } from "../legacy.ts";
 import { lockFindings } from "../lock.ts";
+import { resolveHarness } from "../path-check.ts";
 import { withGateLock } from "../state/run-lock.ts";
 import { stateDir } from "../state/state-file.ts";
 import { eslintFindings, selectedPaths } from "./fast-gate.ts";
@@ -166,7 +169,14 @@ async function runDoneGate(directory: string, changed: string[]): Promise<GateRe
   await run("next", ["typegen"], () => []);
   await run("tsc", ["--noEmit", "--incremental", "--pretty", "false"], (stdout) => typeFindings(directory, stdout));
   if (sources.length > 0) await run("eslint", ["--format", "json", "--no-warn-ignored", "--", ...sources], (stdout) => eslintFindings(directory, stdout));
-  all.push(...audit(directory), ...lockFindings(directory, changedPaths));
+  const harness = resolveHarness(directory);
+  const legacy = readLegacy(directory, harness.config);
+  all.push(
+    ...audit(directory),
+    ...lockFindings(directory, changedPaths, harness.config),
+    ...legacyAppendFindings(directory, harness.config),
+    ...legacyInvalidFindings(directory, harness.config),
+  );
   // JSON depcruise exits zero even when its summary contains violations.
   await run("depcruise", ["src", "--config", ".dependency-cruiser.json", "--output-type", "json"], (stdout) => {
     dependencies.result = dependencyResult(directory, stdout, changedPaths);
@@ -184,9 +194,13 @@ async function runDoneGate(directory: string, changed: string[]): Promise<GateRe
     fs.rmSync(output, { recursive: true, force: true });
   }
   await run("vitest", ["related", "--run", "--passWithNoTests", ...changedPaths], () => []);
-  const blocks = (finding: Finding): boolean => finding.rule.endsWith("-failed") || blockingPaths.has(finding.file);
+  const isHarnessRule = (finding: Finding): boolean => HARNESS_RULES.has(finding.rule);
+  const classOf = (finding: Finding): PathClass => classify(finding.file, harness, legacy);
+  const blocks = (finding: Finding): boolean =>
+    ALWAYS_BLOCKS(finding) || (blockingPaths.has(finding.file) && (!isHarnessRule(finding) || classOf(finding) === "owned"));
   const findings = all.filter(blocks);
-  const preExisting = all.filter((finding) => !blocks(finding));
+  // Upstream tool findings outside this turn's files are the kit's, not the agent's: dropped rather than reported.
+  const preExisting = all.filter((finding) => !blocks(finding) && (isHarnessRule(finding) || classOf(finding) !== "upstream"));
   const report = [stableReport(findings), preExisting.length > 0 ? `Outside this turn's files (not blocking):\n${stableReport(preExisting)}` : ""]
     .filter(Boolean)
     .join("\n\n");
