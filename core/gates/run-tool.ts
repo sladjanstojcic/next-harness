@@ -7,6 +7,7 @@ import type { Finding } from "../audit/finding.ts";
 export interface ToolStep {
   name: string;
   command: string[];
+  cwd?: string;
   timeoutMs?: number;
   findings(stdout: string, exitCode: number): Finding[];
 }
@@ -53,7 +54,7 @@ function execute(root: string, step: ToolStep): Promise<Execution> {
     let stderr = "";
     let timedOut = false;
     let settled = false;
-    const child = spawn(file, args, { cwd: root, env: childEnvironment(root), detached: true, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(file, args, { cwd: step.cwd ?? root, env: childEnvironment(root), detached: true, stdio: ["ignore", "pipe", "pipe"] });
     const timer = setTimeout(() => {
       timedOut = true;
       if (child.pid !== undefined) {

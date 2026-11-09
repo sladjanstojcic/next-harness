@@ -46,6 +46,7 @@ export const CONFIG_FILE = "harness.config.ts";
 
 export const DEFAULT_CONFIG: HarnessConfig = {
   workspaces: [{ path: ".", shape: "next-modules", tools: "eslint-prettier", next: true }],
+  analysis: ["depcruise", "knip", "jscpd"],
 };
 
 export function defineHarness(config: HarnessConfig): HarnessConfig {

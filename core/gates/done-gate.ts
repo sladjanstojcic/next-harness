@@ -11,11 +11,11 @@ import { resolveHarness } from "../path-check.ts";
 import { withGateLock } from "../state/run-lock.ts";
 import { stateDir } from "../state/state-file.ts";
 import { depcruise, jscpd, knip } from "../../tools/analysis.ts";
-import { rootTools } from "../../tools/index.ts";
+import { workspaceTools } from "../../tools/index.ts";
 import { relativePath } from "../../tools/tool-set.ts";
-import { selectedPaths } from "./fast-gate.ts";
+import { runInWorkspace, selectedPaths } from "./fast-gate.ts";
 import type { GateResult } from "./gate-result.ts";
-import { runTool, type ToolStep } from "./run-tool.ts";
+import type { ToolStep } from "./run-tool.ts";
 
 // Tool failure output (notably Vitest) can contain timings; they must not reset identical-failure detection.
 function stableReport(findings: Finding[]): string {
@@ -35,17 +35,19 @@ async function runDoneGate(directory: string, changed: string[]): Promise<GateRe
   const changedPaths = new Set(changed.map((file) => relativePath(directory, file)));
   const harness = resolveHarness(directory);
   const legacy = readLegacy(directory, harness.config);
-  const workspace = rootTools(harness.workspaces);
+  const groups = workspaceTools(directory, harness.workspaces, [...changedPaths]);
+  const sources = selectedPaths(directory, changed, harness).filter((file) => /\.tsx?$/.test(file));
+  const sourceGroups = workspaceTools(directory, harness.workspaces, sources);
+  const analysis = new Set(harness.config.analysis ?? []);
   let affected: Set<string> | undefined;
   const all: Finding[] = [];
-  const run = async (step: ToolStep): Promise<void> => {
-    all.push(...(await runTool(directory, step)));
+  const run = async (workspacePath: string, step: ToolStep, optional = false): Promise<void> => {
+    all.push(...(await runInWorkspace(directory, workspacePath, step, optional)));
   };
-  if (workspace !== undefined) {
-    const { tools, next } = workspace;
-    const sources = selectedPaths(directory, changed, harness).filter((file) => /\.tsx?$/.test(file));
-    for (const step of tools.typecheck.incremental(directory, next)) await run(step);
-    if (sources.length > 0) await run(tools.lint.files(directory, sources, false));
+  for (const { workspace, tools, dir } of groups) {
+    for (const step of tools.typecheck.incremental(dir, workspace.next)) await run(workspace.path, step);
+    const files = sourceGroups.find((group) => group.workspace === workspace)?.files ?? [];
+    if (files.length > 0) await run(workspace.path, tools.lint.files(dir, files, false));
   }
   all.push(
     ...audit(directory),
@@ -53,21 +55,23 @@ async function runDoneGate(directory: string, changed: string[]): Promise<GateRe
     ...legacyAppendFindings(directory, harness.config),
     ...legacyInvalidFindings(directory, harness.config),
   );
-  if (workspace !== undefined) {
+  if (analysis.has("depcruise"))
     await run(
+      "",
       depcruise.report(directory, changedPaths, (result) => {
         affected = result;
       }),
     );
-    await run(knip.report(directory));
+  if (analysis.has("knip")) await run("", knip.report(directory));
+  if (analysis.has("jscpd")) {
     const output = fs.mkdtempSync(path.join(stateDir(directory), "jscpd-"));
     try {
-      await run(jscpd.report(directory, output));
+      await run("", jscpd.report(directory, output));
     } finally {
       fs.rmSync(output, { recursive: true, force: true });
     }
-    await run(workspace.tools.test.related(directory, [...changedPaths]));
   }
+  for (const { workspace, tools, dir, files } of groups) await run(workspace.path, tools.test.related(dir, files), true);
   const blockingPaths = affected ?? changedPaths;
   const isHarnessRule = (finding: Finding): boolean => HARNESS_RULES.has(finding.rule);
   const classOf = (finding: Finding): PathClass => classify(finding.file, harness, legacy);

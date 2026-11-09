@@ -190,7 +190,7 @@ describe("legacy list", () => {
 });
 
 describe("whole-repository audits", () => {
-  const nested = `export default { workspaces: [{ path: "apps/web", shape: "next-modules" }], legacy: "${LEGACY}" };\n`;
+  const nested = `export default { workspaces: [{ path: "apps/web", shape: "next-modules", tools: "none" }], legacy: "${LEGACY}" };\n`;
   const nestedRepo = () => makeRepo({ "harness.config.ts": nested, [LEGACY]: list(["apps/web/src/utils/x.ts"]), "apps/web/src/utils/x.ts": "export {};\n" });
 
   it("reports legacy findings in CI as pre-existing and still fails on owned files", async () => {
