@@ -46,7 +46,10 @@ where the code belongs, and the agent cannot edit the rules.
 
 **One shape.** Routes in `src/app/`, features in `src/modules/<module>/`, cross-cutting code in
 `src/shared/`. Nothing else under `src/`, and nothing new at the repository root without a deliberate
-entry in [`tooling/harness/shapes/next-modules.ts`](tooling/harness/shapes/next-modules.ts).
+entry. [`tooling/harness/shapes/next-modules.ts`](tooling/harness/shapes/next-modules.ts) defines the
+shape inside a workspace; [`tooling/harness/core/root-layout.ts`](tooling/harness/core/root-layout.ts)
+defines the repository root. An optional `harness.config.ts` adds workspaces, root entries and path
+classes; AGENTS.md describes it.
 
 ```text
 src/
@@ -154,7 +157,8 @@ the browser test starts its own production server.
 An agent that can edit the harness can switch it off, so it cannot. Locked: `tooling/harness/`,
 `.claude/settings.json`, `.codex/`, `.githooks/`, `.github/`, `tsconfig.json`, `next.config.ts`,
 `eslint.config.ts`, `prettier.config.ts`, `.prettierignore`, `knip.config.ts`, `vitest.config.ts`,
-`playwright.config.ts`, `.dependency-cruiser.json` and `.jscpd.json`. Edits by tool are denied, edits
+`playwright.config.ts`, `.dependency-cruiser.json`, `.jscpd.json` and `harness.config.ts` (creating it
+too), plus the legacy list and `locked` paths that config names. Edits by tool are denied, edits
 by shell are reported and block Done, and the unlock command is denied to agents.
 
 ```sh
@@ -188,11 +192,21 @@ up to five minutes.
 ## Inside `tooling/harness/`
 
 ```text
-cli.ts              hook <claude|codex> · check <fast|done|ci> · audit · blocks · lock · unlock
+cli.ts              hook <claude|codex> · check <fast|done|ci> · audit · blocks · legacy init · lock · unlock
+config.ts           defineHarness, loading harness.config.ts, workspaces and the longest-path match
 shapes/
-  next-modules.ts   the one definition: roots, shape, names
+  next-modules.ts   the next-modules shape: folders, names, content rules, vendored files
   limits.ts         file, folder and page size limits
+  shape.ts          the contract every shape implements
+tools/
+  eslint-prettier.ts the eslint-prettier tool set: format, lint, type check and test steps
+  typescript.ts     Next type generation, tsc steps and the compiler API
+  analysis.ts       depcruise, knip, jscpd, build and browser smoke steps
 core/
+  root-layout.ts    what may sit at the repository root, and JS_EXCEPTIONS
+  path-check.ts     one path check: the root layout, then the file's workspace shape
+  classes.ts        owned, upstream, legacy and vendored files, and what each one blocks
+  legacy.ts         the shrink-only legacy list and `legacy init`
   lock.ts           what is locked, and the four-hour unlock
   telemetry.ts      the block log and the false-block marker
   code-index.ts     the public-export index handed over at session start
@@ -200,7 +214,7 @@ core/
   audit/            path rules, content rules, duplicate exports
   gates/            fast, done and ci gates, the tool runner, the repair budget
   state/            tree snapshots, per-session state files and the gate lock under .git/harness/
-testing/            disposable git repositories, the decision corpus and config tests
+testing/            disposable git repositories, the decision corpus, the lint-config and server-only tests
 ```
 
 Every file obeys the same rules as application code.
@@ -226,6 +240,8 @@ Exact versions, no ranges; every config file is TypeScript.
   code is what the block log will tell. Say so rather than work around a wrong block.
 - Content rules are mostly regular expressions; the duplicate check is the only syntax-tree rule.
 - The fast gate was measured at about 1.6 s per edit on the empty template, not on a large project.
+- With a `harness.config.ts`, the gates run tools only for a workspace at the repository root.
+  Other workspaces get the audit, lock and legacy checks until the harness runs tools per workspace.
 - A cloned project keeps the harness version it was cloned with until the harness ships as a package.
 - The user-level Codex hook relies on Codex skipping project hooks in linked worktrees. If a later
   Codex loads them there, remove the user-level entries to avoid a double run.
