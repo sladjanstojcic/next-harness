@@ -67,7 +67,8 @@ export function checkPath(file: string, harness: Harness = DEFAULT_HARNESS): Pat
   const parts = scope.path.split("/");
   const top = parts[0] ?? "";
   const name = parts.at(-1) ?? "";
-  if (!scope.entries.has(top) || (parts.length > 1 && !scope.folders.has(top))) {
+  const patternEntry = parts.length === 1 && scope.shape?.topEntryPattern?.test(top) === true;
+  if ((!scope.entries.has(top) && !patternEntry) || (parts.length > 1 && !scope.folders.has(top))) {
     return deny("unknown-root", "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/.");
   }
   const shape = scope.shape?.topEntries.includes(top) ? scope.shape : undefined;

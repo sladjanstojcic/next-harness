@@ -1,13 +1,14 @@
 import { z } from "zod";
-import { loadConfig } from "../../config.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
 import { legacyInvalidFindings } from "../classes.ts";
 import { decideStop, startTask, taskState } from "../gates/repair-budget.ts";
 import { lockFindings } from "../lock.ts";
+import { resolveHarness } from "../path-check.ts";
 import { changedSince, snapshotTree } from "../state/snapshot.ts";
 import { readState, sessionFile, writeState } from "../state/state-file.ts";
 import type { HookEvent } from "./event.ts";
 import { checkGuards } from "./guards.ts";
+import { migrationFindings } from "./migration-guard.ts";
 import type { Outcome } from "./respond.ts";
 
 export async function handleEvent(event: HookEvent, root: string): Promise<Outcome> {
@@ -33,8 +34,13 @@ export async function handleEvent(event: HookEvent, root: string): Promise<Outco
         const shell = readState(root, sessionFile("shell", event.sessionId), z.object({ tree: z.string() }));
         if (!shell) return { kind: "allow" };
         const changed = changedSince(root, shell.tree);
-        const config = loadConfig(root);
-        const findings: Finding[] = [...lockFindings(root, changed, config), ...legacyInvalidFindings(root, config)];
+        const harness = resolveHarness(root);
+        const { config } = harness;
+        const findings: Finding[] = [
+          ...lockFindings(root, changed, config),
+          ...migrationFindings(root, harness, changed, shell.tree),
+          ...legacyInvalidFindings(root, config),
+        ];
         try {
           const { auditChanged } = await import("../audit/audit.ts");
           const { dropUnownedHarnessFindings } = await import("../classes.ts");
@@ -56,7 +62,7 @@ export async function handleEvent(event: HookEvent, root: string): Promise<Outco
         return { kind: "allow" };
       }
       const { doneGate } = await import("../gates/done-gate.ts");
-      const result = await doneGate(root, changedSince(root, state.tree));
+      const result = await doneGate(root, changedSince(root, state.tree), state.tree);
       const { verdict, next } = decideStop(state, result);
       writeState(root, task, next);
       if (verdict === "block") return { kind: "block", reason: result.report, findings: result.findings };

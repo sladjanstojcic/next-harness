@@ -6,6 +6,7 @@ import { formatFindings, type Finding } from "../audit/finding.ts";
 import { ALWAYS_BLOCKS, classify, HARNESS_RULES, legacyInvalidFindings, readLegacy, type PathClass } from "../classes.ts";
 import { realPath } from "../hooks/shell.ts";
 import { legacyAppendFindings } from "../legacy.ts";
+import { migrationFindings } from "../hooks/migration-guard.ts";
 import { lockFindings } from "../lock.ts";
 import { resolveHarness } from "../path-check.ts";
 import { withGateLock } from "../state/run-lock.ts";
@@ -24,14 +25,15 @@ function stableReport(findings: Finding[]): string {
     .replace(/\b\d+(?:\.\d+)?\s*(?:ms|s|seconds|milliseconds)\b/g, "<duration>");
 }
 
-export async function doneGate(root: string, changed: string[]): Promise<GateResult> {
+/** `base` is the task's starting tree; without it, changed migrations are judged against HEAD. */
+export async function doneGate(root: string, changed: string[], base?: string): Promise<GateResult> {
   if (changed.length === 0) return { passed: true, findings: [], preExisting: [], report: "" };
   const directory = realPath(path.resolve(root));
   // Type generation and incremental tsc write shared files; parallel agents in one checkout take turns.
-  return withGateLock(directory, () => runDoneGate(directory, changed));
+  return withGateLock(directory, () => runDoneGate(directory, changed, base));
 }
 
-async function runDoneGate(directory: string, changed: string[]): Promise<GateResult> {
+async function runDoneGate(directory: string, changed: string[], base: string | undefined): Promise<GateResult> {
   const changedPaths = new Set(changed.map((file) => relativePath(directory, file)));
   const harness = resolveHarness(directory);
   const legacy = readLegacy(directory, harness.config);
@@ -52,6 +54,7 @@ async function runDoneGate(directory: string, changed: string[]): Promise<GateRe
   all.push(
     ...audit(directory),
     ...lockFindings(directory, changedPaths, harness.config),
+    ...migrationFindings(directory, harness, changedPaths, base),
     ...legacyAppendFindings(directory, harness.config),
     ...legacyInvalidFindings(directory, harness.config),
   );
