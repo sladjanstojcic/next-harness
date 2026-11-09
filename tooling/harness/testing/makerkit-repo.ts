@@ -5,7 +5,10 @@ export const MAKERKIT_KIT_ROUTE = "apps/web/app/[locale]/home/[account]/billing"
 
 export function makerkitConfig(owned: readonly string[] = [`${MAKERKIT_ROUTE}/`, "packages/features/journal/", "apps/web/supabase/"]): string {
   return `export default {
-  workspaces: [{ path: "apps/web", shape: "makerkit-app", next: true }],
+  workspaces: [
+    { path: "apps/web", shape: "makerkit-app", next: true },
+    { path: "packages/features/*", shape: "makerkit-feature" },
+  ],
   owned: ${JSON.stringify(owned)},
   root: { entries: ["apps", "packages"] },
 };
@@ -18,7 +21,9 @@ import { BillingSchema } from "../schema/team-billing.schema";
 export const createCheckout = authActionClient.inputSchema(BillingSchema).action(async () => ({ ok: true }));
 `;
 
-/** oxy-app's layout in miniature: apps/web as a Makerkit app, kit packages beside it, committed env files and .mjs configs. */
+const ACCOUNTS_PACKAGE = `${JSON.stringify({ name: "@kit/accounts", exports: { "./api": "./src/server/api.ts", "./hooks/*": "./src/hooks/*.ts" } })}\n`;
+
+/** oxy-app's layout in miniature: apps/web as a Makerkit app, kit and owned feature packages beside it, committed env files and .mjs configs. */
 export function makerkitRepo(files: Record<string, string> = {}): RepoFixture {
   return makeRepo({
     "harness.config.ts": makerkitConfig(),
@@ -44,7 +49,11 @@ export function makerkitRepo(files: Record<string, string> = {}): RepoFixture {
     "apps/web/styles/globals.css": "\n",
     "apps/web/content/posts/hello.mdoc": "# Hello\n",
     "apps/web/supabase/config.toml": "\n",
-    "packages/features/accounts/package.json": "{}\n",
+    "packages/features/accounts/package.json": ACCOUNTS_PACKAGE,
+    "packages/features/accounts/src/server/api.ts": "export function createAccountsApi() { return {}; }\n",
+    "packages/features/accounts/src/hooks/use-update-account.ts": "export function useUpdateAccount() { return null; }\n",
+    "packages/features/accounts/src/hooks/use-user-workspace.ts": "export const useUserWorkspace = () => null;\n",
+    "packages/features/journal/package.json": "{}\n",
     "packages/ui/src/shadcn/button.tsx": "export const Button = () => null;\n",
     ...files,
   });

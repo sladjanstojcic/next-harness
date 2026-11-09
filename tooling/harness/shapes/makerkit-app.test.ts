@@ -122,9 +122,18 @@ describe("makerkit-app content", () => {
     const page = `${MAKERKIT_ROUTE}/page.tsx`;
     const repo = makerkitRepo({
       "harness.config.ts": makerkitConfig([`${MAKERKIT_ROUTE}/`, "apps/web/config/"]),
-      [page]: "export default function Page() { return process.env.NEXT_PUBLIC_SITE_URL; }\n",
+      [page]: "export default function Page() { return process.env.SUPABASE_SECRET_KEY; }\n",
     });
     expect(rulesOf(repo.root, [page, "apps/web/config/app.config.ts"])).toEqual([`${page} env-access`]);
+  });
+
+  it("allows NEXT_PUBLIC_* reads anywhere, but not other variables or a destructured env", () => {
+    const page = `${MAKERKIT_ROUTE}/_components/journal-link.tsx`;
+    const repo = makerkitRepo({
+      [page]:
+        'export const a = process.env.NEXT_PUBLIC_SITE_URL;\nexport const b = process.env["NEXT_PUBLIC_PRODUCT_NAME"];\nexport const c = process.env.EMAIL_SENDER;\nexport const { NEXT_PUBLIC_X } = process.env;\n',
+    });
+    expect(auditChanged(repo.root, [page]).map(({ rule, line }) => `${rule}:${line}`)).toEqual(["env-access:3", "env-access:4"]);
   });
 
   it("resolves ~/ aliases when a client component imports server code", () => {

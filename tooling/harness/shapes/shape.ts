@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 export type PathRule =
   "unknown-root" | "src-shape" | "app-file" | "module-shape" | "shared-shape" | "nesting" | "generic-folder" | "file-name" | "js-file" | "hidden-file";
@@ -63,14 +63,29 @@ export interface ContentProfile {
   envFile?: string;
   envScope?: RegExp;
   envAllowed?: RegExp;
+  /** Reads of process.env.NEXT_PUBLIC_* stay allowed everywhere: Next inlines them at build time. */
+  publicEnvAllowed?: boolean;
   domainFile?: RegExp;
   errorScope?: RegExp;
   messages: Record<ContentMessage, string>;
 }
 
-function exportsOf(file: string): string[] {
+/** The file a relative `export * from` names: ./x, ./x.ts, ./x.tsx or ./x/index.ts(x). */
+function reexportedFile(file: string, target: string): string | undefined {
+  const base = join(dirname(file), target);
+  return [base, `${base}.ts`, `${base}.tsx`, join(base, "index.ts"), join(base, "index.tsx")].find(
+    (candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile(),
+  );
+}
+
+function exportsOf(file: string, followStars = true): string[] {
   const source = fs.readFileSync(file, "utf8");
   const names = new Set<string>();
+  for (const match of source.matchAll(/\bexport\s+\*\s+(?:as\s+([\w$]+)\s+)?from\s+["'](\.[^"']*)["']/g)) {
+    const reexported = match[1] === undefined && followStars ? reexportedFile(file, match[2] ?? "") : undefined;
+    if (match[1]) names.add(match[1]);
+    for (const name of reexported === undefined ? [] : exportsOf(reexported, false)) names.add(name);
+  }
   for (const match of source.matchAll(/\bexport\s+(?:type\s+)?\{([^}]+)\}/g)) {
     for (const entry of (match[1] ?? "").split(",")) {
       const name = entry

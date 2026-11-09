@@ -135,6 +135,11 @@ function rawError(node: ts.Node): boolean {
   return false;
 }
 
+/** `process.env.NEXT_PUBLIC_*` read directly, which Next inlines at build time, in a profile that allows it. */
+function isPublicRead(profile: ContentProfile, env: ts.Node): boolean {
+  return profile.publicEnvAllowed === true && property(env.parent)?.name.startsWith("NEXT_PUBLIC_") === true;
+}
+
 /** Content findings for one file against the given target's profile; auditContent resolves the target from the workspace. */
 export function auditSource(root: string, target: ContentTarget, text: string): Finding[] {
   const source = ts.createSourceFile(target.file, text, ts.ScriptTarget.Latest, true);
@@ -156,7 +161,9 @@ export function auditSource(root: string, target: ContentTarget, text: string): 
   const checkDeterminism = TEST_FILE.test(file) && !seedMarkers.some((marker) => source.text.includes(marker));
   const visit = (node: ts.Node): void => {
     const access = property(node);
-    if (profile && checkEnvironment && access?.name === "env" && isName(access.object, "process")) add("env-access", message(profile, "envAccess"), node);
+    if (profile && checkEnvironment && access?.name === "env" && isName(access.object, "process") && !isPublicRead(profile, node)) {
+      add("env-access", message(profile, "envAccess"), node);
+    }
     const errorString = ts.isCallExpression(node) && isName(node.expression, "String") && node.arguments.some(rawError);
     if (profile && checkErrors && ((access && rawError(access.object) && ["message", "stack"].includes(access.name)) || errorString)) {
       add("error-text", message(profile, "errorText"), node);
