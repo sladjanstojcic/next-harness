@@ -104,6 +104,7 @@ const content: ContentProfile = {
   clientFile: /^(?:src\/modules\/[^/]+\/components\/|src\/shared\/(?:components|ui|hooks)\/|src\/app\/(?:.*\/)?error\.tsx$|src\/app\/global-error\.tsx$)/,
   publicIndex: /^src\/modules\/[^/]+\/index\.ts$/,
   actionImport: /^src\/modules\/[^/]+\/actions(?:\/|$)/,
+  aliases: { "@/": "src/" },
   envFile: "src/shared/lib/env.ts",
   envScope: /^src\//,
   domainFile: /^src\/modules\/[^/]+\/domain\/(?:[^/]+\/)?[^/]+\.ts$/,
@@ -176,6 +177,7 @@ export const nextModules: Shape = {
     return deny("src-shape", "Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/.");
   },
   vendored: VENDORED,
+  jsExceptions: [],
   routeRoot: "src/app/",
   limits: { fileLines: MAX_FILE_LINES, folderFiles: MAX_FOLDER_FILES, pageLines: MAX_PAGE_LINES },
   folderGuidance: () =>

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { CONFIG_FILE, DEFAULT_CONFIG, expandWorkspaces, loadConfig, workspaceOf, type HarnessConfig, type WorkspaceEntry } from "../config.ts";
-import { SHAPES } from "../shapes/index.ts";
+import { shapeOf } from "../shapes/index.ts";
 import { deny, KEBAB, matchesEntry, nameDenial, type PathVerdict, type Shape } from "../shapes/shape.ts";
 import { ROOT_KEBAB_FOLDERS, rootEntries, type RootLayout } from "./root-layout.ts";
 
@@ -17,7 +17,7 @@ function build(gitRoot: string, config: HarnessConfig, hasConfigFile: boolean): 
   return {
     config,
     root: rootEntries(config, hasConfigFile),
-    workspaces: expandWorkspaces(gitRoot, config).map((workspace) => ({ ...workspace, shapeImpl: SHAPES[workspace.shape] })),
+    workspaces: expandWorkspaces(gitRoot, config).map((workspace) => ({ ...workspace, shapeImpl: shapeOf(workspace.shape) })),
   };
 }
 
@@ -68,7 +68,7 @@ export function checkPath(file: string, harness: Harness = DEFAULT_HARNESS): Pat
   const shape = scope.shape?.topEntries.includes(top) ? scope.shape : undefined;
   const hidden = shape?.checkHidden(scope.path);
   if (hidden && !hidden.ok) return hidden;
-  if (/\.(?:js|mjs|cjs|jsx)$/i.test(name) && !harness.root.jsExceptions.has(file)) {
+  if (/\.(?:js|mjs|cjs|jsx)$/i.test(name) && !harness.root.jsExceptions.has(file) && !scope.shape?.jsExceptions.includes(scope.path)) {
     return deny("js-file", "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry.");
   }
   if (scope.kebabFolders.includes(top)) {

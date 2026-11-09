@@ -14,6 +14,7 @@ export interface Shape {
   isNameExempt(parts: readonly string[], index: number): boolean;
   checkPath(path: string): PathVerdict;
   vendored: readonly string[];
+  jsExceptions: readonly string[];
   routeRoot?: string;
   limits: { fileLines: number; folderFiles: number; pageLines: number };
   folderGuidance(folder: string): string;
@@ -51,8 +52,10 @@ export interface ContentProfile {
   clientFile?: RegExp;
   publicIndex?: RegExp;
   actionImport?: RegExp;
+  aliases: Readonly<Record<string, string>>;
   envFile?: string;
   envScope?: RegExp;
+  envAllowed?: RegExp;
   domainFile?: RegExp;
   errorScope?: RegExp;
   messages: Record<ContentMessage, string>;

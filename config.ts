@@ -3,10 +3,25 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { z } from "zod";
 
+const SHAPE_NAMES = ["next-modules", "makerkit-app", "makerkit-feature", "supabase"] as const;
+const TOOL_SET_NAMES = ["eslint-prettier", "oxc", "none"] as const;
+const ANALYSIS_NAMES = ["depcruise", "knip", "jscpd"] as const;
+
+export type ShapeName = (typeof SHAPE_NAMES)[number];
+export type ToolSetName = (typeof TOOL_SET_NAMES)[number];
+export type AnalysisName = (typeof ANALYSIS_NAMES)[number];
+
+const DEFAULT_TOOLS: Record<ShapeName, ToolSetName> = {
+  "next-modules": "eslint-prettier",
+  "makerkit-app": "oxc",
+  "makerkit-feature": "oxc",
+  supabase: "none",
+};
+
 export interface WorkspaceConfig {
   path: string;
-  shape: "next-modules";
-  tools?: "eslint-prettier";
+  shape: ShapeName;
+  tools?: ToolSetName;
   next?: boolean;
 }
 
@@ -16,12 +31,14 @@ export interface HarnessConfig {
   locked?: string[];
   legacy?: string;
   root?: { entries?: string[]; jsExceptions?: string[] };
+  env?: "all" | "local";
+  analysis?: AnalysisName[];
 }
 
 export interface WorkspaceEntry {
   path: string;
-  shape: WorkspaceConfig["shape"];
-  tools: "eslint-prettier";
+  shape: ShapeName;
+  tools: ToolSetName;
   next: boolean;
 }
 
@@ -52,18 +69,25 @@ const workspacePath = z
 const schema = z.strictObject({
   workspaces: z
     .array(
-      z.strictObject({
-        path: workspacePath,
-        shape: z.literal("next-modules"),
-        tools: z.literal("eslint-prettier").exactOptional(),
-        next: z.boolean().exactOptional(),
-      }),
+      z
+        .strictObject({
+          path: workspacePath,
+          shape: z.enum(SHAPE_NAMES),
+          tools: z.enum(TOOL_SET_NAMES).exactOptional(),
+          next: z.boolean().exactOptional(),
+        })
+        .refine((workspace) => workspace.shape !== "supabase" || (workspace.tools ?? "none") === "none", {
+          path: ["tools"],
+          message: 'must be "none" for the supabase shape',
+        }),
     )
     .min(1),
   owned: z.array(z.string().min(1)).exactOptional(),
   locked: z.array(z.string().min(1)).exactOptional(),
   legacy: z.string().min(1).exactOptional(),
   root: z.strictObject({ entries: z.array(z.string().min(1)).exactOptional(), jsExceptions: z.array(z.string().min(1)).exactOptional() }).exactOptional(),
+  env: z.enum(["all", "local"]).exactOptional(),
+  analysis: z.array(z.enum(ANALYSIS_NAMES)).exactOptional(),
 });
 
 export function loadConfig(gitRoot: string): HarnessConfig {
@@ -100,7 +124,7 @@ export function expandWorkspaces(gitRoot: string, config: HarnessConfig): Worksp
     return paths.map((workspacePath) => ({
       path: workspacePath,
       shape: workspace.shape,
-      tools: workspace.tools ?? "eslint-prettier",
+      tools: workspace.tools ?? DEFAULT_TOOLS[workspace.shape],
       next: workspace.next ?? false,
     }));
   });
