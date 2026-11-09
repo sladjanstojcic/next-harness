@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import { join } from "node:path";
+
 export type PathRule =
   "unknown-root" | "src-shape" | "app-file" | "module-shape" | "shared-shape" | "nesting" | "generic-folder" | "file-name" | "js-file" | "hidden-file";
 export type PathVerdict = { ok: true } | { ok: false; rule: PathRule; reason: string };
@@ -15,6 +18,8 @@ export interface Shape {
   limits: { fileLines: number; folderFiles: number; pageLines: number };
   folderGuidance(folder: string): string;
   sameNameScope(path: string): string | undefined;
+  content: ContentProfile;
+  codeIndex(workspaceDir: string): string[];
 }
 
 export const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -33,4 +38,57 @@ export function nameDenial(): PathVerdict {
 
 export function matchesEntry(entries: readonly string[], file: string): boolean {
   return entries.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) : file === entry));
+}
+
+export type ContentMessage =
+  "serverOnly" | "useServer" | "useClient" | "clientImportsServer" | "indexExports" | "thinPage" | "domainTest" | "envAccess" | "errorText";
+
+/** Workspace-relative patterns the core content rules read; a rule whose pattern is absent is off for the shape. */
+export interface ContentProfile {
+  actionFile?: RegExp;
+  actionBuilders: readonly string[];
+  serverFile?: RegExp;
+  clientFile?: RegExp;
+  publicIndex?: RegExp;
+  actionImport?: RegExp;
+  envFile?: string;
+  envScope?: RegExp;
+  domainFile?: RegExp;
+  errorScope?: RegExp;
+  messages: Record<ContentMessage, string>;
+}
+
+function exportsOf(file: string): string[] {
+  const source = fs.readFileSync(file, "utf8");
+  const names = new Set<string>();
+  for (const match of source.matchAll(/\bexport\s+(?:type\s+)?\{([^}]+)\}/g)) {
+    for (const entry of (match[1] ?? "").split(",")) {
+      const name = entry
+        .trim()
+        .replace(/^type\s+/, "")
+        .split(/\s+as\s+/)
+        .at(-1)
+        ?.trim();
+      if (name) names.add(name);
+    }
+  }
+  for (const match of source.matchAll(/\bexport\s+(?:async\s+|abstract\s+)?(?:function|const|let|type|interface|class|enum)\s+([\w$]+)/g)) {
+    if (match[1]) names.add(match[1]);
+  }
+  return [...names];
+}
+
+export function sortedEntries(directory: string): fs.Dirent[] {
+  return fs.existsSync(directory) ? fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name)) : [];
+}
+
+/** One code-index line listing a file's named exports, or undefined when the file is absent. */
+export function exportLine(base: string, file: string): string | undefined {
+  const absolute = join(base, file);
+  if (!fs.existsSync(absolute)) return undefined;
+  return `- \`${file}\`: ${
+    exportsOf(absolute)
+      .map((name) => `\`${name}\``)
+      .join(", ") || "(no named exports)"
+  }`;
 }

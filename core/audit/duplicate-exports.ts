@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import ts from "typescript";
-import { isVendored, TEST_FILE } from "../../shapes/next-modules.ts";
+import { TEST_FILE } from "../../shapes/next-modules.ts";
+import { ts } from "../../tools/typescript.ts";
+import { isVendoredIn, resolveHarness } from "../path-check.ts";
 import { listFiles } from "./list-files.ts";
 import type { Finding } from "./finding.ts";
 
@@ -72,9 +73,10 @@ function exportsOf(file: string, source: ts.SourceFile): Exported[] {
 
 export function findDuplicateExports(root: string, files: string[]): Finding[] {
   const selected = new Set(files);
+  const harness = resolveHarness(root);
   const byShape = new Map<string, Exported[]>();
   for (const file of listFiles(root)) {
-    if (!/\.tsx?$/.test(file) || isVendored(file) || TEST_FILE.test(file) || fixtureModule.test(file)) continue;
+    if (!/\.tsx?$/.test(file) || isVendoredIn(harness, file) || TEST_FILE.test(file) || fixtureModule.test(file)) continue;
     const source = ts.createSourceFile(file, readFileSync(join(root, file), "utf8"), ts.ScriptTarget.Latest, true);
     for (const exported of exportsOf(file, source)) byShape.set(exported.shape, [...(byShape.get(exported.shape) ?? []), exported]);
   }
