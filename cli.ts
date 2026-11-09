@@ -1,7 +1,9 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import path from "node:path";
 
-const INSTALL_COMMAND = /^\s*(?:cd\s+\S+\s*&&\s*)?(?:corepack\s+)?(?:pnpm|npm)\s+(?:install|i|ci)(?:\s|$)/;
+const INSTALL_COMMAND =
+  /^[ \t]*(?:cd[ \t]+[\w@./:=^~-]+[ \t]*&&[ \t]*)?(?:corepack[ \t]+)?(?:pnpm|npm)[ \t]+(?:install|i|ci)(?:[ \t]+--(?:frozen-lockfile|prefer-offline|offline|no-audit|no-fund|silent|ignore-scripts|loglevel=[a-z-]+|reporter=[a-z-]+))*[ \t]*$/;
 const INSTALL_HINT = "Harness dependencies are missing: run `pnpm install --frozen-lockfile` and `pnpm run prepare` before other tool calls.";
 
 function isMissingDependency(error: unknown): boolean {
@@ -20,6 +22,21 @@ function isInstallCommand(input: unknown): boolean {
   );
 }
 
+function gitRoot(cwd: string): string {
+  return execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+}
+
+function resolveRoot(cwd: string): string {
+  try {
+    return gitRoot(cwd);
+  } catch (error) {
+    const segments = cwd.split(path.sep);
+    const gitSegment = segments.lastIndexOf(".git");
+    if (gitSegment <= 0) throw error;
+    return gitRoot(segments.slice(0, gitSegment).join(path.sep) || path.sep);
+  }
+}
+
 const [command, mode, ...paths] = process.argv.slice(2);
 let preTool = false;
 let input: unknown;
@@ -29,7 +46,7 @@ try {
     input = JSON.parse(fs.readFileSync(0, "utf8"));
     preTool = typeof input === "object" && input !== null && "hook_event_name" in input && input.hook_event_name === "PreToolUse";
   }
-  const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd: process.cwd(), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  const root = resolveRoot(process.cwd());
   if (command === "hook" || command === "check" || command === "audit") (await import("./config.ts")).loadConfig(root);
   if (command === "hook" && (mode === "claude" || mode === "codex")) {
     const { parseEvent } = await import("./core/hooks/event.ts");
