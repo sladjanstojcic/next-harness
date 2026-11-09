@@ -30,6 +30,7 @@ try {
     preTool = typeof input === "object" && input !== null && "hook_event_name" in input && input.hook_event_name === "PreToolUse";
   }
   const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd: process.cwd(), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  if (command === "hook" || command === "check" || command === "audit") (await import("./config.ts")).loadConfig(root);
   if (command === "hook" && (mode === "claude" || mode === "codex")) {
     const { parseEvent } = await import("./core/hooks/event.ts");
     const { handleEvent } = await import("./core/hooks/handle.ts");
