@@ -54,4 +54,18 @@ describe("harness lock", () => {
     unlock(root);
     expect(lockFindings(root, ["tooling/harness/cli.ts"])).toEqual([]);
   });
+
+  it("does not report a locked file that a revert restored to its committed content", () => {
+    const repo = makeRepo({ "tooling/harness/cli.ts": "export const a = 1;\n", "eslint.config.ts": "export default [];\n" });
+    repo.write("tooling/harness/cli.ts", "export const a = 2;\n");
+    expect(lockFindings(repo.root, ["tooling/harness/cli.ts"]).map((finding) => finding.file)).toEqual(["tooling/harness/cli.ts"]);
+    repo.git("checkout", "--", "tooling/harness/cli.ts");
+    expect(lockFindings(repo.root, ["tooling/harness/cli.ts"])).toEqual([]);
+    repo.write("tooling/harness/new.ts", "export const b = 1;\n");
+    repo.remove("eslint.config.ts");
+    expect(lockFindings(repo.root, ["tooling/harness/new.ts", "eslint.config.ts"]).map((finding) => finding.file)).toEqual([
+      "tooling/harness/new.ts",
+      "eslint.config.ts",
+    ]);
+  });
 });
