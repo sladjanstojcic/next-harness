@@ -1,6 +1,6 @@
 import path from "node:path";
 import { classify, legacyInvalidFindings, readLegacy } from "../classes.ts";
-import { isLocked, lockReason, UNLOCK_COMMAND, unlocked } from "../lock.ts";
+import { INIT_FORCE_COMMAND, isLocked, lockReason, UNLOCK_COMMAND, unlocked } from "../lock.ts";
 import { isIgnored } from "../state/git-ignore.ts";
 import { checkPath, isVendoredIn, resolveHarness } from "../path-check.ts";
 import type { HookEvent } from "./event.ts";
@@ -52,6 +52,12 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
   if (event.command !== undefined) {
     if (UNLOCK_COMMAND.test(event.command)) {
       return { guard: "harness-lock", reason: "Unlocking the harness is the user's step: ask them to run `pnpm harness:unlock` in their own terminal." };
+    }
+    if (INIT_FORCE_COMMAND.test(event.command) && !unlocked(root)) {
+      return {
+        guard: "harness-lock",
+        reason: "`init --force` replaces locked harness wiring: ask the user to run it in their own terminal, or to unlock the harness first.",
+      };
     }
     const unquoted = event.command
       .replace(/\\(.)/g, "$1")

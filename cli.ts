@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 const INSTALL_COMMAND =
@@ -90,6 +91,19 @@ try {
     const { initLegacy } = await import("./core/legacy.ts");
     const { loadConfig } = await import("./config.ts");
     process.stdout.write(`${initLegacy(root, loadConfig(root))}\n`);
+  } else if (command === "init" && [mode, ...paths].every((flag) => flag === undefined || flag === "--force" || flag === "--codex-user")) {
+    const flags = [mode, ...paths];
+    const { initHarness } = await import("./core/init/init.ts");
+    const result = initHarness(root, flags.includes("--force"));
+    process.stdout.write(`${result.report}\n`);
+    if (result.ok && flags.includes("--codex-user")) {
+      const { installCodexHooks } = await import("./core/init/codex-user.ts");
+      const user = installCodexHooks(root, os.homedir());
+      process.stdout.write(
+        `Codex user hooks: ${String(user.added)} added in ${user.file}. They run only inside linked git worktrees; review them once in Codex with /hooks.\n`,
+      );
+    }
+    process.exitCode = result.ok ? 0 : 1;
   } else if ((command === "lock" || command === "unlock") && mode === undefined) {
     const { lock, unlock, UNLOCK_HOURS } = await import("./core/lock.ts");
     if (command === "unlock") {
@@ -100,7 +114,9 @@ try {
       process.stdout.write(`Harness locked in ${root}.\n`);
     }
   } else {
-    throw new Error("Usage: hook <claude|codex> | check <fast|done|ci> [paths…] | audit | blocks [--false <id> [note…]] | legacy init | lock | unlock");
+    throw new Error(
+      "Usage: hook <claude|codex> | check <fast|done|ci> [paths…] | audit | blocks [--false <id> [note…]] | legacy init | init [--force] [--codex-user] | lock | unlock",
+    );
   }
 } catch (error) {
   if (command === "hook" && isMissingDependency(error)) {

@@ -224,6 +224,20 @@ describe("harness lock guard", () => {
   });
 });
 
+describe("init --force guard", () => {
+  it("denies init --force while the harness is locked and allows it, and plain init, otherwise", () => {
+    const { root } = makeRepo();
+    for (const command of ["node tooling/harness/cli.ts init --force", "node tooling/harness/cli.ts init --codex-user --force", "pnpm harness:init --force"]) {
+      expect(checkGuards(shell(root, command), root)?.guard, command).toBe("harness-lock");
+    }
+    expect(checkGuards(shell(root, "node tooling/harness/cli.ts init"), root)).toBeNull();
+    expect(checkGuards(shell(root, "pnpm codex:hooks"), root)).toBeNull();
+    expect(checkGuards(shell(root, "node tooling/harness/cli.ts init && git commit --force-x"), root)).toBeNull();
+    unlock(root);
+    expect(checkGuards(shell(root, "node tooling/harness/cli.ts init --force"), root)).toBeNull();
+  });
+});
+
 describe("telemetry guard", () => {
   it("lets agents list blocks and only denies marking one false", () => {
     const { root } = makeRepo();

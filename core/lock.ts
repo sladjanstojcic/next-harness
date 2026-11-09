@@ -26,6 +26,8 @@ const LOCKED_PATHS: readonly string[] = [
   ".jscpd.json",
 ];
 export const UNLOCK_COMMAND = /\bharness:unlock\b|cli\.ts\s+unlock\b|harness\/unlock\.json/;
+/** `init --force` replaces locked wiring; while the harness is locked it is the user's command. */
+export const INIT_FORCE_COMMAND = /(?:\bharness:init\b|cli\.ts\s+init\b)[^;&|]*\s--force\b/;
 const unlockState = z.object({ until: z.number() });
 
 export function isLocked(file: string, config?: HarnessConfig): boolean {
