@@ -81,6 +81,16 @@ export function legacyInvalidFindings(gitRoot: string, config: HarnessConfig): F
   return [{ rule: "legacy-invalid", file: legacy, message }];
 }
 
+export const PRE_EXISTING_HEADING = "Pre-existing in legacy files (not blocking):";
+
+/** Whole-repository audits: harness-rule findings on legacy files are reported as pre-existing and never fail. */
+export function splitLegacy(gitRoot: string, findings: Finding[]): { blocking: Finding[]; preExisting: Finding[] } {
+  const harness = resolveHarness(gitRoot);
+  const legacy = readLegacy(gitRoot, harness.config);
+  const isLegacy = (finding: Finding): boolean => HARNESS_RULES.has(finding.rule) && classify(finding.file, harness, legacy) === "legacy";
+  return { blocking: findings.filter((finding) => !isLegacy(finding)), preExisting: findings.filter(isLegacy) };
+}
+
 /** Fast and post-command audits: harness rules judge owned files only; tool findings stay. */
 export function dropUnownedHarnessFindings(gitRoot: string, findings: Finding[]): Finding[] {
   const harness = resolveHarness(gitRoot);

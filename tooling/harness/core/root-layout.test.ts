@@ -53,6 +53,19 @@ describe("root layout", () => {
     expect(new Set([...rootEntries(DEFAULT_CONFIG).entries, ...nextModules.topEntries])).toEqual(new Set(TODAY_ROOT_ENTRIES));
   });
 
+  it("accepts the legacy file at the root when the config names one", () => {
+    expect(rootEntries({ ...DEFAULT_CONFIG, legacy: "harness-legacy.json" }).entries.has("harness-legacy.json")).toBe(true);
+    expect(
+      checkPath(
+        "harness-legacy.json",
+        resolveHarness(
+          makeRepo({ "harness.config.ts": 'export default { workspaces: [{ path: ".", shape: "next-modules" }], legacy: "harness-legacy.json" };\n' }).root,
+        ),
+      ),
+    ).toEqual({ ok: true });
+    expect(checkPath("harness-legacy.json")).toEqual(expect.objectContaining({ rule: "unknown-root" }));
+  });
+
   it("accepts harness.config.ts only when the file exists", () => {
     expect(rootEntries(DEFAULT_CONFIG).entries.has("harness.config.ts")).toBe(false);
     expect(
