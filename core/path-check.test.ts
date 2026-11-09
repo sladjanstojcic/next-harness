@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkPath } from "../shapes/next-modules.ts";
+import { checkPath } from "./path-check.ts";
 
 describe("checkPath", () => {
   it.each([
