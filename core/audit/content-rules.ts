@@ -32,12 +32,29 @@ function importTarget(node: ts.Node): string | undefined {
   return undefined;
 }
 
-function resolveTarget(profile: ContentProfile, file: string, target: string): string {
-  for (const [prefix, folder] of Object.entries(profile.aliases)) {
-    if (target.startsWith(prefix)) return posix.normalize(`${folder}${target.slice(prefix.length)}`);
-  }
+/** The longest matching alias prefix wins, so "~/config/" beats "~/" whatever the profile's key order. */
+export function resolveTarget(profile: ContentProfile, file: string, target: string): string {
+  const alias = Object.entries(profile.aliases)
+    .filter(([prefix]) => target.startsWith(prefix))
+    .sort(([a], [b]) => b.length - a.length)[0];
+  if (alias !== undefined) return posix.normalize(`${alias[1]}${target.slice(alias[0].length)}`);
   if (target.startsWith(".")) return posix.normalize(posix.join(posix.dirname(file), target));
   return target;
+}
+
+/** An import erased at compile time: `import type`, or named imports that are all `type`. */
+function isTypeOnlyImport(node: ts.Node): boolean {
+  if (!ts.isImportDeclaration(node) || node.importClause === undefined) return false;
+  const clause = node.importClause;
+  if (clause.isTypeOnly) return true;
+  const bindings = clause.namedBindings;
+  return (
+    clause.name === undefined &&
+    bindings !== undefined &&
+    ts.isNamedImports(bindings) &&
+    bindings.elements.length > 0 &&
+    bindings.elements.every((element) => element.isTypeOnly)
+  );
 }
 
 function calleeRoot(node: ts.Expression): string | undefined {
@@ -80,7 +97,8 @@ function auditDirectives({ file, path, profile }: ContentTarget, source: ts.Sour
   }
   for (const { node, target } of imports) {
     const isServer = /(?:^|\/)server(?:\.tsx?$|\/|$)/.test(target);
-    if (clientDirectives.length > 0 && isServer) add("client-imports-server", "clientImportsServer", node);
+    if (clientDirectives.length > 0 && isServer && !isTypeOnlyImport(node) && profile.actionImport?.test(target) !== true)
+      add("client-imports-server", "clientImportsServer", node);
     if (profile.publicIndex?.test(path) && (isServer || profile.actionImport?.test(target))) add("index-exports", "indexExports", node);
   }
   return findings;

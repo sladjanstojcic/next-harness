@@ -5,10 +5,14 @@ import { shapeOf } from "../shapes/index.ts";
 import { deny, KEBAB, matchesEntry, nameDenial, type PathVerdict, type Shape } from "../shapes/shape.ts";
 import { ROOT_KEBAB_FOLDERS, rootEntries, type RootLayout } from "./root-layout.ts";
 
+const CONFIGURED_JS_ADVICE =
+  "Use TypeScript (.ts/.tsx); a tool config that cannot be TypeScript needs an explicit JS_EXCEPTIONS entry, root.jsExceptions in harness.config.ts, or the workspace shape's jsExceptions.";
+
 type HarnessWorkspace = WorkspaceEntry & { shapeImpl: Shape };
 
 export interface Harness {
   config: HarnessConfig;
+  configured: boolean;
   root: RootLayout;
   workspaces: HarnessWorkspace[];
 }
@@ -16,6 +20,7 @@ export interface Harness {
 function build(gitRoot: string, config: HarnessConfig, hasConfigFile: boolean): Harness {
   return {
     config,
+    configured: hasConfigFile,
     root: rootEntries(config, hasConfigFile),
     workspaces: expandWorkspaces(gitRoot, config).map((workspace) => ({ ...workspace, shapeImpl: shapeOf(workspace.shape) })),
   };
@@ -69,7 +74,12 @@ export function checkPath(file: string, harness: Harness = DEFAULT_HARNESS): Pat
   const hidden = shape?.checkHidden(scope.path);
   if (hidden && !hidden.ok) return hidden;
   if (/\.(?:js|mjs|cjs|jsx)$/i.test(name) && !harness.root.jsExceptions.has(file) && !scope.shape?.jsExceptions.includes(scope.path)) {
-    return deny("js-file", "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry.");
+    return deny(
+      "js-file",
+      harness.configured
+        ? CONFIGURED_JS_ADVICE
+        : "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry.",
+    );
   }
   if (scope.kebabFolders.includes(top)) {
     for (const [index, part] of parts.entries()) {
