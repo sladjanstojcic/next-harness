@@ -2,21 +2,21 @@ import fs from "node:fs";
 import path from "node:path";
 import { format, resolveConfig } from "prettier";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { auditChanged } from "../audit/audit.ts";
-import { doneGate } from "../gates/done-gate.ts";
-import { fastGate } from "../gates/fast-gate.ts";
-import * as runner from "../gates/run-tool.ts";
-import { parseEvent, type Client } from "../hooks/event.ts";
-import { checkGuards } from "../hooks/guards.ts";
-import { handleEvent } from "../hooks/handle.ts";
-import { checkPath } from "../structure.ts";
+import { auditChanged } from "../core/audit/audit.ts";
+import { doneGate } from "../core/gates/done-gate.ts";
+import { fastGate } from "../core/gates/fast-gate.ts";
+import * as runner from "../core/gates/run-tool.ts";
+import { parseEvent, type Client } from "../core/hooks/event.ts";
+import { checkGuards } from "../core/hooks/guards.ts";
+import { handleEvent } from "../core/hooks/handle.ts";
+import { checkPath } from "../shapes/next-modules.ts";
 import { COMMANDS, GATE_SEEDS, PATHS, PRE_EXISTING_SEEDS } from "./decision-inputs.ts";
 import { templateRepo } from "./template-repo.ts";
 
 afterEach(() => vi.restoreAllMocks());
 
 const SNAPSHOT = path.join(import.meta.dirname, "decision-corpus.json");
-const FIXTURES = path.join(import.meta.dirname, "../hooks/fixtures");
+const FIXTURES = path.join(import.meta.dirname, "../core/hooks/fixtures");
 
 function guarded(build: () => ReturnType<typeof checkGuards>): unknown {
   try {
