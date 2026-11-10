@@ -2,6 +2,7 @@ import { posix } from "node:path";
 import { workspaceOf } from "../../config.ts";
 import { MAX_FOLDER_FILES } from "../../shapes/limits.ts";
 import { TEST_FILE } from "../../shapes/next-modules.ts";
+import { classify, readLegacy } from "../classes.ts";
 import { checkPath, isVendoredIn, resolveHarness, type Harness } from "../path-check.ts";
 import { ROOT_FOLDER_GUIDANCE, ROOT_KEBAB_FOLDERS } from "../root-layout.ts";
 import type { Finding } from "./finding.ts";
@@ -73,6 +74,8 @@ export function auditPaths(root: string, files: string[]): Finding[] {
     const verdict = checkPath(file, harness);
     if (!verdict.ok) findings.push({ rule: verdict.rule, file, message: verdict.reason });
   }
-  const inventory = listFiles(root);
+  // The kit's files are not the project's to move: they count neither towards a folder's size nor as a duplicate name.
+  const legacy = readLegacy(root, harness.config);
+  const inventory = listFiles(root).filter((file) => classify(file, harness, legacy) !== "upstream");
   return [...findings, ...folderFindings(harness, inventory, selected), ...duplicateFindings(harness, inventory, selected)];
 }
