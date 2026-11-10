@@ -6,6 +6,8 @@
 
 Clone it, and your Claude Code or Codex agent is told where code belongs, stopped before it writes a file in the wrong place, checked after every edit, and gated before it ends its turn.
 
+The same harness [installs into](#install-it) an existing Next.js project, a Turborepo and a Makerkit project.
+
 [![Check](https://github.com/sladjanstojcic/next-harness/actions/workflows/check.yml/badge.svg)](https://github.com/sladjanstojcic/next-harness/actions/workflows/check.yml)
 [![Node](https://img.shields.io/badge/node-24-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
 [![pnpm](https://img.shields.io/badge/pnpm-12.4.2-F69220?style=flat-square&logo=pnpm&logoColor=white)](https://pnpm.io)
@@ -14,7 +16,7 @@ Clone it, and your Claude Code or Codex agent is told where code belongs, stoppe
 [![Hooks](https://img.shields.io/badge/hooks-Claude%20Code%20%C2%B7%20Codex-6E56CF?style=flat-square)](#let-the-agent-in)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](./LICENSE)
 
-[Agent instructions](AGENTS.md) · [Review rubric](docs/review-rubric.md)
+[Install it](#install-it) · [Agent instructions](AGENTS.md) · [Review rubric](docs/review-rubric.md)
 
 </div>
 
@@ -49,10 +51,21 @@ where the code belongs, and the agent cannot edit the rules.
 entry. [`tooling/harness/shapes/next-modules.ts`](tooling/harness/shapes/next-modules.ts) defines the
 shape inside a workspace; [`tooling/harness/core/root-layout.ts`](tooling/harness/core/root-layout.ts)
 defines the repository root. An optional `harness.config.ts` adds workspaces, root entries and path
-classes; AGENTS.md describes it. With it, a monorepo can give each folder its own shape: `next-modules`
-(below), `makerkit-app` and `makerkit-feature` for a Makerkit app and its feature packages, and
-`supabase` for append-only migrations. Each workspace also gets a tool set: `eslint-prettier`, `oxc`
-(oxlint and oxfmt) or `none`.
+classes; AGENTS.md describes every field. With it, a monorepo can give each folder its own shape:
+`next-modules` (below), `makerkit-app` and `makerkit-feature` for a Makerkit app and its feature
+packages, and `supabase` for append-only migrations. Each workspace also gets a tool set:
+`eslint-prettier`, `oxc` (oxlint and oxfmt) or `none`.
+
+**Four classes of file.** Not every file in an adopted project is yours to fix, so each file has a class:
+
+| Class    | Which files                                           | Harness rules (paths, names, sizes, content) | Tool findings (types, lint, tests) |
+| -------- | ----------------------------------------------------- | -------------------------------------------- | ---------------------------------- |
+| owned    | match an `owned` prefix; every file when it is absent | block                                        | block                              |
+| legacy   | on the legacy list                                    | reported as pre-existing                     | block once the file is touched     |
+| upstream | everything else, such as kit code                     | not applied                                  | block when the file is changed     |
+| vendored | generated code, such as `src/shared/ui/`              | not applied                                  | direct edits are denied            |
+
+The shape below is `next-modules`, the one this template uses.
 
 ```text
 src/
@@ -110,9 +123,25 @@ src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cr
 utilities in src/shared/lib/.
 ```
 
-## Start a project
+## Install it
 
-Node 24 and pnpm 12.4.2.
+The harness is one folder, `tooling/harness/`, with the same hook wiring in every project. What differs
+between projects is one file at the repository root, `harness.config.ts`, which says which folder has
+which shape.
+
+| Your project                | How the harness arrives                | `harness.config.ts`                        | Linter and formatter                              |
+| --------------------------- | -------------------------------------- | ------------------------------------------ | ------------------------------------------------- |
+| New Next.js project         | clone this template                    | not needed                                 | ESLint and Prettier, ours                         |
+| Existing Next.js project    | `git subtree add`, then `init`         | not needed                                 | ESLint and Prettier, ours added                   |
+| Turborepo or other monorepo | `git subtree add`, config, then `init` | one workspace per app, plus a legacy list  | each app's own, ours added                        |
+| Makerkit project            | `git subtree add`, config, then `init` | the kit's folders, plus your `owned` paths | the kit's oxlint and oxfmt, ours as a second pass |
+
+All four need Node 24. The commands below are shown for pnpm; init prints each command in the project's
+own package manager, and npm and yarn use `workspaces` in `package.json` instead of `pnpm-workspace.yaml`.
+
+### A new Next.js project
+
+Clone the template. Everything is already wired.
 
 ```sh
 git clone https://github.com/sladjanstojcic/next-harness.git my-product && cd my-product
@@ -124,31 +153,178 @@ pnpm dev
 ```
 
 `rename` sets the package name, the dev port, the layout title and description, and this heading.
-`.env.example` documents the starting environment; no secrets are needed.
+`.env.example` documents the starting environment; no secrets are needed. This template pins pnpm 12.4.2.
+
+### An existing Next.js project
+
+For a single app at the repository root, such as `create-next-app` output with a `src/` folder. No config
+file is needed: the whole repository is one `next-modules` workspace.
+
+```sh
+git subtree add --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
+node tooling/harness/cli.ts init --starter   # first run: lists tooling/harness as a workspace package, then stops
+pnpm install
+node tooling/harness/cli.ts init --starter   # second run: writes the wiring, prints the next steps
+```
+
+Then do the printed steps in order. On a real `create-next-app` project there were seven:
+
+1. Install the harness's tools with the printed `pnpm add -D` line. Init installs nothing itself.
+2. Install `zod` and `server-only`, which the starter files import.
+3. Add the two printed lines to each config the project already had. Your `eslint.config.mjs` stays where
+   it is and imports the harness's rules; see [your own ESLint config](#your-own-eslint-config).
+4. `pnpm exec prettier --write .`, once, to format the app in the preset's style.
+5. `pnpm exec playwright install chromium`, for the smoke test.
+6. `git add -A && git commit -m "Add the harness"`.
+7. `pnpm run check`, the full gate.
+
+`--starter` copies the `src/shared/lib/` helpers that the content rules point at, and `e2e/smoke.test.ts`.
+Code that does not fit the shape yet shows up in step 7. Move it, or give the project a legacy list as
+the monorepo section below does.
+
+### A Turborepo or other monorepo
+
+Write `harness.config.ts` at the repository root before running init. Each app is a workspace with its
+own shape; folders outside every workspace get only the root layout rules.
+
+```ts
+import { defineHarness } from "./tooling/harness/config.ts";
+
+export default defineHarness({
+  workspaces: [
+    { path: "apps/dashboard", shape: "next-modules", next: true, test: "test" },
+    { path: "supabase", shape: "supabase" },
+  ],
+  legacy: "tooling/harness-legacy.json",
+  root: { entries: ["apps", "supabase", "turbo.json", "renovate.json"] },
+});
+```
+
+- `path: "apps/*"` makes every folder under `apps/` a workspace of that shape.
+- `test: "test"` runs the app's own `test` package script instead of Vitest. Leave it out for a Vitest app.
+- `legacy` names the file that lists old code. Leave it out for a monorepo with no old code.
+- `root.entries` names what may sit at the repository root besides the defaults.
+
+```sh
+git subtree add --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
+# write harness.config.ts
+node tooling/harness/cli.ts init    # first run adds tooling/harness to the workspace packages and stops
+pnpm install
+node tooling/harness/cli.ts init    # second run: writes the wiring, prints the next steps
+```
+
+The printed steps on a real Turborepo with one Next.js app were six: install the tools in the app's
+folder, add the two printed lines to the app's `eslint.config.mjs`, format that one file, write the
+legacy list, commit, run `pnpm run check`.
+
+**The legacy list.** `node tooling/harness/cli.ts legacy init` runs the tools once and lists every file
+that has a finding today. In that project it listed 710 files. From then on:
+
+- an untouched old file passes, and its findings are printed as a count per step;
+- a new file, and a file outside the list, is held to every rule;
+- an agent that changes an old file must fix that file's old tool findings before its turn ends;
+- the list may only shrink.
+
+In GitHub Actions the checkout needs `fetch-depth: 0`, because CI compares each legacy file with the
+default branch. Init prints the workflow steps with that line.
+
+A project that had its own Prettier style and its own ESLint version keeps both. Init does not reformat
+such an app and does not downgrade its tools.
+
+### A Makerkit project
+
+The kit's code stays the kit's. The harness judges only the paths you list in `owned`, and adds its lint
+rules as a second pass on those paths. The kit's `.oxlintrc.json`, `turbo.json` and other files are not
+edited by init, and your kit updates merge as before.
+
+```ts
+import { defineHarness } from "./tooling/harness/config.ts";
+
+export default defineHarness({
+  workspaces: [
+    { path: "apps/web", shape: "makerkit-app", next: true },
+    { path: "packages/features/*", shape: "makerkit-feature" },
+    { path: "apps/web/supabase", shape: "supabase" },
+  ],
+  owned: ["packages/features/journal/", "apps/web/app/[locale]/home/[account]/journal/", "apps/web/supabase/"],
+  env: "local",
+  locked: [".oxlintrc.json", ".oxfmtrc.jsonc", "turbo.json", "tooling/typescript/base.json", "apps/web/next.config.mjs"],
+});
+```
+
+- `owned` lists your own feature packages, routes and the Supabase folder. Every other file is upstream.
+  Add a path here, after `pnpm harness:unlock`, before an agent starts a new feature package; until then
+  the harness treats that folder as kit code and applies no shape rules to it.
+- `env: "local"` denies only `.env*.local`. The kit commits `.env`, `.env.development` and
+  `.env.production`, and they stay writable.
+- `locked` adds the kit's own configs to the lock, so an agent cannot loosen the kit's lint either.
+
+The commands are the same as for a monorepo: subtree add, config, init, install, init again. On a real
+Makerkit app init printed two steps: commit, then `pnpm run check`.
+
+What an agent meets in a Makerkit project:
+
+- **In your paths:** the Makerkit layout (`_components/`, `_lib/server/`, `server/actions/`, `schema/`),
+  size limits, no inline disables, package boundaries, and the harness's oxlint rules on top of the kit's.
+- **In kit files:** no harness rule. An edit is allowed. The kit's own type check, lint and tests still
+  block when the changed file fails them.
+- **In `supabase/`:** a migration that is already on the remote branch cannot be edited, deleted or moved.
+  A new migration is allowed. `supabase db push`, `supabase link` and the `supabase:deploy` script are
+  denied; applying a schema to a linked project is your step.
+
+The kit's `pnpm format:fix` and `manypkg fix` leave `tooling/harness/` alone: init lists it in
+`.prettierignore` and `.eslintignore`, and the harness's `package.json` declares no peers.
 
 ### Let the agent in
+
+The same in every project, because init writes the wiring this template ships with.
 
 - **Claude Code:** accept the workspace trust dialog. `.claude/settings.json` wires SessionStart,
   UserPromptSubmit, PreToolUse and PostToolUse (Bash, Edit, Write, NotebookEdit) and Stop.
 - **Codex:** trust the project's `.codex/` configuration and review the hooks in `/hooks`;
   `.codex/config.toml` turns the hooks feature on. In a linked git worktree Codex skips project hooks
-  (observed with Codex CLI 0.166.0). Run `pnpm codex:hooks` once: it installs the same hooks in
-  `~/.codex/hooks.json` with a command that fires only inside a linked worktree, so nothing runs twice
-  in a normal clone.
+  (observed with Codex CLI 0.166.0). Run `pnpm codex:hooks` once, or `node tooling/harness/cli.ts init --codex-user` in an adopting
+  project: it installs the
+  same hooks in `~/.codex/hooks.json` with a command that fires only inside a linked worktree, so nothing
+  runs twice in a normal clone.
 
-[AGENTS.md](AGENTS.md) is what the agent reads (Claude Code through `CLAUDE.md`): the shape, where
-each kind of code goes, the checks, and the things linters cannot see. Before writing Next.js code it
-is told to read the version-matched guides in `node_modules/next/dist/docs/`.
+[AGENTS.md](AGENTS.md) is what the agent reads in this template (Claude Code through `CLAUDE.md`): the
+shape, where each kind of code goes, the checks, and the things linters cannot see. Init does not write
+an `AGENTS.md` into an adopting project. Copy the sections that apply into yours: the layout of your
+shape, "Checks and when they run" and "Repair budget". Without them the agent still learns each rule from
+the denial that states it, one block at a time.
 
-## Commands
+### Update the harness
+
+In the repository that develops the harness, `pnpm harness:split` moves the local `harness` branch to a
+subtree split of `tooling/harness/`; `git push origin harness` publishes it. In a project that uses it:
+
+```sh
+git subtree pull --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
+node tooling/harness/cli.ts init    # adds wiring the new version needs; keeps what is already there
+```
+
+When the new version changed the hook wiring itself, init says so and stops; repeat it with `--force`.
+
+Run both in your own terminal, since `tooling/harness/` is locked for agents. `harness.config.ts` and the
+legacy list sit outside that folder, so a pull never overwrites them. If `git subtree` fails with
+"working tree has modifications" although `git status` is clean, run `git update-index --refresh` and
+repeat it.
+
+## Daily use
 
 ```sh
 pnpm check                 # the full gate; what pre-push and CI run
 pnpm run audit             # the harness audit alone (pnpm audit is pnpm's vulnerability scanner)
-pnpm vitest run <file>     # focused unit tests
 pnpm harness:blocks        # the block log
 pnpm harness:unlock        # open the harness for four hours; pnpm harness:lock closes it
+```
+
+Init adds these scripts to an adopting project. This template also has:
+
+```sh
 pnpm codex:hooks           # user-level Codex hooks for linked worktrees
+pnpm vitest run <file>     # focused unit tests
 pnpm harness:split         # point the local harness branch at a subtree split of tooling/harness/
 pnpm rename --name <pkg> --port <n> --title "<title>"
 ```
@@ -156,70 +332,69 @@ pnpm rename --name <pkg> --port <n> --title "<title>"
 Smoke uses `127.0.0.1:3210`; set `SMOKE_PORT` when that port is taken. The gate forces CI mode, so
 the browser test starts its own production server.
 
-`harness:split` only moves a local branch. Publishing it with `git push origin harness` is your step.
-Another repository then adds the harness with
-`git subtree add --prefix=tooling/harness <this repo> harness --squash` and updates it with
-`git subtree pull`. Its `harness.config.ts` stays outside that folder, so a pull never overwrites it.
-Adopting it in a project, in the order that works (shown for pnpm; npm and yarn use `workspaces` in
-`package.json` instead of `pnpm-workspace.yaml`):
+A working day with agents looks like this. You give the agent a task. It is stopped before a write in
+the wrong place and told where the code belongs. When it says it is done, the Done gate runs and sends
+it back with the findings, at most twice. You push, and the pre-push hook runs the full gate. Now and
+then you read `pnpm harness:blocks`; a rule that mostly blocks good code is a bug in the harness.
 
-1. `git subtree add --prefix=tooling/harness <this repo> harness --squash`, on a clean working tree. If it
-   fails with "working tree has modifications" although `git status` is clean (an install touched file times,
-   so git's index is stale), run `git update-index --refresh` and repeat it.
-2. `node tooling/harness/cli.ts init --starter`. On a fresh subtree the harness's own `zod` is not installed
-   yet, nor `typescript` when the project has none, so init only lists `tooling/harness` under `packages` in `pnpm-workspace.yaml`
-   (creating the key and keeping the rest of the file) and stops. This first step uses Node built-ins only.
-3. `pnpm install`, then the same init command again. Now init writes the wiring and ends with one numbered list
-   of next steps.
-4. Do those steps in order: install the harness's tools, install `zod` and `server-only` for the starter files,
-   add the printed lines to each kept config, `pnpm exec prettier --write .`, install the Playwright browser,
-   `git add -A && git commit`, `pnpm run check`. Each command is printed in the project's package manager.
-   The root `.gitignore` gets `tooling/harness/node_modules/`, since create-next-app ignores only
-   `/node_modules`; the audit reports any committed `node_modules` file as `tracked-node-modules`.
+## What init writes
 
-Init writes the same hook wiring this repo uses:
-`.claude/settings.json` hooks, `.codex/hooks.json`, `.codex/config.toml`, `.githooks/pre-push`,
-`core.hooksPath` and the package scripts. It adds `"prepare": "git config core.hooksPath .githooks"` to the
-root `package.json`, so a fresh clone gets the pre-push hook on install; when a `prepare` script exists, it
-prints that command to add. The root `.prettierignore`, which Prettier and oxfmt read, gets `tooling/harness`
-and `harness.config.ts`, and so does `.eslintignore`, which oxlint reads, when a workspace uses oxc: a
-project's `prettier --write .`, `oxfmt` or `oxlint --fix` then leaves the locked harness alone. The repository
-that develops the harness (its ESLint config passes `harness: "lint"`) keeps formatting it. It keeps other keys and hooks, refuses changed harness wiring
-unless `--force` is given, and prints the CI steps to add. `--codex-user` also installs the Codex
-user-level hooks.
+`node tooling/harness/cli.ts init [--starter] [--codex-user] [--force]` is safe to run again. It keeps
+other keys and hooks, refuses changed harness wiring unless `--force` is given, and never replaces a
+config the project already has.
 
-In each eslint-prettier workspace, init also writes thin `eslint.config.ts`, `prettier.config.ts`,
+**Wiring, in every project.** `.claude/settings.json` hooks, `.codex/hooks.json`, `.codex/config.toml`,
+`.githooks/pre-push`, `core.hooksPath` and the package scripts. It adds
+`"prepare": "git config core.hooksPath .githooks"` to the root `package.json`, so a fresh clone gets the
+pre-push hook on install; when a `prepare` script exists, it prints that command to add. It prints the CI
+steps to add.
+
+**Ignore files.** The root `.gitignore` gets `tooling/harness/node_modules/`, since create-next-app
+ignores only `/node_modules`; the audit reports any committed `node_modules` file as
+`tracked-node-modules`. The root `.prettierignore`, which Prettier and oxfmt read, gets `tooling/harness`
+and `harness.config.ts`, and so does `.eslintignore`, which oxlint reads, when a workspace uses oxc. A
+project's `prettier --write .`, `oxfmt` or `oxlint --fix` then leaves the locked harness alone.
+
+**Tool configs, in each eslint-prettier workspace.** Thin `eslint.config.ts`, `prettier.config.ts`,
 `vitest.config.ts`, `knip.config.ts` and `.dependency-cruiser.json` files over `tooling/harness/presets/`,
-adds the missing tool scripts, `.gitignore` entries and `.prettierignore` entries (`pnpm-lock.yaml`,
-`src/shared/ui`, `.next`), sets `allowImportingTsExtensions` in `tsconfig.json` and excludes `tooling/harness`
-from the project's type check, and prints the `pnpm add -D` line for tools that are missing or on another major
-version (create-next-app's `@types/node` 20 fails Vitest's peer range). A root Next workspace also
-gets `playwright.config.ts`, which runs only `e2e/**/*.test.ts`; the CI browser step reports
-`playwright: skipped` until such a file exists. Init formats the JSON files it rewrote with the project's
-Prettier when it is installed; otherwise the `prettier --write .` step formats them with the app's own files.
-The knip preset lists only entries and ignores that exist and dependencies the project declares, skips the
-harness's own ESLint plugins, and, where the harness is a workspace package, puts its settings under the root
-workspace and ignores the harness's. The Vitest preset passes with
-no test files, since a new project has none; this repository turns that off.
-A project's own ESLint, Prettier, Vitest, Knip or Playwright config is never replaced, even with `--force`:
-init prints the two lines that add the preset to it, and the file is allowed and locked like init's own.
-For an ESLint config that already brings `eslint-config-next`, `@next/eslint-plugin-next` or
-`typescript-eslint`, as create-next-app's does (comments do not count), the lines pass `base: false`: the preset then adds only the harness's rule blocks, since ESLint refuses
-a plugin defined twice.
-CI, and Done when a tool config in the workspace or a folder above it, the workspace's `package.json` or
-`harness.config.ts` changed, then check the preset is active. One Node process asks the workspace's own
-ESLint for the config of one freshly named path in every folder and extension the shape allows code in, one
-area subfolder, a colocated test, a `scripts/` file, Next's `page.tsx`, `layout.tsx` and `route.ts`, a route
-two levels deep, one under a route group and one under a dynamic segment, plus the fixed module entry and
-starter helper names. Each name is 3 to 24 random characters, some with a hyphen, some with a digit. Every
-rule the preset sets on that path must hold as an error with the harness's options; a rule it sets without
-options must print the rule's own defaults. Otherwise a `preset-missing` finding names the rule and the path.
-The lock is what protects a project's config; the check is the second line, against a config that loses the
-preset. Two gaps no probe closes: the config file is code and can read the check's arguments, and a rule
-turned off only for `.mts` or `.cts` files goes unseen while the shape denies those extensions. The thin
-ESLint config skips the vendored `tooling/harness/`, which the project's type check also leaves out.
-`--starter` copies the `src/shared/lib/` helpers the content rules point at and, at a root Next workspace,
-`e2e/smoke.test.ts`; its next steps add the `pnpm add zod server-only` line for the ones the project lacks.
+the missing tool scripts, and `.prettierignore` entries (`pnpm-lock.yaml`, `src/shared/ui`, `.next`). It
+sets `allowImportingTsExtensions` in `tsconfig.json` and excludes `tooling/harness` and the thin configs
+from the project's type check. A root Next workspace also gets `playwright.config.ts`, which runs only
+`e2e/**/*.test.ts`; the CI browser step reports `playwright: skipped` until such a file exists. A `test`
+script that does not run Vitest gets no `vitest.config.ts`; init prints the `test: "test"` line for
+`harness.config.ts` instead. A next-modules workspace without `src/` skips depcruise and jscpd until
+`src/` exists.
+
+**Tools.** Init prints one install line: only tools that are missing, or below the minimum the presets
+work with. An installed tool at or above the minimum stays, also when newer. The presets import no tool
+package; they load each tool from the workspace that calls them.
+
+### Your own ESLint config
+
+A project's own ESLint, Prettier, Vitest, Knip or Playwright config is never replaced, even with
+`--force`. The file stays where it is, init prints the two lines that add the preset to it, and the file
+is locked like init's own:
+
+```js
+import { harnessEslint } from "../../tooling/harness/presets/eslint.ts";
+
+export default defineConfig([...nextVitals, ...nextTs, ...harnessEslint({ root: import.meta.dirname, base: false })]);
+```
+
+`base: false` is what init prints for a config that already brings `eslint-config-next`,
+`@next/eslint-plugin-next` or `typescript-eslint`, as create-next-app's does. The preset then adds only
+the harness's rule blocks, since ESLint refuses a plugin defined twice. A project's own Prettier config
+is kept as it is, with its style.
+
+### The preset check
+
+The lock is what protects a project's lint config. The second line is a check, in CI and in Done when a
+tool config, the workspace's `package.json` or `harness.config.ts` changed, that the preset is still
+active. One Node process asks the workspace's own ESLint for the config of one freshly named path in
+every folder and extension the shape allows code in. Every rule the preset sets on that path must hold as
+an error with the harness's options. Otherwise a `preset-missing` finding names the rule and the path.
+Two gaps no probe closes: the config file is code and can read the check's arguments, and a rule turned
+off only for `.mts` or `.cts` files goes unseen while the shape denies those extensions.
 
 ## The lock
 
@@ -313,13 +488,22 @@ Exact versions, no ranges; every config file is TypeScript.
 
 - `base`: plain `create-next-app` plus `shadcn init`, the reference point.
 - `main`: `base` plus the harness. No database, authentication or product code.
+- `harness`: only the contents of `tooling/harness/`, made by `pnpm harness:split`. Other projects pull
+  this branch with `git subtree`.
 - `db/*` (planned, no plan written yet): one commit each on `main` for Supabase, Prisma + SQLite and
   PocketBase wiring with their guardrails.
 
 ## Known limitations
 
-- No real product has been built on it yet. The rules fire as designed; how often they block good
-  code is what the block log will tell. Say so rather than work around a wrong block.
+- It was tried in agent sessions on three real projects: a `create-next-app` project, a Makerkit app and
+  a Turborepo with 710 legacy files. Of 29 blocks, 4 were false, and those four rules were fixed. That
+  is a first measurement, not a track record; keep reading the block log, and say so rather than work
+  around a wrong block. Every one of those sessions was Claude Code. The Codex hooks are covered by unit
+  tests only.
+- The legacy rule is per file. Touching an old file makes all of its old lint, format and type findings
+  block, which can turn a one-line change into a larger one.
+- The full lint step has a 120 s limit. On a loaded machine a large app reached it, though the lint
+  alone took 33 s.
 - Content rules are mostly regular expressions; the duplicate check is the only syntax-tree rule.
 - The fast gate was measured at about 1.6 s per edit on the empty template, not on a large project.
 - The `oxc` tool set runs oxlint without `--type-aware`, because oxlint-tsgolint is not installed
