@@ -30,7 +30,13 @@ export const INIT_FORCE_COMMAND = /(?:\bharness:init\b|cli\.ts\s+init\b)[^;&|]*\
 const unlockState = z.object({ until: z.number() });
 
 export function isLocked(file: string, config?: HarnessConfig): boolean {
-  const entries = [...LOCKED_PATHS, CONFIG_FILE, ...(config?.locked ?? []), ...(config?.legacy === undefined ? [] : [config.legacy])];
+  const entries = [
+    ...LOCKED_PATHS,
+    CONFIG_FILE,
+    ...(config?.locked ?? []),
+    ...(config?.legacy === undefined ? [] : [config.legacy]),
+    ...(config?.upstream === undefined ? [] : [config.upstream]),
+  ];
   if (entries.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) : file === entry))) return true;
   const folder = path.posix.dirname(file);
   return (

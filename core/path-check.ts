@@ -3,6 +3,7 @@ import path from "node:path";
 import { CONFIG_FILE, DEFAULT_CONFIG, expandWorkspaces, loadConfig, workspaceOf, type HarnessConfig, type WorkspaceEntry } from "../config.ts";
 import { shapeOf } from "../shapes/index.ts";
 import { deny, KEBAB, matchesEntry, nameDenial, type PathVerdict, type Shape } from "../shapes/shape.ts";
+import { readUpstream } from "./upstream.ts";
 import { ROOT_KEBAB_FOLDERS, rootEntries, type RootLayout } from "./root-layout.ts";
 
 const CONFIGURED_JS_ADVICE =
@@ -15,21 +16,26 @@ export interface Harness {
   configured: boolean;
   root: RootLayout;
   workspaces: HarnessWorkspace[];
+  /** The kit's files from the config's upstream list; undefined without one. */
+  upstream?: ReadonlySet<string>;
 }
 
-function build(gitRoot: string, config: HarnessConfig, hasConfigFile: boolean): Harness {
+function build(gitRoot: string, config: HarnessConfig, hasConfigFile: boolean, files: readonly string[] = []): Harness {
+  const upstream = readUpstream(gitRoot, config);
   return {
+    ...(upstream === undefined ? {} : { upstream }),
     config,
     configured: hasConfigFile,
     root: rootEntries(config, hasConfigFile),
-    workspaces: expandWorkspaces(gitRoot, config).map((workspace) => ({ ...workspace, shapeImpl: shapeOf(workspace.shape) })),
+    workspaces: expandWorkspaces(gitRoot, config, files).map((workspace) => ({ ...workspace, shapeImpl: shapeOf(workspace.shape) })),
   };
 }
 
 const DEFAULT_HARNESS: Harness = build("", DEFAULT_CONFIG, false);
 
-export function resolveHarness(gitRoot: string): Harness {
-  return build(gitRoot, loadConfig(gitRoot), fs.existsSync(path.join(gitRoot, CONFIG_FILE)));
+/** `files` are paths about to be written: one that starts a new folder under a `/*` workspace belongs to that workspace. */
+export function resolveHarness(gitRoot: string, files: readonly string[] = []): Harness {
+  return build(gitRoot, loadConfig(gitRoot), fs.existsSync(path.join(gitRoot, CONFIG_FILE)), files);
 }
 
 export function isVendoredIn(harness: Harness, file: string): boolean {

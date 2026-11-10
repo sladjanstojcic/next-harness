@@ -32,6 +32,8 @@ export interface HarnessConfig {
   owned?: string[];
   locked?: string[];
   legacy?: string;
+  /** A list of the kit's files; with it, every file not listed is the project's own. */
+  upstream?: string;
   root?: { entries?: string[]; jsExceptions?: string[] };
   env?: "all" | "local";
   analysis?: AnalysisName[];
@@ -94,6 +96,7 @@ const schema = z.strictObject({
   owned: z.array(z.string().min(1)).exactOptional(),
   locked: z.array(z.string().min(1)).exactOptional(),
   legacy: z.string().min(1).exactOptional(),
+  upstream: z.string().min(1).exactOptional(),
   root: z.strictObject({ entries: z.array(z.string().min(1)).exactOptional(), jsExceptions: z.array(z.string().min(1)).exactOptional() }).exactOptional(),
   env: z.enum(["all", "local"]).exactOptional(),
   analysis: z.array(z.enum(ANALYSIS_NAMES)).exactOptional(),
@@ -137,10 +140,17 @@ export function isWorkspaceFolder(workspace: WorkspaceConfig, folder: string): b
   return rest !== "" && !rest.includes("/") && !rest.startsWith(".");
 }
 
-export function expandWorkspaces(gitRoot: string, config: HarnessConfig): WorkspaceEntry[] {
+/** A `/*` workspace covers the folders on disk, plus the folder of each of `files`: a file about to start a new package. */
+export function expandWorkspaces(gitRoot: string, config: HarnessConfig, files: readonly string[] = []): WorkspaceEntry[] {
   return config.workspaces.flatMap((workspace) => {
     const normalised = normalise(workspace.path);
-    const paths = normalised.endsWith("/*") ? directories(gitRoot, normalised.slice(0, -2)) : [normalised];
+    const depth = normalised.split("/").length;
+    const starting = files
+      .map((file) => file.split("/"))
+      .filter((parts) => parts.length > depth)
+      .map((parts) => parts.slice(0, depth).join("/"))
+      .filter((folder) => isWorkspaceFolder(workspace, folder));
+    const paths = normalised.endsWith("/*") ? [...new Set([...directories(gitRoot, normalised.slice(0, -2)), ...starting])] : [normalised];
     return paths.map((workspacePath) => ({
       path: workspacePath,
       shape: workspace.shape,
