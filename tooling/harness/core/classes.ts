@@ -55,7 +55,10 @@ function isOwned(file: string, owned: readonly string[] | undefined): boolean {
 export function classify(file: string, harness: Harness, legacy: ReadonlySet<string>): PathClass {
   if (isVendoredIn(harness, file)) return "vendored";
   if (legacy.has(file)) return "legacy";
-  return isOwned(file, harness.config.owned) ? "owned" : "upstream";
+  const { upstream } = harness;
+  if (upstream === undefined) return isOwned(file, harness.config.owned) ? "owned" : "upstream";
+  // With an upstream list a file is the project's own unless the kit shipped it; an `owned` prefix claims a kit path.
+  return upstream.has(file) && !isOwned(file, harness.config.owned ?? []) ? "upstream" : "owned";
 }
 
 /**

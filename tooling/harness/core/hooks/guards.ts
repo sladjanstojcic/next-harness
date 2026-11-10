@@ -80,15 +80,18 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
     return null;
   }
   const canonicalRoot = realPath(root);
-  const harness = resolveHarness(canonicalRoot);
-  const [invalid] = legacyInvalidFindings(canonicalRoot, harness.config);
-  if (invalid !== undefined) throw new Error(invalid.message);
-  const legacy = readLegacy(canonicalRoot, harness.config);
   const relativePath = (file: string): string | null => {
     const target = realPath(path.resolve(canonicalRoot, file));
     return isInside(canonicalRoot, target) ? path.relative(canonicalRoot, target).split(path.sep).join("/") : null;
   };
   const writePaths = new Set(event.writePaths.map(relativePath));
+  const harness = resolveHarness(
+    canonicalRoot,
+    [...writePaths].filter((file) => file !== null),
+  );
+  const [invalid] = legacyInvalidFindings(canonicalRoot, harness.config);
+  if (invalid !== undefined) throw new Error(invalid.message);
+  const legacy = readLegacy(canonicalRoot, harness.config);
   let applied: Applied | undefined;
   for (const file of event.paths) {
     const relative = relativePath(file);
