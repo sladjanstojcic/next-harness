@@ -5,6 +5,7 @@ import { auditContent } from "./audit/content-rules.ts";
 import { codeIndex } from "./code-index.ts";
 import { nextModules } from "../shapes/next-modules.ts";
 import type { Shape } from "../shapes/shape.ts";
+import { ALL_TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import { checkPath, resolveHarness } from "./path-check.ts";
 import { rootEntries } from "./root-layout.ts";
 
@@ -50,8 +51,8 @@ const TODAY_ROOT_ENTRIES = [
 ];
 
 describe("root layout", () => {
-  it("merges with the next-modules top level into today's root entries", () => {
-    expect(new Set([...rootEntries(DEFAULT_CONFIG).entries, ...nextModules.topEntries])).toEqual(new Set(TODAY_ROOT_ENTRIES));
+  it("merges with the next-modules top level into today's root entries plus the tool config names init keeps", () => {
+    expect(new Set([...rootEntries(DEFAULT_CONFIG).entries, ...nextModules.topEntries])).toEqual(new Set([...TODAY_ROOT_ENTRIES, ...ALL_TOOL_CONFIG_NAMES]));
   });
 
   it("accepts the legacy file at the root when the config names one", () => {

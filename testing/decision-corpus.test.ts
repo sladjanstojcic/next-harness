@@ -11,6 +11,7 @@ import { checkGuards } from "../core/hooks/guards.ts";
 import { handleEvent } from "../core/hooks/handle.ts";
 import { checkPath } from "../core/path-check.ts";
 import { COMMANDS, GATE_SEEDS, PATHS, PRE_EXISTING_SEEDS } from "./decision-inputs.ts";
+import { normaliseProbes } from "./preset-fixture.ts";
 import { templateRepo } from "./template-repo.ts";
 
 afterEach(() => vi.restoreAllMocks());
@@ -106,10 +107,12 @@ function seededRepo() {
 
 function normalize(value: unknown, root: string): unknown {
   const real = fs.realpathSync(root);
-  const text = JSON.stringify(value ?? null)
-    .replaceAll(real, "<root>")
-    .replaceAll(root, "<root>")
-    .replace(/jscpd-[A-Za-z0-9]+/g, "jscpd-<tmp>");
+  const text = normaliseProbes(
+    JSON.stringify(value ?? null)
+      .replaceAll(real, "<root>")
+      .replaceAll(root, "<root>")
+      .replace(/jscpd-[A-Za-z0-9]+/g, "jscpd-<tmp>"),
+  );
   return JSON.parse(text);
 }
 

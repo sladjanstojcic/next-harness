@@ -1,0 +1,215 @@
+import fs from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+import { makeRepo } from "../../testing/temp-repo.ts";
+import { STARTER_HELPERS } from "../../shapes/next-modules.ts";
+import { isLocked } from "../lock.ts";
+import { initHarness } from "./init.ts";
+
+const template = path.resolve(import.meta.dirname, "../../../..");
+const STARTER = path.resolve(import.meta.dirname, "../../presets/starter/next-modules");
+const SMOKE = path.resolve(import.meta.dirname, "../../presets/starter/e2e/smoke.test.ts.txt");
+const OFF = { force: false, starter: false };
+const DASHBOARD_CONFIG = `export default {
+  workspaces: [{ path: "apps/dashboard", shape: "next-modules", next: true }, { path: "supabase", shape: "supabase" }],
+  root: { entries: ["apps", "supabase"] },
+};
+`;
+
+function consumer(files: Record<string, string>) {
+  const repo = makeRepo({ "package.json": '{\n  "name": "consumer"\n}\n', ...files });
+  repo.git("config", "--unset", "core.hooksPath");
+  return repo;
+}
+
+const exists = (root: string, file: string): boolean => fs.existsSync(path.join(root, file));
+
+describe("init tool configs", () => {
+  it("writes this repository's own thin prettier and dependency-cruiser files at a root Next workspace, and an ESLint config that skips the harness", () => {
+    const repo = consumer({});
+    const result = initHarness(repo.root, OFF);
+    expect(result.ok, result.report).toBe(true);
+    for (const file of ["prettier.config.ts", "playwright.config.ts", ".dependency-cruiser.json"]) {
+      expect(repo.read(file), file).toBe(fs.readFileSync(path.join(template, file), "utf8"));
+    }
+    expect(repo.read("eslint.config.ts")).toBe(fs.readFileSync(path.join(template, "eslint.config.ts"), "utf8").replace(', harness: "lint"', ""));
+    expect(repo.read("vitest.config.ts")).toContain("harnessVitest()");
+    expect(repo.read("knip.config.ts")).toContain("harnessKnip()");
+    expect(repo.read(".gitignore")).toBe(".next/\ntest-results/\n");
+    expect(repo.read(".prettierignore")).toBe("pnpm-lock.yaml\nsrc/shared/ui\n.next\n");
+    expect(result.report).toMatch(/Install the harness's tools \(init does not install\): pnpm add -D @eslint\/js@9\.39\.5 .*vitest@5\.1\.0/);
+    expect(exists(repo.root, "src/shared/lib/env.ts")).toBe(false);
+    expect(exists(repo.root, "e2e/smoke.test.ts")).toBe(false);
+    expect(result.report).toContain(
+      "Prettier is not installed here; run prettier --write .claude/settings.json .codex/hooks.json package.json .dependency-cruiser.json",
+    );
+  });
+
+  it("finds the template's own configs already on the preset", () => {
+    const files = [
+      "eslint.config.ts",
+      "prettier.config.ts",
+      "vitest.config.ts",
+      "knip.config.ts",
+      "playwright.config.ts",
+      ".dependency-cruiser.json",
+      ".gitignore",
+      ".prettierignore",
+    ];
+    const repo = consumer(Object.fromEntries(files.map((file) => [file, fs.readFileSync(path.join(template, file), "utf8")])));
+    const lines = initHarness(repo.root, OFF).report.split("\n");
+    for (const file of files) expect(lines.find((line) => line.includes(` ${file}:`))).toMatch(/^unchanged /);
+  });
+
+  it("keeps a project's own configs even with --force and prints the lines that add the preset", () => {
+    const own = {
+      "eslint.config.mjs": "export default [];\n",
+      ".prettierrc.json": "{}\n",
+      "vitest.config.mts": "export default {};\n",
+      "knip.json": "{}\n",
+      "playwright.config.mjs": "export default {};\n",
+    };
+    const repo = consumer(own);
+    const result = initHarness(repo.root, { force: true, starter: false });
+    expect(result.ok, result.report).toBe(true);
+    for (const [file, text] of Object.entries(own)) expect(repo.read(file)).toBe(text);
+    for (const file of ["eslint.config.ts", "prettier.config.ts", "vitest.config.ts", "knip.config.ts", "playwright.config.ts"])
+      expect(exists(repo.root, file), file).toBe(false);
+    expect(result.report).toContain(
+      [
+        "kept eslint.config.mjs: your config stays; add the harness preset to it:",
+        '    import { harnessEslint } from "./tooling/harness/presets/eslint.ts";',
+        "    ...harnessEslint({ root: import.meta.dirname, next: true }),",
+      ].join("\n"),
+    );
+    expect(result.report).toContain("kept .prettierrc.json: your config stays");
+    expect(result.report).toContain("    export default mergeConfig(harnessVitest(), yourConfig);");
+    expect(result.report).toContain("    export default defineConfig(harnessPlaywright(), yourConfig);");
+    expect(result.report).toContain(
+      'kept knip.json: your config stays; add the harness preset to it:\n    import { harnessKnip } from "./tooling/harness/presets/knip.ts";',
+    );
+  });
+
+  it("adds .ts imports and the harness exclude to tsconfig.json, refusing a false setting without --force", () => {
+    const added = consumer({ "tsconfig.json": '{\n  "compilerOptions": { "strict": true }\n}\n' });
+    expect(initHarness(added.root, OFF).report).toContain("updated tsconfig.json: compilerOptions.allowImportingTsExtensions: true, exclude tooling/harness");
+    expect(JSON.parse(added.read("tsconfig.json"))).toEqual({
+      compilerOptions: { strict: true, allowImportingTsExtensions: true },
+      exclude: ["node_modules", "tooling/harness"],
+    });
+    const refused = consumer({ "tsconfig.json": JSON.stringify({ compilerOptions: { allowImportingTsExtensions: false } }) });
+    expect(initHarness(refused.root, OFF).report).toContain(
+      "conflict tsconfig.json: compilerOptions.allowImportingTsExtensions is false; --force sets it to true",
+    );
+    expect(initHarness(refused.root, { force: true, starter: false }).ok).toBe(true);
+    expect(JSON.parse(refused.read("tsconfig.json"))).toEqual({
+      compilerOptions: { allowImportingTsExtensions: true },
+      exclude: ["node_modules", "tooling/harness"],
+    });
+  });
+
+  it("keeps a tsconfig.json with comments and prints the settings to add by hand", () => {
+    const text = '{\n  // create-next-app does not write comments; monorepo tsconfigs often do\n  "compilerOptions": {}\n}\n';
+    const repo = consumer({ "tsconfig.json": text });
+    const result = initHarness(repo.root, OFF);
+    expect(result.ok, result.report).toBe(true);
+    expect(result.report).toContain(
+      'kept tsconfig.json: has comments or is not plain JSON; set by hand:\n    "compilerOptions": { "allowImportingTsExtensions": true }\n    "exclude": [..., "tooling/harness"]',
+    );
+    expect(repo.read("tsconfig.json")).toBe(text);
+  });
+
+  it("refuses other dependency-cruiser rules without --force", () => {
+    const repo = consumer({ ".dependency-cruiser.json": '{ "forbidden": [] }\n' });
+    const refused = initHarness(repo.root, OFF);
+    expect(refused.ok).toBe(false);
+    expect(refused.report).toContain("conflict .dependency-cruiser.json: holds other rules; --force replaces it with the harness preset");
+    expect(exists(repo.root, "eslint.config.ts")).toBe(false);
+    expect(initHarness(repo.root, { force: true, starter: false }).ok).toBe(true);
+    expect(repo.read(".dependency-cruiser.json")).toBe(fs.readFileSync(path.join(template, ".dependency-cruiser.json"), "utf8"));
+  });
+
+  it("writes a nested workspace's configs, missing scripts and ignores in its folder, and none for supabase", () => {
+    const repo = consumer({
+      "harness.config.ts": DASHBOARD_CONFIG,
+      ".gitignore": "/.next/\n",
+      "apps/dashboard/package.json": JSON.stringify({ scripts: { lint: "next lint" } }),
+      "supabase/config.toml": "\n",
+    });
+    const result = initHarness(repo.root, OFF);
+    expect(result.ok, result.report).toBe(true);
+    expect(repo.read("apps/dashboard/eslint.config.ts")).toBe(
+      'import { harnessEslint } from "../../tooling/harness/presets/eslint.ts";\n\nexport default harnessEslint({ root: import.meta.dirname, next: true });\n',
+    );
+    expect(repo.read("apps/dashboard/.dependency-cruiser.json")).toContain('"extends": "../../tooling/harness/presets/dependency-cruiser.json"');
+    const scripts = (JSON.parse(repo.read("apps/dashboard/package.json")) as { scripts: Record<string, string> }).scripts;
+    expect(scripts.lint).toBe("next lint");
+    expect(scripts.jscpd).toBe("jscpd src --config ../../tooling/harness/presets/jscpd.json");
+    expect(scripts.typecheck).toBe("next typegen && tsc --noEmit");
+    expect(Object.keys((JSON.parse(repo.read("package.json")) as { scripts: object }).scripts)).toEqual([
+      "audit",
+      "check",
+      "harness:blocks",
+      "harness:lock",
+      "harness:unlock",
+    ]);
+    expect(repo.read("apps/dashboard/.gitignore")).toBe(".next/\ntest-results/\n");
+    expect(repo.read("apps/dashboard/.prettierignore")).toBe("pnpm-lock.yaml\nsrc/shared/ui\n.next\n");
+    expect(result.report.split("\n").at(-1)).toBe("Then format the app's own files once in the preset's style: (cd apps/dashboard && prettier --write .)");
+    expect(result.report).toContain("cd apps/dashboard && pnpm add -D ");
+    expect(exists(repo.root, "supabase/eslint.config.ts")).toBe(false);
+    expect(exists(repo.root, "apps/dashboard/playwright.config.ts")).toBe(false);
+    expect(exists(repo.root, "eslint.config.ts")).toBe(false);
+  });
+
+  it("copies the starter helpers with --starter, keeps a changed one, and the template holds the same files", () => {
+    const repo = consumer({ "src/shared/lib/log.ts": "export const mine = 1;\n" });
+    const result = initHarness(repo.root, { force: false, starter: true });
+    expect(result.ok, result.report).toBe(true);
+    expect(result.report).toContain("kept src/shared/lib/log.ts: your file stays");
+    expect(repo.read("src/shared/lib/log.ts")).toBe("export const mine = 1;\n");
+    const names = fs.readdirSync(STARTER).map((name) => name.replace(/\.txt$/, ""));
+    expect(names.filter((name) => !name.endsWith(".test.ts")).sort()).toEqual([...STARTER_HELPERS].sort());
+    expect(names.sort()).toEqual(
+      fs
+        .readdirSync(path.join(template, "src/shared/lib"))
+        .filter((name) => name !== "utils.ts")
+        .sort(),
+    );
+    for (const name of names) {
+      const starter = fs.readFileSync(path.join(STARTER, `${name}.txt`), "utf8");
+      expect(fs.readFileSync(path.join(template, "src/shared/lib", name), "utf8"), name).toBe(starter);
+      if (name !== "log.ts") expect(repo.read(`src/shared/lib/${name}`), name).toBe(starter);
+    }
+    expect(fs.readFileSync(SMOKE, "utf8")).toBe(fs.readFileSync(path.join(template, "e2e/smoke.test.ts"), "utf8"));
+    expect(repo.read("e2e/smoke.test.ts")).toBe(fs.readFileSync(SMOKE, "utf8"));
+  });
+});
+
+describe("tool config locks", () => {
+  const config = {
+    workspaces: [
+      { path: "apps/*", shape: "next-modules" as const },
+      { path: "packages/kit", shape: "makerkit-feature" as const },
+    ],
+  };
+
+  it("locks the written tool configs in each eslint-prettier workspace, and nowhere else", () => {
+    expect(isLocked("apps/dashboard/eslint.config.ts", config)).toBe(true);
+    expect(isLocked("apps/web/.dependency-cruiser.json", config)).toBe(true);
+    expect(isLocked("apps/web/vitest.config.ts", config)).toBe(true);
+    expect(isLocked("apps/web/tsconfig.json", config)).toBe(true);
+    expect(isLocked("apps/web/.prettierignore", config)).toBe(true);
+    expect(isLocked("packages/kit/.prettierignore", config)).toBe(false);
+    expect(isLocked("packages/kit/tsconfig.json", config)).toBe(false);
+    expect(isLocked("apps/web/src/eslint.config.ts", config)).toBe(false);
+    expect(isLocked("packages/kit/eslint.config.ts", config)).toBe(false);
+    expect(isLocked("apps/dashboard/eslint.config.ts")).toBe(false);
+    expect(isLocked("eslint.config.ts")).toBe(true);
+    for (const own of ["eslint.config.mjs", ".prettierrc", ".prettierrc.json", "vitest.config.mts", "knip.json", "playwright.config.mjs"]) {
+      expect(isLocked(own), own).toBe(true);
+      expect(isLocked(`apps/web/${own}`, config), own).toBe(true);
+      expect(isLocked(`packages/kit/${own}`, config), own).toBe(false);
+    }
+  });
+});

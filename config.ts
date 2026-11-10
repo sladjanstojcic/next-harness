@@ -118,6 +118,17 @@ function directories(gitRoot: string, parent: string): string[] {
     .sort();
 }
 
+export const toolsOf = (workspace: WorkspaceConfig): ToolSetName => workspace.tools ?? DEFAULT_TOOLS[workspace.shape];
+
+/** Whether a git-root-relative folder is one of the workspace's folders, without listing the disk. */
+export function isWorkspaceFolder(workspace: WorkspaceConfig, folder: string): boolean {
+  const normalised = normalise(workspace.path);
+  if (!normalised.endsWith("/*")) return folder === normalised;
+  const parent = normalised.slice(0, -2);
+  const rest = parent === "" ? folder : folder.startsWith(`${parent}/`) ? folder.slice(parent.length + 1) : "";
+  return rest !== "" && !rest.includes("/") && !rest.startsWith(".");
+}
+
 export function expandWorkspaces(gitRoot: string, config: HarnessConfig): WorkspaceEntry[] {
   return config.workspaces.flatMap((workspace) => {
     const normalised = normalise(workspace.path);
@@ -125,7 +136,7 @@ export function expandWorkspaces(gitRoot: string, config: HarnessConfig): Worksp
     return paths.map((workspacePath) => ({
       path: workspacePath,
       shape: workspace.shape,
-      tools: workspace.tools ?? DEFAULT_TOOLS[workspace.shape],
+      tools: toolsOf(workspace),
       next: workspace.next ?? false,
     }));
   });
@@ -139,4 +150,9 @@ export function workspaceOf<T extends WorkspaceEntry>(entries: readonly T[], fil
   }
   if (match === undefined) return undefined;
   return { entry: match, path: match.path === "" ? file : file.slice(match.path.length + 1) };
+}
+
+/** depcruise, knip and jscpd run in next-modules workspaces only; the Makerkit and supabase shapes do not install them. */
+export function analysisOf(config: HarnessConfig, entry: WorkspaceEntry): AnalysisName[] {
+  return entry.shape === "next-modules" ? (config.analysis ?? [...ANALYSIS_NAMES]) : [];
 }

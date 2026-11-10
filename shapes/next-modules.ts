@@ -14,6 +14,7 @@ import {
   type PathVerdict,
   type Shape,
 } from "./shape.ts";
+import { ALL_TOOL_CONFIG_NAMES, JS_TOOL_CONFIG_NAMES } from "./tool-config-names.ts";
 
 export const VENDORED: readonly string[] = ["src/shared/ui/", "src/shared/lib/utils.ts"];
 export const TEST_FILE = /\.test\.tsx?$/;
@@ -26,11 +27,7 @@ const topEntries = [
   "tsconfig.json",
   "next-env.d.ts",
   "next.config.ts",
-  "eslint.config.ts",
-  "prettier.config.ts",
-  "knip.config.ts",
-  "vitest.config.ts",
-  "playwright.config.ts",
+  ...ALL_TOOL_CONFIG_NAMES,
   "components.json",
   ".dependency-cruiser.json",
   ".jscpd.json",
@@ -38,6 +35,38 @@ const topEntries = [
   ".env.example",
 ];
 const moduleFolders = ["components", "server", "actions", "domain"];
+const sharedFolders = ["components", "lib", "hooks"];
+
+/** The src/shared/lib/ helpers the content rules point at, which `init --starter` copies. */
+export const STARTER_HELPERS: readonly string[] = ["env.ts", "define-action.ts", "user-error.ts", "format.ts", "log.ts"];
+
+/**
+ * One source path per folder and extension this shape allows code in, one per area subfolder level, a colocated test
+ * and an automation script, then the fixed names and route segments a config could single out; `{name}` takes a fresh
+ * token on each use.
+ */
+export const SOURCE_PROBES: readonly string[] = [
+  "src/app/{name}/{name}.ts",
+  "src/app/{name}/{name}.tsx",
+  "src/modules/{name}/{name}.ts",
+  ...moduleFolders.flatMap((folder) => {
+    if (folder === "components") return ["src/modules/{name}/components/{name}.ts", "src/modules/{name}/components/{name}.tsx"];
+    if (folder === "actions") return ["src/modules/{name}/actions/{name}-action.ts"];
+    return [`src/modules/{name}/${folder}/{name}.ts`];
+  }),
+  ...moduleFolders
+    .filter((folder) => folder !== "actions")
+    .map((folder) => `src/modules/{name}/${folder}/{name}/{name}.${folder === "components" ? "tsx" : "ts"}`),
+  "src/modules/{name}/domain/{name}.test.ts",
+  ...sharedFolders.map((folder) => `src/shared/${folder}/{name}.${folder === "components" ? "tsx" : "ts"}`),
+  "scripts/{name}.ts",
+  ...["page.tsx", "layout.tsx", "route.ts"].map((file) => `src/app/{name}/${file}`),
+  "src/app/{name}/{name}/page.tsx",
+  "src/app/({name})/{name}/page.tsx",
+  "src/app/[{name}]/page.tsx",
+  ...MODULE_ENTRIES.map((file) => `src/modules/{name}/${file}`),
+  ...STARTER_HELPERS.map((file) => `src/shared/lib/${file}`),
+];
 
 function genericDenial(folder: string): PathVerdict {
   return deny(
@@ -80,7 +109,7 @@ function checkModule(parts: string[]): PathVerdict {
 function checkShared(parts: string[]): PathVerdict {
   const folder = parts[0];
   if (folder === "ui" && parts.length >= 2) return { ok: true };
-  if (!folder || !["components", "lib", "hooks"].includes(folder) || parts.length < 2) {
+  if (!folder || !sharedFolders.includes(folder) || parts.length < 2) {
     return deny("shared-shape", "Put shared code in src/shared/components/, lib/ or hooks/; generated primitives belong in src/shared/ui/.");
   }
   if (parts.length > (folder === "components" ? 3 : 2)) {
@@ -174,7 +203,7 @@ export const nextModules: Shape = {
     return deny("src-shape", "Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/.");
   },
   vendored: VENDORED,
-  jsExceptions: [],
+  jsExceptions: JS_TOOL_CONFIG_NAMES,
   routeRoot: "src/app/",
   limits: { fileLines: MAX_FILE_LINES, folderFiles: MAX_FOLDER_FILES, pageLines: MAX_PAGE_LINES },
   folderGuidance: () =>

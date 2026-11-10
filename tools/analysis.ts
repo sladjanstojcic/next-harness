@@ -3,6 +3,7 @@ import path from "node:path";
 import { z } from "zod";
 import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
+import { presetImport } from "./eslint-preset.ts";
 import { bin, CHECK_TIMEOUT_MS, relativePath } from "./tool-set.ts";
 
 const dependencyOutput = z.object({
@@ -149,14 +150,19 @@ export const knip = {
   check: (dir: string): ToolStep => check(dir, "knip", "knip", []),
 };
 
+/** The workspace's own .jscpd.json, or the harness preset; jscpd has no `extends`. */
+function jscpdConfig(dir: string, workspacePath: string): string {
+  return fs.existsSync(path.join(dir, ".jscpd.json")) ? ".jscpd.json" : presetImport(workspacePath, "jscpd.json");
+}
+
 export const jscpd = {
-  report: (dir: string, output: string): ToolStep => ({
+  report: (dir: string, output: string, workspacePath: string): ToolStep => ({
     name: "jscpd",
     command: [
       bin(dir, "jscpd"),
       ...["src", "tooling"].filter((file) => fs.existsSync(path.join(dir, file))),
       "--config",
-      ".jscpd.json",
+      jscpdConfig(dir, workspacePath),
       "--reporters",
       "json",
       "--output",
@@ -165,7 +171,7 @@ export const jscpd = {
     ],
     findings: () => duplicateFindings(dir, path.join(output, "jscpd-report.json")),
   }),
-  check: (dir: string): ToolStep => check(dir, "jscpd", "jscpd", ["src", "tooling", "--config", ".jscpd.json"]),
+  check: (dir: string, workspacePath: string): ToolStep => check(dir, "jscpd", "jscpd", ["src", "tooling", "--config", jscpdConfig(dir, workspacePath)]),
 };
 
 export const build = (dir: string): ToolStep => check(dir, "build", "next", ["build"], 600_000);

@@ -8,7 +8,12 @@ import type { ToolStep } from "../core/gates/run-tool.ts";
 export interface ToolSet {
   name: Exclude<ToolSetName, "none">;
   format: { write(dir: string, files: string[]): ToolStep; check(dir: string): ToolStep };
-  lint: { files(dir: string, files: string[], fast: boolean): ToolStep; all(dir: string): ToolStep };
+  lint: {
+    files(dir: string, files: string[], fast: boolean): ToolStep;
+    all(dir: string): ToolStep;
+    /** Checks the harness's rules are active in the workspace's own lint config; the message names the workspace path. */
+    preset?(dir: string, workspacePath: string, next: boolean): ToolStep;
+  };
   typecheck: { incremental(dir: string, next: boolean): ToolStep[]; all(dir: string, next: boolean): ToolStep[] };
   test: { related(dir: string, files: string[]): ToolStep; all(dir: string): ToolStep };
 }

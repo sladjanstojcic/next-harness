@@ -1,6 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { SOURCE_PROBES } from "../../shapes/next-modules.ts";
+import { normaliseProbes } from "../../testing/preset-fixture.ts";
+import { CONFIG_RUNNER } from "../../tools/eslint-preset.ts";
 import { makeRepo } from "../../testing/temp-repo.ts";
 import { ciGate } from "./ci-gate.ts";
 import { doneGate } from "./done-gate.ts";
@@ -16,7 +19,8 @@ const CONFIG = `export default {
 `;
 const WEB = "apps/web/src/shared/lib/a.ts";
 const PACKAGE = "packages/a/src/shared/lib/b.ts";
-const ALL_TOOLS = ["tsc", "eslint", "prettier", "vitest"];
+const ALL_TOOLS = ["tsc", "eslint", "prettier", "vitest", "depcruise", "knip", "jscpd"];
+const ANALYSIS = ["depcruise", "knip", "jscpd"];
 
 function workspacesRepo(rootTools: string[]) {
   const files: Record<string, string> = {
@@ -31,6 +35,12 @@ function workspacesRepo(rootTools: string[]) {
   return { ...repo, real: fs.realpathSync(repo.root) };
 }
 
+const probeStep = (cwd: string) => ({
+  name: "eslint-preset",
+  cwd,
+  command: [process.execPath, CONFIG_RUNNER, "node_modules/.bin/eslint", ...SOURCE_PROBES.map((probe) => probe.replaceAll("{name}", "<probe>"))].join(" "),
+});
+
 interface Call {
   name: string;
   cwd: string;
@@ -41,7 +51,11 @@ function recordSteps(root: string, findings: (step: runner.ToolStep) => ReturnTy
   const calls: Call[] = [];
   const local = (file: string): string => (file.startsWith(`${root}/`) ? path.relative(root, file) : file);
   vi.spyOn(runner, "runTool").mockImplementation(async (_root, step) => {
-    calls.push({ name: step.name, cwd: local(step.cwd ?? _root) || ".", command: step.command.map(local).join(" ") });
+    calls.push({
+      name: step.name,
+      cwd: local(step.cwd ?? _root) || ".",
+      command: normaliseProbes(step.command.map(local).join(" ")),
+    });
     return findings(step);
   });
   return calls;
@@ -58,9 +72,42 @@ describe("per-workspace Done", () => {
       { name: "eslint", cwd: "apps/web", command: "node_modules/.bin/eslint --format json --no-warn-ignored -- src/shared/lib/a.ts" },
       { name: "tsc", cwd: "packages/a", command: "node_modules/.bin/tsc --noEmit --incremental --pretty false" },
       { name: "eslint", cwd: "packages/a", command: "node_modules/.bin/eslint --format json --no-warn-ignored -- src/shared/lib/b.ts" },
+      { name: "depcruise", cwd: "apps/web", command: "node_modules/.bin/depcruise src --config .dependency-cruiser.json --output-type json" },
+      { name: "knip", cwd: "apps/web", command: "node_modules/.bin/knip --reporter json" },
+      {
+        name: "jscpd",
+        cwd: "apps/web",
+        command: expect.stringMatching(/^node_modules\/\.bin\/jscpd src --config \.\.\/\.\.\/tooling\/harness\/presets\/jscpd\.json /) as string,
+      },
+      { name: "depcruise", cwd: "packages/a", command: "node_modules/.bin/depcruise src --config .dependency-cruiser.json --output-type json" },
+      { name: "knip", cwd: "packages/a", command: "node_modules/.bin/knip --reporter json" },
+      { name: "jscpd", cwd: "packages/a", command: expect.stringMatching(/ --config \.\.\/\.\.\/tooling\/harness\/presets\/jscpd\.json /) as string },
       { name: "vitest", cwd: "apps/web", command: "node_modules/.bin/vitest related --run --passWithNoTests src/shared/lib/a.ts" },
       { name: "vitest", cwd: "packages/a", command: "node_modules/.bin/vitest related --run --passWithNoTests src/shared/lib/b.ts" },
     ]);
+  });
+
+  it("checks the preset in a workspace whose own or ancestor tool config or package.json changed, and everywhere when harness.config.ts did", async () => {
+    const repo = workspacesRepo(ALL_TOOLS);
+    const calls = recordSteps(repo.real);
+    const presetCalls = () => calls.filter(({ name }) => name === "eslint-preset");
+    await doneGate(repo.root, [WEB, "apps/web/eslint.config.mjs"]);
+    expect(presetCalls()).toEqual([probeStep("apps/web")]);
+    calls.length = 0;
+    await doneGate(repo.root, [PACKAGE, "packages/a/package.json"]);
+    expect(presetCalls()).toEqual([probeStep("packages/a")]);
+    calls.length = 0;
+    await doneGate(repo.root, ["apps/web/tsconfig.json", "packages/a/src/eslint.config.ts"]);
+    expect(presetCalls()).toEqual([]);
+    calls.length = 0;
+    await doneGate(repo.root, [WEB, "eslint.config.ts"]);
+    expect(presetCalls()).toEqual([probeStep("apps/web"), probeStep("packages/a")]);
+    calls.length = 0;
+    await doneGate(repo.root, ["packages/prettier.config.ts"]);
+    expect(presetCalls()).toEqual([probeStep("packages/a")]);
+    calls.length = 0;
+    await doneGate(repo.root, ["harness.config.ts"]);
+    expect(presetCalls()).toEqual([probeStep("apps/web"), probeStep("packages/a")]);
   });
 
   it("maps tool findings back to git-root paths", async () => {
@@ -80,15 +127,15 @@ describe("per-workspace Done", () => {
   });
 
   it("skips tests without a reachable vitest and fails a missing tsc", async () => {
-    const repo = workspacesRepo(["eslint", "prettier"]);
+    const repo = workspacesRepo(["eslint", "prettier", ...ANALYSIS]);
     const calls = recordSteps(repo.real);
     const result = await doneGate(repo.root, [PACKAGE]);
-    expect(calls.map(({ name, cwd }) => `${cwd} ${name}`)).toEqual(["packages/a eslint"]);
+    expect(calls.map(({ name, cwd }) => `${cwd} ${name}`)).toEqual(["packages/a eslint", "packages/a depcruise", "packages/a knip", "packages/a jscpd"]);
     expect(result.findings).toEqual([{ rule: "tsc-failed", file: "", message: 'tsc not found from packages/a; install it or set tools: "none"' }]);
   });
 
   it("reports a CI test step without a reachable vitest as skipped", async () => {
-    const repo = workspacesRepo(["tsc", "eslint", "prettier"]);
+    const repo = workspacesRepo(["tsc", "eslint", "prettier", ...ANALYSIS]);
     const calls = recordSteps(repo.real);
     const result = await ciGate(repo.real);
     expect(calls.some(({ name }) => name === "vitest")).toBe(false);
@@ -99,17 +146,25 @@ describe("per-workspace Done", () => {
 
 describe("per-workspace CI and fast gates", () => {
   it("runs every workspace's checks once and no build outside a root Next workspace", async () => {
-    const repo = workspacesRepo([...ALL_TOOLS, "depcruise", "knip", "jscpd", "playwright"]);
+    const repo = workspacesRepo([...ALL_TOOLS, "playwright"]);
     const calls = recordSteps(repo.real);
     const result = await ciGate(repo.real);
     expect(calls.map(({ name, cwd }) => `${cwd} ${name}`)).toEqual([
       "apps/web prettier",
       "apps/web eslint",
+      "apps/web eslint-preset",
       "apps/web typegen",
       "apps/web tsc",
       "packages/a prettier",
       "packages/a eslint",
+      "packages/a eslint-preset",
       "packages/a tsc",
+      "apps/web depcruise",
+      "apps/web knip",
+      "apps/web jscpd",
+      "packages/a depcruise",
+      "packages/a knip",
+      "packages/a jscpd",
       "apps/web vitest",
       "packages/a vitest",
     ]);

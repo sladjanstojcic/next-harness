@@ -1,0 +1,7 @@
+{
+  "format": ["typescript", "tsx"],
+  "ignore": ["**/*.test.ts", "**/*.test.tsx", "src/shared/ui/**"],
+  "threshold": 0,
+  "reporters": ["json"],
+  "output": ".next/jscpd/"
+}

@@ -8,5 +8,19 @@
   },
   "devDependencies": {
     "vitest": "5.1.0"
+  },
+  "peerDependencies": {
+    "@eslint/js": "9.39.5",
+    "@playwright/test": "1.64.1",
+    "dependency-cruiser": "18.7.2",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.5",
+    "eslint-config-prettier": "10.1.8",
+    "jiti": "2.7.0",
+    "jscpd": "5.4.2",
+    "knip": "6.44.1",
+    "prettier": "3.9.10",
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.1.0"
   }
 }
