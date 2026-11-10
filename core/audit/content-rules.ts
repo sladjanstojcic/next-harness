@@ -6,6 +6,7 @@ import type { ContentMessage, ContentProfile } from "../../shapes/shape.ts";
 import { ts } from "../../tools/typescript.ts";
 import { isVendoredIn, resolveHarness, type Harness } from "../path-check.ts";
 import type { Finding } from "./finding.ts";
+import { inlineDisableFindings } from "./inline-disable.ts";
 
 export interface ContentTarget {
   file: string;
@@ -100,6 +101,14 @@ function auditDirectives({ file, path, profile }: ContentTarget, source: ts.Sour
     if (clientDirectives.length > 0 && isServer && !isTypeOnlyImport(node) && profile.actionImport?.test(target) !== true)
       add("client-imports-server", "clientImportsServer", node);
     if (profile.publicIndex?.test(path) && (isServer || profile.actionImport?.test(target))) add("index-exports", "indexExports", node);
+    if (profile.packageBoundary !== undefined && (target === ".." || target.startsWith("../"))) {
+      findings.push({
+        file,
+        rule: "package-boundary",
+        line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+        message: profile.packageBoundary,
+      });
+    }
   }
   return findings;
 }
@@ -145,6 +154,7 @@ export function auditSource(root: string, target: ContentTarget, text: string): 
   const source = ts.createSourceFile(target.file, text, ts.ScriptTarget.Latest, true);
   const { file, path, profile } = target;
   const findings = auditDirectives(target, source);
+  if (profile?.inlineDisable !== undefined) findings.push(...inlineDisableFindings(file, source, profile.inlineDisable));
   const add = (rule: string, message: string, node?: ts.Node): void => {
     findings.push({ rule, file, line: node ? source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 : 1, message });
   };

@@ -4,6 +4,7 @@ import { INIT_FORCE_COMMAND, isLocked, lockReason, UNLOCK_COMMAND, unlocked } fr
 import { isIgnored } from "../state/git-ignore.ts";
 import { checkPath, isVendoredIn, resolveHarness } from "../path-check.ts";
 import type { HookEvent } from "./event.ts";
+import { isNestedLintConfig, LINT_CONFIG_RULE, lintConfigReason } from "./lint-config-guard.ts";
 import { isAppliedMigration, MIGRATION_RULE, migrationReason } from "./migration-guard.ts";
 import { isInside, realPath, removesOutside } from "./shell.ts";
 export interface Denial {
@@ -92,6 +93,7 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
     if (relative === "pnpm-lock.yaml")
       return { guard: "lockfile-write", reason: "Dependency edits belong in package.json; regenerate pnpm-lock.yaml with pnpm install." };
     if (isAppliedMigration(canonicalRoot, harness, relative)) return { guard: MIGRATION_RULE, reason: migrationReason(relative) };
+    if (isNestedLintConfig(harness, relative)) return { guard: LINT_CONFIG_RULE, reason: lintConfigReason(harness, relative) };
     if (isVendoredIn(harness, relative)) {
       return { guard: "vendored-write", reason: "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" };
     }

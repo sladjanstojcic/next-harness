@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { join, posix } from "node:path";
-import { MAKERKIT_ACTION_BUILDERS } from "./makerkit-app-content.ts";
+import { MAKERKIT_ACTION_BUILDERS, MAKERKIT_INLINE_DISABLE } from "./makerkit-app-content.ts";
 import {
   deny,
   exportLine,
@@ -95,6 +95,9 @@ const makerkitFeatureContent: ContentProfile = {
   aliases: {},
   envScope: /^/,
   publicEnvAllowed: true,
+  inlineDisable: MAKERKIT_INLINE_DISABLE,
+  packageBoundary:
+    "Import another feature package through its package.json exports (@kit/<name>/<export>), never by a relative path out of this package (Makerkit layout).",
   messages: {
     serverOnly: 'Import "server-only" in src/server/ files; client-safe code belongs in src/shared/ (Makerkit layout).',
     useServer:

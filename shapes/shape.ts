@@ -89,6 +89,10 @@ export interface ContentProfile {
   publicEnvAllowed?: boolean;
   domainFile?: RegExp;
   errorScope?: RegExp;
+  /** The message for lint-disable and @ts- suppression comments; absent leaves them to the linter (ESLint's noInlineConfig). */
+  inlineDisable?: string;
+  /** The message for a relative import that leaves the workspace folder; absent allows it. */
+  packageBoundary?: string;
   messages: Record<ContentMessage, string>;
 }
 

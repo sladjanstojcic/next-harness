@@ -39,10 +39,13 @@ export const HARNESS_RULES: ReadonlySet<string> = new Set([
   "error-text",
   "test-determinism",
   "duplicate-export",
+  "inline-disable",
+  "package-boundary",
 ]);
 
 export const ALWAYS_BLOCKS = (finding: Finding): boolean =>
-  ["harness-lock", "legacy-append", "legacy-invalid", "migration-applied", "preset-missing"].includes(finding.rule) || finding.rule.endsWith("-failed");
+  ["harness-lock", "legacy-append", "legacy-invalid", "migration-applied", "nested-lint-config", "preset-missing"].includes(finding.rule) ||
+  finding.rule.endsWith("-failed");
 
 function isOwned(file: string, owned: readonly string[] | undefined): boolean {
   if (owned === undefined) return true;
@@ -53,6 +56,15 @@ export function classify(file: string, harness: Harness, legacy: ReadonlySet<str
   if (isVendoredIn(harness, file)) return "vendored";
   if (legacy.has(file)) return "legacy";
   return isOwned(file, harness.config.owned) ? "owned" : "upstream";
+}
+
+/**
+ * The workspace-relative files among `files` the harness's own lint rules judge: owned and legacy files, as ESLint does in
+ * a next-modules project. The legacy list forgives harness findings, not tool findings.
+ */
+export function harnessLinted(harness: Harness, legacy: ReadonlySet<string>, workspacePath: string, files: readonly string[]): string[] {
+  const judged: ReadonlySet<PathClass> = new Set(["owned", "legacy"]);
+  return files.filter((file) => judged.has(classify(workspacePath === "" ? file : `${workspacePath}/${file}`, harness, legacy)));
 }
 
 function parseLegacy(gitRoot: string, legacy: string): Set<string> | "invalid" {

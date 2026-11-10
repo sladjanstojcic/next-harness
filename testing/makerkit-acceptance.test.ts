@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import * as runner from "../core/gates/run-tool.ts";
 import { parseEvent } from "../core/hooks/event.ts";
 import { handleEvent } from "../core/hooks/handle.ts";
+import { OXLINT_OWNED } from "../tools/oxc.ts";
 import { MAKERKIT_KIT_ROUTE, MAKERKIT_MIGRATION, MAKERKIT_ROUTE, makerkitRepo } from "./makerkit-repo.ts";
 
 afterEach(() => vi.restoreAllMocks());
@@ -156,11 +157,21 @@ describe("Makerkit acceptance with the brief's config (oxy-app in miniature)", (
         cwd: "apps/web",
         command: "node_modules/.bin/oxlint -f json --no-error-on-unmatched-pattern app/[locale]/home/[account]/journal/page.tsx",
       },
+      {
+        name: "oxlint-owned",
+        cwd: "apps/web",
+        command: `node_modules/.bin/oxlint -c ${OXLINT_OWNED} -f json --no-error-on-unmatched-pattern app/[locale]/home/[account]/journal/page.tsx`,
+      },
       { name: "tsc", cwd: "packages/features/journal", command: "node_modules/.bin/tsc --noEmit --pretty false" },
       {
         name: "oxlint",
         cwd: "packages/features/journal",
         command: "node_modules/.bin/oxlint -f json --no-error-on-unmatched-pattern src/server/services/journal.service.ts",
+      },
+      {
+        name: "oxlint-owned",
+        cwd: "packages/features/journal",
+        command: `node_modules/.bin/oxlint -c ${OXLINT_OWNED} -f json --no-error-on-unmatched-pattern src/server/services/journal.service.ts`,
       },
     ]);
   });
