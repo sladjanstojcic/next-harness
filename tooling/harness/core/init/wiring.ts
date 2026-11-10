@@ -30,6 +30,9 @@ export const PRE_PUSH = `#!/bin/sh
 exec node tooling/harness/cli.ts check ci
 `;
 
+/** The root "prepare" script: installs run it, so a fresh clone gets the pre-push hook without running init. */
+export const PREPARE = `git config core.hooksPath ${HOOKS_PATH}`;
+
 export const PACKAGE_SCRIPTS: Readonly<Record<string, string>> = {
   audit: "node tooling/harness/cli.ts audit",
   check: "node tooling/harness/cli.ts check ci",

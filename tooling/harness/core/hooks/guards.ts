@@ -4,8 +4,9 @@ import { INIT_FORCE_COMMAND, isLocked, lockReason, UNLOCK_COMMAND, unlocked } fr
 import { isIgnored } from "../state/git-ignore.ts";
 import { checkPath, isVendoredIn, resolveHarness } from "../path-check.ts";
 import type { HookEvent } from "./event.ts";
+import { namesHarnessState } from "./harness-state-guard.ts";
 import { isNestedLintConfig, LINT_CONFIG_RULE, lintConfigReason } from "./lint-config-guard.ts";
-import { isAppliedMigration, MIGRATION_RULE, migrationReason } from "./migration-guard.ts";
+import { type Applied, isAppliedMigration, isMigration, MIGRATION_RULE, migrationReason, sessionApplied } from "./migration-guard.ts";
 import { isInside, realPath, removesOutside } from "./shell.ts";
 export interface Denial {
   guard: string;
@@ -54,6 +55,12 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
     if (UNLOCK_COMMAND.test(event.command)) {
       return { guard: "harness-lock", reason: "Unlocking the harness is the user's step: ask them to run `pnpm harness:unlock` in their own terminal." };
     }
+    if (namesHarnessState(event.command)) {
+      return {
+        guard: "harness-state",
+        reason: "The harness keeps its own state in .git/harness; read it through the harness CLI (`pnpm harness:blocks`) and leave the files to the hooks.",
+      };
+    }
     if (INIT_FORCE_COMMAND.test(event.command) && !unlocked(root)) {
       return {
         guard: "harness-lock",
@@ -82,9 +89,12 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
     return isInside(canonicalRoot, target) ? path.relative(canonicalRoot, target).split(path.sep).join("/") : null;
   };
   const writePaths = new Set(event.writePaths.map(relativePath));
+  let applied: Applied | undefined;
   for (const file of event.paths) {
     const relative = relativePath(file);
     if (relative === null) continue;
+    if (relative.split("/").includes(".git"))
+      return { guard: "git-dir-write", reason: `${relative} belongs to git and the harness; change the repository through git commands.` };
     const name = path.posix.basename(relative);
     if (harness.config.env === "local" ? /^\.env(?:\..*)?\.local$/.test(name) : /^\.env(\..*)?$/.test(name) && name !== ".env.example") {
       const destination = harness.config.env === "local" ? "the committed .env files without .local" : ".env.example";
@@ -92,7 +102,10 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
     }
     if (relative === "pnpm-lock.yaml")
       return { guard: "lockfile-write", reason: "Dependency edits belong in package.json; regenerate pnpm-lock.yaml with pnpm install." };
-    if (isAppliedMigration(canonicalRoot, harness, relative)) return { guard: MIGRATION_RULE, reason: migrationReason(relative) };
+    if (isMigration(harness, relative)) {
+      applied ??= sessionApplied(canonicalRoot, event.sessionId);
+      if (isAppliedMigration(canonicalRoot, relative, applied)) return { guard: MIGRATION_RULE, reason: migrationReason(relative, applied) };
+    }
     if (isNestedLintConfig(harness, relative)) return { guard: LINT_CONFIG_RULE, reason: lintConfigReason(harness, relative) };
     if (isVendoredIn(harness, relative)) {
       return { guard: "vendored-write", reason: "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" };

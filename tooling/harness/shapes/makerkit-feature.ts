@@ -12,6 +12,7 @@ import {
   type ContentProfile,
   type PathVerdict,
   type Shape,
+  testsFolderDenial,
 } from "./shape.ts";
 
 const LAYOUT = "(Makerkit layout)";
@@ -80,7 +81,7 @@ function checkSrc(parts: readonly string[]): PathVerdict {
 
 function checkPath(path: string): PathVerdict {
   const [top = "", ...inside] = path.split("/");
-  return top === "src" && inside.length > 0 ? checkSrc(inside) : ok;
+  return testsFolderDenial(path, LAYOUT) ?? (top === "src" && inside.length > 0 ? checkSrc(inside) : ok);
 }
 
 const ACTION_FILE = /^src\/server\/(?:actions\/)?[a-z0-9-]+-server-actions\.ts$/;
@@ -161,6 +162,7 @@ function codeIndex(workspaceDir: string): string[] {
 export const makerkitFeature: Shape = {
   ...PLAIN_SHAPE,
   name: "makerkit-feature",
+  ciAdvice: `Fix feature code in src/components/, hooks/, schema/, server/ or shared/ ${LAYOUT}.`,
   topEntries,
   topFolders: ["src"],
   checkHidden: onlyGitkeepHidden(["src"], () => `Keep visible source files in src/; only .gitkeep may be hidden ${LAYOUT}.`),

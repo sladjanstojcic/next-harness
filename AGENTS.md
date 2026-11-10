@@ -162,16 +162,23 @@ export default defineHarness({
   but `.env.example` is denied.
 - `analysis` lists which of `depcruise`, `knip` and `jscpd` run in Done and CI, in each
   next-modules workspace's folder: all three unless listed, never in the other shapes.
-- A committed migration under a supabase workspace's `migrations/` cannot be edited,
+- An applied migration under a supabase workspace's `migrations/` cannot be edited,
   deleted or moved, by tool or by shell; add a new one with
-  `supabase migration new <name>`. Applying schema changes to a linked project is the
-  user's step: `supabase db push`, `supabase link`, `supabase migration up --linked`
+  `supabase migration new <name>`. Applied means the branch's upstream or the remote
+  default branch held it when the prompt arrived (those commits are pinned, so a push
+  during the task changes nothing); without either, the tree the task started from.
+  Restoring it is not an edit, and the agent's own unpushed migrations stay editable.
+  In a repository without a remote, a migration committed in one prompt counts as
+  applied from the next prompt on, though no database ran it. Applying
+  schema changes to a linked project is the user's step: `supabase db push`, `supabase link`, `supabase migration up --linked`
   and a package runner starting the `supabase:deploy` script are denied in every project.
 - `pnpm harness:split` creates or moves the local `harness` branch to a
   `git subtree split` of `tooling/harness/`. Another repository consumes it with
   `git subtree add --prefix=tooling/harness <repo> harness --squash`. Pushing the
-  branch is the user's step. `tooling/harness/package.json` pins `typescript` and `zod`;
-  its peers are the tools whose rules `presets/` holds, and `init` writes their thin configs.
+  branch is the user's step. `tooling/harness/package.json` pins `typescript` and `zod`
+  as `npm:` aliases and declares no peers, so a kit's `manypkg fix` leaves it alone.
+  `presets/peers.json` lists the tools whose rules `presets/` holds; `init` prints their
+  install line and writes their thin configs.
 
 ## Checks and when they run
 

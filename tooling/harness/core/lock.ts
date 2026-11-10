@@ -60,7 +60,7 @@ export function lockReason(file: string): string {
 }
 
 /** A tracked file whose working copy equals its committed version: a revert restored it rather than changed it. */
-export function matchesHead(root: string, file: string): boolean {
+function matchesHead(root: string, file: string): boolean {
   const options = { cwd: root, stdio: "ignore" } as const;
   const tracked = spawnSync("git", ["cat-file", "-e", `HEAD:${file}`], options).status === 0;
   return tracked && spawnSync("git", ["diff", "--quiet", "HEAD", "--", file], options).status === 0;
@@ -71,4 +71,15 @@ export function lockFindings(root: string, changed: Iterable<string>, config: Ha
   return [...changed]
     .filter((file) => isLocked(file, config) && !matchesHead(root, file))
     .map((file): Finding => ({ rule: "harness-lock", file, message: lockReason(file) }));
+}
+
+const HARNESS_FOLDER = "tooling/harness";
+
+/** After one shell command, more than three locked files mean a formatter or codemod ran over them: restore, not unlock. */
+export function shellLockFindings(root: string, changed: Iterable<string>, config: HarnessConfig = loadConfig(root)): Finding[] {
+  const findings = lockFindings(root, changed, config);
+  if (findings.length <= 3) return findings;
+  const paths = [...new Set(findings.map((finding) => (finding.file.startsWith(`${HARNESS_FOLDER}/`) ? HARNESS_FOLDER : finding.file)))];
+  const message = `${String(findings.length)} harness files changed in one command: a formatter or codemod touched them, nobody meant to edit the harness. Restore them with \`git checkout -- ${paths.join(" ")}\` and keep that tool off the harness.`;
+  return paths.map((file): Finding => ({ rule: "harness-lock", file, message }));
 }

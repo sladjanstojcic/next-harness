@@ -8,6 +8,7 @@ const presets = path.join(harness, "presets");
 const PACKAGES: readonly string[] = ["zod", "typescript", "vitest"];
 
 interface Manifest {
+  dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
 }
@@ -16,7 +17,8 @@ function manifest(dir: string): Manifest {
   return JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")) as Manifest;
 }
 
-const PEERS = Object.keys(manifest(harness).peerDependencies ?? {});
+const peers = JSON.parse(fs.readFileSync(path.join(presets, "peers.json"), "utf8")) as Record<string, string>;
+const PEERS = Object.keys(peers);
 
 function sources(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -51,7 +53,14 @@ describe("the harness as a subtree", () => {
 
   it("pins each peer tool to the template's exact version", () => {
     const template = manifest(path.resolve(harness, "../..")).devDependencies ?? {};
-    const peers = manifest(harness).peerDependencies ?? {};
     expect(Object.fromEntries(PEERS.map((name) => [name, template[name]]))).toEqual(peers);
+  });
+
+  it("gives a kit's manypkg nothing to fix: no peerDependencies, and its own pins as npm: aliases of the template's versions", () => {
+    const own = manifest(harness);
+    expect(own.peerDependencies).toBeUndefined();
+    const template = manifest(path.resolve(harness, "../.."));
+    const versions = { ...template.dependencies, ...template.devDependencies };
+    for (const [name, spec] of Object.entries({ ...own.dependencies, ...own.devDependencies })) expect(spec, name).toBe(`npm:${name}@${versions[name] ?? ""}`);
   });
 });

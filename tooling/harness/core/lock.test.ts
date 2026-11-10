@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isLocked, lock, lockFindings, unlock, unlocked } from "./lock.ts";
+import { isLocked, lock, lockFindings, shellLockFindings, unlock, unlocked } from "./lock.ts";
 import { makeRepo } from "../testing/temp-repo.ts";
 
 const hour = 3_600_000;
@@ -67,5 +67,22 @@ describe("harness lock", () => {
       "tooling/harness/new.ts",
       "eslint.config.ts",
     ]);
+  });
+
+  it("block 790f94: more than three locked files from one command ask for a restore, not an unlock", () => {
+    const files = ["tooling/harness/cli.ts", "tooling/harness/config.ts", "tooling/harness/core/lock.ts", "harness.config.ts"];
+    const repo = makeRepo({
+      ...Object.fromEntries(files.map((file) => [file, "export const a = 1;\n"])),
+      "harness.config.ts": `export default { workspaces: [{ path: ".", shape: "next-modules" }] };\n`,
+    });
+    for (const file of files)
+      repo.write(file, file === "harness.config.ts" ? `export default { workspaces: [{ path: ".", shape: "next-modules" }] }\n` : "export const a = 1\n");
+    const message =
+      "4 harness files changed in one command: a formatter or codemod touched them, nobody meant to edit the harness. Restore them with `git checkout -- tooling/harness harness.config.ts` and keep that tool off the harness.";
+    expect(shellLockFindings(repo.root, files)).toEqual([
+      { rule: "harness-lock", file: "tooling/harness", message },
+      { rule: "harness-lock", file: "harness.config.ts", message },
+    ]);
+    expect(shellLockFindings(repo.root, files.slice(0, 3))).toEqual(lockFindings(repo.root, files.slice(0, 3)));
   });
 });

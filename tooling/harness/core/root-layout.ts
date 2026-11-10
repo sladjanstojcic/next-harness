@@ -21,6 +21,8 @@ const ROOT_ENTRIES: readonly string[] = [
   "CHANGELOG.md",
 ];
 const JS_EXCEPTIONS: readonly string[] = [];
+/** The root ignore files init writes so a project's formatter and oxlint leave the harness alone. */
+const HARNESS_IGNORE_FILES: readonly string[] = [".prettierignore", ".eslintignore"];
 export const ROOT_KEBAB_FOLDERS: readonly string[] = ["tooling", "scripts"];
 export const ROOT_FOLDER_GUIDANCE = "Move cohesive code into a focused subfolder under tooling/ or scripts/.";
 
@@ -38,7 +40,7 @@ export function rootEntries(config: HarnessConfig, hasConfigFile = false): RootL
       ...ROOT_ENTRIES,
       ...extra,
       ...jsExceptions,
-      ...(hasConfigFile ? [CONFIG_FILE] : []),
+      ...(hasConfigFile ? [CONFIG_FILE, ...HARNESS_IGNORE_FILES] : []),
       ...(config.legacy === undefined ? [] : [config.legacy]),
     ]),
     folders: new Set([...ROOT_FOLDERS, ...extra]),

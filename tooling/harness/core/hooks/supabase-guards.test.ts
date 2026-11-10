@@ -74,7 +74,7 @@ describe("supabase deploy guards (commands are inspected, never executed)", () =
     "supabase migration repair 20240101000000 --status applied --linked",
     "cat apps/web/supabase/README-link.md",
     'hc send t2yw "the supabase guards deny db push and link"',
-    "grep -i 'supabase-link' .git/harness/blocks.jsonl",
+    "grep -i 'supabase-link' docs/blocks.jsonl",
     "grep -n 'supabase:deploy' apps/web/package.json",
     "supabase link-check",
   ])("allows %s", (command) => {

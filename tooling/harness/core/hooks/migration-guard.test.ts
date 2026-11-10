@@ -9,7 +9,9 @@ import { handleEvent } from "./handle.ts";
 afterEach(() => vi.restoreAllMocks());
 
 const NEW_MIGRATION = "apps/web/supabase/migrations/20261109120000_add_journal.sql";
-const REASON = `${MAKERKIT_MIGRATION} is already committed and may be applied; add a new migration with supabase migration new <name> instead of editing it.`;
+const reason = (label: string): string =>
+  `${MAKERKIT_MIGRATION} is in ${label} and may be applied; restore it with git checkout and add a new migration with supabase migration new <name> instead of editing it.`;
+const REASON = reason("HEAD");
 
 const fileEvent = (root: string, tool: string, file: string): HookEvent =>
   parseEvent(
@@ -81,6 +83,7 @@ describe("migration guard after a shell command", () => {
     before: (repo: ReturnType<typeof makerkitRepo>) => void = () => undefined,
   ) {
     const repo = makerkitRepo();
+    await handleEvent(parseEvent("claude", { session_id: "s", cwd: repo.root, hook_event_name: "UserPromptSubmit", prompt: "go" }, repo.root), repo.root);
     before(repo);
     const event = bash(repo.root, command);
     expect(await handleEvent(event, repo.root)).toEqual({ kind: "allow" });
@@ -100,7 +103,10 @@ describe("migration guard after a shell command", () => {
     ],
   ])("blocks a committed migration changed by %s", async (command, change) => {
     const outcome = await afterShell(change, `${command} ${MAKERKIT_MIGRATION}`);
-    expect(outcome).toMatchObject({ kind: "block", findings: [{ rule: "migration-applied", file: MAKERKIT_MIGRATION, message: REASON }] });
+    expect(outcome).toMatchObject({
+      kind: "block",
+      findings: [{ rule: "migration-applied", file: MAKERKIT_MIGRATION, message: reason("the tree this task started from") }],
+    });
   });
 
   it.each<[string, (repo: ReturnType<typeof makerkitRepo>) => void]>([

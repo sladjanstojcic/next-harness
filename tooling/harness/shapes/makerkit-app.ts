@@ -13,6 +13,7 @@ import {
   sortedEntries,
   type PathVerdict,
   type Shape,
+  testsFolderDenial,
 } from "./shape.ts";
 
 const CODE_FOLDERS = ["app", "components", "config", "lib", "i18n", "styles", "content"];
@@ -107,6 +108,8 @@ function checkContent(parts: readonly string[]): PathVerdict {
 function checkPath(path: string): PathVerdict {
   const [top = "", ...inside] = path.split("/");
   if (inside.length === 0) return ok;
+  const testsFolder = testsFolderDenial(path, LAYOUT);
+  if (testsFolder !== undefined) return testsFolder;
   switch (top) {
     case "app":
       return checkApp(inside);
@@ -154,6 +157,7 @@ function codeIndex(workspaceDir: string): string[] {
 
 export const makerkitApp: Shape = {
   name: "makerkit-app",
+  ciAdvice: `Fix app code in app/, components/, config/ and lib/, and feature code in packages/features/ ${LAYOUT}.`,
   topEntries,
   topFolders,
   kebabFolders: [],

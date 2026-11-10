@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
@@ -7,6 +6,7 @@ import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { eslintPresetLines, presetImport } from "../../tools/eslint-preset.ts";
 import { managerCommands } from "./bootstrap.ts";
 import { writer, type Step } from "./files.ts";
+import { gitignoreStep, HARNESS_MODULES, IGNORED, PRETTIER_IGNORED, ignoreEntriesStep } from "./ignore-files.ts";
 import { tsconfigStep } from "./tsconfig-step.ts";
 
 const HARNESS = path.resolve(import.meta.dirname, "../..");
@@ -101,39 +101,6 @@ function dependencyCruiserStep(root: string, workspace: WorkspaceEntry, force: b
   return { target, status: "updated", detail: "replaced by the harness preset", apply };
 }
 
-const IGNORED = [".next/", "test-results/"];
-/** pnpm links the harness's own dependencies here once it is a workspace package; create-next-app ignores only `/node_modules`. */
-export const HARNESS_MODULES = "tooling/harness/node_modules/";
-
-/** Appends the entries an ignore file lacks, keeping its lines; `isMissing` decides with the file as it stands. */
-function ignoreFileStep(root: string, target: string, entries: readonly string[], isMissing: (entry: string, current: string) => boolean): Step {
-  const file = path.join(root, target);
-  const current = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
-  const missing = entries.filter((entry) => isMissing(entry, current));
-  if (missing.length === 0) return { target, status: "unchanged", detail: entries.join(", ") };
-  const text = `${current}${current === "" || current.endsWith("\n") ? "" : "\n"}${missing.join("\n")}\n`;
-  return { target, status: current === "" ? "created" : "updated", detail: missing.join(", "), apply: writer(file, text) };
-}
-
-/** Appends to a folder's .gitignore the entries no ignore rule of the repository covers yet; entries are relative to that folder. */
-export function gitignoreStep(root: string, folder: string, entries: readonly string[]): Step {
-  const at = (file: string): string => (folder === "" ? file : `${folder}/${file}`);
-  return ignoreFileStep(
-    root,
-    at(".gitignore"),
-    entries,
-    (entry) => spawnSync("git", ["check-ignore", "-q", "--no-index", at(entry)], { cwd: root, stdio: "ignore" }).status !== 0,
-  );
-}
-
-/** Files the format check must skip: pnpm's own lockfile style, the vendored shadcn primitives and the build output. */
-const PRETTIER_IGNORED = ["pnpm-lock.yaml", "src/shared/ui", ".next"];
-
-function prettierignoreStep(root: string, workspace: WorkspaceEntry): Step {
-  const listed = (current: string): Set<string> => new Set(current.split(/\r?\n/).map((line) => line.trim().replace(/^\/|\/$/g, "")));
-  return ignoreFileStep(root, label(workspace, ".prettierignore"), PRETTIER_IGNORED, (entry, current) => !listed(current).has(entry));
-}
-
 /** Scripts a workspace gets when it has none of that name; the root's harness scripts come from the wiring. */
 export function toolScripts(workspace: WorkspaceEntry): Record<string, string> {
   return {
@@ -172,7 +139,7 @@ export function toolConfigSteps(root: string, workspace: WorkspaceEntry, force: 
     dependencyCruiserStep(root, workspace, force),
     tsconfigStep(root, workspace, force),
     gitignoreStep(root, workspace.path, workspace.path === "" ? [...IGNORED, HARNESS_MODULES] : IGNORED),
-    prettierignoreStep(root, workspace),
+    ...(workspace.path === "" ? [] : [ignoreEntriesStep(root, label(workspace, ".prettierignore"), PRETTIER_IGNORED)]),
     ...(starter && workspace.shape === "next-modules" ? starterSteps(root, workspace, "next-modules", "src/shared/lib") : []),
     ...(starter && browser ? starterSteps(root, workspace, "e2e", "e2e") : []),
   ];
@@ -182,10 +149,18 @@ const manifest = z.object({
   version: z.string().optional(),
   dependencies: z.record(z.string(), z.string()).optional(),
   devDependencies: z.record(z.string(), z.string()).optional(),
-  peerDependencies: z.record(z.string(), z.string()).optional(),
 });
 
 const readManifest = (file: string) => manifest.parse(JSON.parse(fs.readFileSync(file, "utf8")));
+
+/**
+ * The tools whose rules presets/ holds, at the template's versions. They are not peerDependencies: a kit's `manypkg fix`
+ * copies peers into devDependencies of the vendored package.
+ */
+const PEERS = z.record(z.string(), z.string()).parse(JSON.parse(fs.readFileSync(path.join(HARNESS, "presets/peers.json"), "utf8")));
+
+/** The version of an `npm:<name>@<version>` alias, which keeps manypkg's external-mismatch fix off the harness's pins. */
+const aliasVersion = (spec: string): string => spec.replace(/^npm:(?:@[^@/]+\/)?[^@]+@/, "");
 
 /** server-only is the starter's other runtime dependency; the harness itself does not import it. */
 const STARTER_RUNTIME: Readonly<Record<string, string>> = { "server-only": "0.0.1" };
@@ -208,8 +183,7 @@ const major = (version: string): string => /^\D*(\d+)/.exec(version)?.[1] ?? "";
  * (create-next-app's @types/node 20 fails Vitest's peer range); init does not install.
  */
 export function peerInstall(root: string, workspace: WorkspaceEntry): string | undefined {
-  const { peerDependencies = {} } = readManifest(path.join(HARNESS, "package.json"));
-  const missing = Object.entries(peerDependencies).filter(([name, version]) => major(reachableVersion(root, workspace, name) ?? "") !== major(version));
+  const missing = Object.entries(PEERS).filter(([name, version]) => major(reachableVersion(root, workspace, name) ?? "") !== major(version));
   if (missing.length === 0) return undefined;
   return inWorkspace(workspace, `${managerCommands(root).addDev} ${missing.map(([name, version]) => `${name}@${version}`).join(" ")}`);
 }
@@ -218,7 +192,7 @@ export function peerInstall(root: string, workspace: WorkspaceEntry): string | u
 export function starterInstall(root: string, workspace: WorkspaceEntry): string | undefined {
   const { dependencies: harness = {} } = readManifest(path.join(HARNESS, "package.json"));
   const { dependencies = {}, devDependencies = {} } = readManifest(path.join(root, workspace.path, "package.json"));
-  const wanted = { zod: harness.zod ?? "", ...STARTER_RUNTIME };
+  const wanted = { zod: aliasVersion(harness.zod ?? ""), ...STARTER_RUNTIME };
   const missing = Object.entries(wanted).filter(([name]) => dependencies[name] === undefined && devDependencies[name] === undefined);
   if (missing.length === 0) return undefined;
   return inWorkspace(workspace, `${managerCommands(root).add} ${missing.map(([name, version]) => `${name}@${version}`).join(" ")}`);

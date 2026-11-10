@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { analysisOf } from "../../config.ts";
+import { analysisOf, workspaceOf } from "../../config.ts";
 import { audit } from "../audit/audit.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
 import { harnessLinted, PRE_EXISTING_HEADING, readLegacy, splitLegacy } from "../classes.ts";
@@ -18,7 +18,21 @@ export async function ciGate(root: string): Promise<GateResult> {
   const directory = path.resolve(root);
   const findings: Finding[] = [];
   const reports: string[] = [];
-  const record = async (name: string, check: () => Finding[] | Promise<Finding[]>): Promise<void> => {
+  const harness = resolveHarness(directory);
+  /** The shape's advice when every finding (or the step's workspace) has one shape; none when they span shapes. */
+  const advice = (result: Finding[], workspacePath: string | undefined): string[] => {
+    const files = result.map((finding) => finding.file).filter((file) => file !== "");
+    const entries =
+      workspacePath !== undefined
+        ? harness.workspaces.filter((entry) => entry.path === workspacePath)
+        : files.length > 0
+          ? files.map((file) => workspaceOf(harness.workspaces, file)?.entry)
+          : harness.workspaces;
+    const texts = new Set(entries.map((entry) => entry?.shapeImpl.ciAdvice));
+    const [text] = texts;
+    return texts.size === 1 && text !== undefined ? [text] : [];
+  };
+  const record = async (name: string, check: () => Finding[] | Promise<Finding[]>, workspacePath?: string): Promise<void> => {
     let result: Finding[];
     try {
       result = await check();
@@ -27,21 +41,16 @@ export async function ciGate(root: string): Promise<GateResult> {
     }
     findings.push(...result);
     reports.push(`${name}: ${result.length === 0 ? "passed" : "failed"}`);
-    if (result.length > 0)
-      reports.push(
-        formatFindings(result),
-        "Fix application code in src/modules/ or src/shared/; harness code belongs in tooling/harness/ and automation in scripts/.",
-      );
+    if (result.length > 0) reports.push(formatFindings(result), ...advice(result, workspacePath));
   };
-  const harness = resolveHarness(directory);
   const groups = toolWorkspaces(directory, harness.workspaces);
   const run = async (workspacePath: string, steps: ToolStep[], optional = false): Promise<void> => {
     for (const step of steps) {
       const placed = placeStep(directory, workspacePath, step);
       const name = workspacePath === "" ? step.name : `${step.name} (${workspacePath})`;
-      if (!("finding" in placed)) await record(name, () => runTool(directory, placed));
+      if (!("finding" in placed)) await record(name, () => runTool(directory, placed), workspacePath);
       else if (optional) reports.push(`${name}: skipped`);
-      else await record(name, () => [placed.finding]);
+      else await record(name, () => [placed.finding], workspacePath);
     }
   };
   const legacy = readLegacy(directory, harness.config);

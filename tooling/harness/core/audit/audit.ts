@@ -33,8 +33,11 @@ export function audit(root: string): Finding[] {
   return [...trackedDependencies(root), ...auditPaths(root, selected), ...auditContent(root, selected), ...findDuplicateExports(root, selected)];
 }
 
+/** Rules a correct agent breaks between two calls: a domain rule is written one call before its test. */
+const DONE_ONLY_RULES = new Set(["domain-test"]);
+
 /** The changed files only: the rules that read nothing else. Fast and the post-command audit run this; duplicate exports wait for Done. */
 export function auditChanged(root: string, files: string[]): Finding[] {
   const selected = present(root, files);
-  return [...auditPaths(root, selected), ...auditContent(root, selected)];
+  return [...auditPaths(root, selected), ...auditContent(root, selected)].filter((finding) => !DONE_ONLY_RULES.has(finding.rule));
 }

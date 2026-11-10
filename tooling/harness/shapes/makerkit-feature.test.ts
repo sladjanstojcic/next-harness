@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { auditChanged } from "../core/audit/audit.ts";
+import { auditContent } from "../core/audit/content-rules.ts";
 import { codeIndex } from "../core/code-index.ts";
 import { parseEvent, type HookEvent } from "../core/hooks/event.ts";
 import { checkGuards } from "../core/hooks/guards.ts";
@@ -74,6 +75,18 @@ describe("makerkit-feature paths", () => {
     expect(denial?.guard).toBe("structure-write");
   });
 
+  it.each([`${PKG}/src/shared/__tests__/balance.test.ts`, `apps/web/app/[locale]/home/[account]/journal/_lib/__tests__/journal-page-path.test.ts`])(
+    "block d23e71: a __tests__/ folder in owned code says where tests sit (%s)",
+    (file) => {
+      const repo = makerkitRepo();
+      expect(checkPath(file, resolveHarness(repo.root))).toEqual({
+        ok: false,
+        rule: "file-name",
+        reason: "Put tests beside the file they test as <name>.test.ts, not in __tests__/, in owned code (Makerkit layout).",
+      });
+    },
+  );
+
   it("leaves the same violations in a kit package alone", () => {
     const files = [`${KIT}/src/utils/x.ts`, `${KIT}/src/server/helpers/x.ts`, `${KIT}/src/shared/balance.ts`];
     const repo = makerkitRepo(Object.fromEntries(files.map((file) => [file, "export const x = 1;\n"])));
@@ -110,7 +123,7 @@ describe("makerkit-feature content", () => {
   it("requires a colocated test for owned src/shared/ code but not for index.ts or types.ts", () => {
     const files = [`${PKG}/src/shared/balance.ts`, `${PKG}/src/shared/index.ts`, `${PKG}/src/shared/types.ts`];
     const repo = makerkitRepo(Object.fromEntries(files.map((file) => [file, "export const x = 1;\n"])));
-    const findings = auditChanged(repo.root, files);
+    const findings = auditContent(repo.root, files);
     expect(findings.map(({ file, rule }) => `${file} ${rule}`)).toEqual([`${PKG}/src/shared/balance.ts domain-test`]);
     expect(findings[0]?.message).toContain(`${PKG}/src/shared/balance.test.ts`);
   });

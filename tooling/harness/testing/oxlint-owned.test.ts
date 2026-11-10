@@ -48,6 +48,14 @@ describe("the owned oxlint preset", () => {
     });
     expect(step?.findings(output, 1)).toEqual([{ rule: "no-explicit-any", file: "a.ts", line: 2, message: "Unexpected any." }]);
   });
+
+  it("block 9aec2d: states the line limit, which oxlint 1.87.0 leaves in help", () => {
+    const output = `{ "diagnostics": [{"message": "File has too many lines (260).","code": "eslint(max-lines)","severity": "error","help": "Maximum allowed is 250.","filename": "long.ts","labels": [{"span": {"offset": 6279,"length": 0,"line": 260,"column": 25}}]}] }`;
+    expect(oxc.lint.owned?.("/w", ["long.ts"]).findings(output, 1)).toEqual([
+      { rule: "max-lines", file: "long.ts", line: 260, message: "File has too many lines (260). (maximum 250 lines, blank lines and comments count)" },
+    ]);
+    expect(oxc.lint.all("/w").findings(output, 1)[0]?.message).toBe("File has too many lines (260).");
+  });
 });
 
 const OWNED_FILE = "packages/features/journal/src/server/services/journal.service.ts";

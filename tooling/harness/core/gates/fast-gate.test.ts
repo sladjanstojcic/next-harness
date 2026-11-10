@@ -4,7 +4,7 @@ import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { templateRepo } from "../../testing/template-repo.ts";
 import { makeRepo } from "../../testing/temp-repo.ts";
-import { audit } from "../audit/audit.ts";
+import { audit, auditChanged } from "../audit/audit.ts";
 import { fastGate } from "./fast-gate.ts";
 
 let root: string;
@@ -39,6 +39,14 @@ describe("fast gate with the template tools", () => {
     expect(audit(root)).toContainEqual(
       expect.objectContaining({ rule: "duplicate-export", file: copy, message: expect.stringContaining(original) as unknown }),
     );
+  }, 120_000);
+
+  it("leaves domain-test to Done and CI: blocks f8ef27, 828988 wrote the rule one call before its test", async () => {
+    const rule = write("domain/total.ts", "export const total = (values: number[]): number => values.reduce((sum, value) => sum + value, 0);\n");
+    const finding: unknown = expect.objectContaining({ rule: "domain-test", file: rule });
+    expect((await fastGate(root, [rule])).findings).not.toContainEqual(finding);
+    expect(auditChanged(root, [rule])).not.toContainEqual(finding);
+    expect(audit(root)).toContainEqual(finding);
   }, 120_000);
 
   it("leaves git-ignored writes silent and unchanged", async () => {

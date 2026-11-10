@@ -8,7 +8,7 @@ import { ALWAYS_BLOCKS, classify, HARNESS_RULES, legacyInvalidFindings, harnessL
 import { realPath } from "../hooks/shell.ts";
 import { legacyAppendFindings } from "../legacy.ts";
 import { lintConfigFindings } from "../hooks/lint-config-guard.ts";
-import { migrationFindings } from "../hooks/migration-guard.ts";
+import { type Applied, migrationFindings, taskApplied } from "../hooks/migration-guard.ts";
 import { lockFindings } from "../lock.ts";
 import { resolveHarness } from "../path-check.ts";
 import { withGateLock } from "../state/run-lock.ts";
@@ -39,8 +39,8 @@ function presetInputChanged(changed: ReadonlySet<string>, workspacePath: string)
   return ["", ...folders].some((folder) => ALL_TOOL_CONFIG_NAMES.some((name) => changed.has(folder === "" ? name : `${folder}/${name}`)));
 }
 
-/** `base` is the task's starting tree; without it, changed migrations are judged against HEAD. */
-export async function doneGate(root: string, changed: string[], base?: string): Promise<GateResult> {
+/** `applied` holds the task's pinned migration versions; without it, migrations are judged against the refs now, else HEAD. */
+export async function doneGate(root: string, changed: string[], applied?: Applied): Promise<GateResult> {
   const directory = realPath(path.resolve(root));
   if (changed.length === 0) {
     // A git-ignored lint config changes no tracked path, yet the linters read it.
@@ -48,10 +48,10 @@ export async function doneGate(root: string, changed: string[], base?: string): 
     return { passed: findings.length === 0, findings, preExisting: [], report: stableReport(findings) };
   }
   // Type generation and incremental tsc write shared files; parallel agents in one checkout take turns.
-  return withGateLock(directory, () => runDoneGate(directory, changed, base));
+  return withGateLock(directory, () => runDoneGate(directory, changed, applied));
 }
 
-async function runDoneGate(directory: string, changed: string[], base: string | undefined): Promise<GateResult> {
+async function runDoneGate(directory: string, changed: string[], applied: Applied | undefined): Promise<GateResult> {
   const changedPaths = new Set(changed.map((file) => relativePath(directory, file)));
   const harness = resolveHarness(directory);
   const legacy = readLegacy(directory, harness.config);
@@ -77,7 +77,7 @@ async function runDoneGate(directory: string, changed: string[], base: string | 
   all.push(
     ...audit(directory),
     ...lockFindings(directory, changedPaths, harness.config),
-    ...migrationFindings(directory, harness, changedPaths, base),
+    ...migrationFindings(directory, harness, changedPaths, () => applied ?? taskApplied(directory, null)),
     ...lintConfigFindings(directory, harness),
     ...legacyAppendFindings(directory, harness.config),
     ...legacyInvalidFindings(directory, harness.config),

@@ -4,12 +4,13 @@ import path from "node:path";
 import { managerCommands } from "./bootstrap.ts";
 import { codexHooksSetting, withHooksFeature } from "./codex-user.ts";
 import { compareHooks, hooksBlock, mergeHooks, type HooksBlock } from "./hooks-merge.ts";
-import { indentOf, readJson, scriptsStep, writer, type JsonObject, type Step } from "./files.ts";
+import { indentOf, isObject, readJson, scriptsStep, writer, type JsonObject, type Step } from "./files.ts";
 import { resolveHarness } from "../path-check.ts";
 import { bin } from "../../tools/tool-set.ts";
-import { gitignoreStep, HARNESS_MODULES, peerInstall, starterInstall, toolConfigSteps, toolScripts } from "./tool-configs.ts";
+import { gitignoreStep, HARNESS_MODULES, rootIgnoreSteps } from "./ignore-files.ts";
+import { peerInstall, starterInstall, toolConfigSteps, toolScripts } from "./tool-configs.ts";
 import type { WorkspaceEntry } from "../../config.ts";
-import { CI_STEPS, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH } from "./wiring.ts";
+import { CI_STEPS, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH, PREPARE } from "./wiring.ts";
 
 function hooksStep(root: string, label: string, wanted: HooksBlock, force: boolean): Step {
   const file = path.join(root, label);
@@ -91,6 +92,13 @@ function formatJson(root: string, files: string[]): string[] {
   return [`formatted ${files.join(", ")} with prettier`];
 }
 
+/** Whether the root "prepare" script, which installs run on a fresh clone, points git at the harness's hooks. */
+function preparesHooks(root: string): boolean {
+  const scripts = readJson(path.join(root, "package.json"), "package.json")?.scripts;
+  const prepare = isObject(scripts) ? scripts.prepare : undefined;
+  return typeof prepare === "string" && prepare.includes(PREPARE);
+}
+
 /** One numbered list of what the user runs after init, in the order that works: tools before the files that need them. */
 function nextSteps(root: string, workspaces: readonly WorkspaceEntry[], steps: readonly Step[], starter: boolean): string[] {
   const todo = steps.filter((step) => step.todo === true).map((step) => step.target);
@@ -104,6 +112,7 @@ function nextSteps(root: string, workspaces: readonly WorkspaceEntry[], steps: r
       .flatMap((workspace) => starterInstall(root, workspace) ?? [])
       .map((command) => `Install the runtime packages the starter files import: ${command}`),
     ...(todo.length === 0 ? [] : [`Make the change each kept file above asks for: ${todo.join(", ")}`]),
+    ...(preparesHooks(root) ? [] : [`Add to the root package.json "prepare" script, so a fresh clone gets the pre-push hook: ${PREPARE}`]),
     ...(format.length === 0 ? [] : [`Format the app's own files once in the preset's style: ${format.join("; ")}`]),
     ...(workspaces.some((workspace) => workspace.path === "" && workspace.next)
       ? [`Install the smoke test's browser: ${exec} playwright install chromium`]
@@ -125,7 +134,8 @@ export interface InitOptions {
  * while a step conflicts and force is off. The git config step applies first, so a git failure precedes any file write.
  */
 export function initHarness(root: string, { force, starter }: InitOptions): { report: string; ok: boolean } {
-  const workspaces = resolveHarness(root).workspaces.filter((workspace) => workspace.tools === "eslint-prettier");
+  const all = resolveHarness(root).workspaces;
+  const workspaces = all.filter((workspace) => workspace.tools === "eslint-prettier");
   const atRoot = workspaces.find((workspace) => workspace.path === "");
   const steps = [
     hooksPathStep(root, force),
@@ -133,12 +143,13 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
     hooksStep(root, ".codex/hooks.json", CODEX_HOOKS, force),
     codexConfigStep(root, force),
     prePushStep(root, force),
-    scriptsStep(root, "package.json", PACKAGE_SCRIPTS, atRoot === undefined ? {} : toolScripts(atRoot), force),
+    scriptsStep(root, "package.json", PACKAGE_SCRIPTS, { prepare: PREPARE, ...(atRoot === undefined ? {} : toolScripts(atRoot)) }, force),
     ...(atRoot === undefined ? [gitignoreStep(root, "", [HARNESS_MODULES])] : []),
     ...workspaces.flatMap((workspace) => [
       ...(workspace.path === "" ? [] : [scriptsStep(root, `${workspace.path}/package.json`, {}, toolScripts(workspace), force)]),
       ...toolConfigSteps(root, workspace, force, starter),
     ]),
+    ...rootIgnoreSteps(root, all),
   ];
   const lines = steps.map((step) => `${step.status} ${step.target}: ${step.detail}`);
   if (steps.some((step) => step.status === "conflict")) {

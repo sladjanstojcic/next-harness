@@ -89,7 +89,7 @@ directly, with no build step.
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
 | Session start               | A code index of every module's public exports, so the agent reuses before it writes                                                                                  | one read |
 | User prompt                 | A snapshot of the working tree; Done judges only what this turn changed                                                                                              | ms       |
-| Before a write              | Guards: structure, secrets (`.env*`), the lockfile, vendored UI, committed migrations, the harness lock                                                              | ms       |
+| Before a write              | Guards: structure, secrets (`.env*`), the lockfile, vendored UI, applied migrations, the harness lock                                                                | ms       |
 | Before a command            | Guards: force push, `rm` outside the checkout, destructive Prisma and Supabase migrations, Supabase deploys to a linked project, the unlock and false-block commands | ms       |
 | After a write               | Fast gate: Prettier writes, syntax-level lint, path and content audit of that file                                                                                   | ≈ 1–2 s  |
 | After a command             | Path and content audit of whatever the command created or changed, plus the lock                                                                                     | ≈ 1 s    |
@@ -163,7 +163,9 @@ Another repository then adds the harness with
 Adopting it in a project, in the order that works (shown for pnpm; npm and yarn use `workspaces` in
 `package.json` instead of `pnpm-workspace.yaml`):
 
-1. `git subtree add --prefix=tooling/harness <this repo> harness --squash`.
+1. `git subtree add --prefix=tooling/harness <this repo> harness --squash`, on a clean working tree. If it
+   fails with "working tree has modifications" although `git status` is clean (an install touched file times,
+   so git's index is stale), run `git update-index --refresh` and repeat it.
 2. `node tooling/harness/cli.ts init --starter`. On a fresh subtree the harness's own `zod` is not installed
    yet, nor `typescript` when the project has none, so init only lists `tooling/harness` under `packages` in `pnpm-workspace.yaml`
    (creating the key and keeping the rest of the file) and stops. This first step uses Node built-ins only.
@@ -177,7 +179,12 @@ Adopting it in a project, in the order that works (shown for pnpm; npm and yarn 
 
 Init writes the same hook wiring this repo uses:
 `.claude/settings.json` hooks, `.codex/hooks.json`, `.codex/config.toml`, `.githooks/pre-push`,
-`core.hooksPath` and the package scripts. It keeps other keys and hooks, refuses changed harness wiring
+`core.hooksPath` and the package scripts. It adds `"prepare": "git config core.hooksPath .githooks"` to the
+root `package.json`, so a fresh clone gets the pre-push hook on install; when a `prepare` script exists, it
+prints that command to add. The root `.prettierignore`, which Prettier and oxfmt read, gets `tooling/harness`
+and `harness.config.ts`, and so does `.eslintignore`, which oxlint reads, when a workspace uses oxc: a
+project's `prettier --write .`, `oxfmt` or `oxlint --fix` then leaves the locked harness alone. The repository
+that develops the harness (its ESLint config passes `harness: "lint"`) keeps formatting it. It keeps other keys and hooks, refuses changed harness wiring
 unless `--force` is given, and prints the CI steps to add. `--codex-user` also installs the Codex
 user-level hooks.
 
@@ -321,9 +328,21 @@ Exact versions, no ranges; every config file is TypeScript.
 - Shell guards match the command's text. A command built through a variable
   (`SB=supabase; $SB db push`) passes them. Text that merely quotes a guarded command, such as an
   `echo` or a script holding it, is denied; mark such a block false.
+- The harness keeps its task and shell state in `.git/harness`. A command that names that folder,
+  even to read it, is denied (`harness-state`), and file tools cannot write under `.git/`. That guard
+  ignores prose: a quoted string with whitespace, unless it follows an interpreter's `-c`, `-e` or
+  `--eval` or holds a command substitution (so the heredoc form `git commit -m "$(cat <<'EOF' …)"` is
+  still denied). The Supabase, Prisma and force-push guards keep matching quoted text, because the
+  program that receives a quoted string can execute it (`ssh`, `hc run`, `xargs`). A shell can still
+  reach the state folder indirectly (`cd .git; cd harness`, a symlink, a variable, a script), and a
+  command can feed the hook a forged prompt event, which re-pins the applied migrations. Pre-push and
+  CI run the full gate, but CI does not check migrations, so for migrations the hooks are the only
+  check. A Stop whose task file is gone uses the copy the last shell command took; with no copy either,
+  it judges every path that differs from HEAD plus the commits since the upstream. A clean tree with
+  no such commits passes, and the next task starts fresh.
 - After a shell command, the lock check reports a locked file only while it differs from HEAD. A
   locked file edited and committed in the same command therefore passes. The migration check compares
-  with the tree before the command and catches that case, but CI does not check migrations, and
+  with the applied version (upstream, remote default branch, else the task's start) and catches that case, but CI does not check migrations, and
   `cli.ts check done` run by hand compares with HEAD.
 - Inside a workspace, denials name paths relative to that workspace: `src/shared/lib/`, not
   `apps/dashboard/src/shared/lib/`. A stray top-level file in a Makerkit app or package still gets the

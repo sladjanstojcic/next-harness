@@ -174,6 +174,7 @@ function codeIndex(workspaceDir: string): string[] {
 
 export const nextModules: Shape = {
   name: "next-modules",
+  ciAdvice: "Fix application code in src/modules/ or src/shared/; harness code belongs in tooling/harness/ and automation in scripts/.",
   topEntries,
   topFolders,
   kebabFolders: ["src", "e2e"],
