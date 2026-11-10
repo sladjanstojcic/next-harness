@@ -131,6 +131,15 @@ export default defineHarness({
 - Each file has a path class. Vendored files are the shape's generated code, such as
   `src/shared/ui/`. Legacy files are listed in the legacy file. Owned files match an
   `owned` prefix, or every file when `owned` is absent. All other files are upstream.
+- `upstream: "tooling/harness-upstream.json"` turns that around for a kit project: the
+  file lists the kit's files, and every file not on it is owned, so a new folder is
+  judged without being named anywhere. An `owned` prefix still claims a listed path.
+  `node tooling/harness/cli.ts upstream sync <git ref>` writes the list from the tracked
+  files that exist in that ref, such as the kit's `upstream/main`; repeat it after a kit
+  update. Without a ref it lists every tracked file, once. The list is locked, and a
+  missing or invalid list means every file is judged.
+- A file that starts a new folder under a `/*` workspace is checked against that
+  workspace's shape before the folder exists.
 - Harness rules (paths, names, sizes, content) judge owned files only. On legacy
   files, Done, CI and `pnpm run audit` report them as pre-existing without failing.
   Tool findings (types, lint, tests) on upstream and legacy files block in Done when

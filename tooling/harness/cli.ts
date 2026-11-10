@@ -91,6 +91,10 @@ try {
     const { initLegacy } = await import("./core/legacy.ts");
     const { resolveHarness } = await import("./core/path-check.ts");
     process.stdout.write(`${await initLegacy(root, resolveHarness(root))}\n`);
+  } else if (command === "upstream" && mode === "sync" && paths.length <= 1) {
+    const { syncUpstream } = await import("./core/upstream.ts");
+    const { loadConfig } = await import("./config.ts");
+    process.stdout.write(`${syncUpstream(root, loadConfig(root), paths[0])}\n`);
   } else if (
     command === "init" &&
     [mode, ...paths].every((flag) => flag === undefined || flag === "--force" || flag === "--codex-user" || flag === "--starter")
@@ -124,7 +128,7 @@ try {
     }
   } else {
     throw new Error(
-      "Usage: hook <claude|codex> | check <fast|done|ci> [paths…] | audit | blocks [--false <id> [note…]] | legacy init | init [--force] [--codex-user] [--starter] | lock | unlock",
+      "Usage: hook <claude|codex> | check <fast|done|ci> [paths…] | audit | blocks [--false <id> [note…]] | legacy init | upstream sync [<git ref>] | init [--force] [--codex-user] [--starter] | lock | unlock",
     );
   }
 } catch (error) {

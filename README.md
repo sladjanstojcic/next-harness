@@ -58,12 +58,12 @@ packages, and `supabase` for append-only migrations. Each workspace also gets a 
 
 **Four classes of file.** Not every file in an adopted project is yours to fix, so each file has a class:
 
-| Class    | Which files                                           | Harness rules (paths, names, sizes, content) | Tool findings (types, lint, tests) |
-| -------- | ----------------------------------------------------- | -------------------------------------------- | ---------------------------------- |
-| owned    | match an `owned` prefix; every file when it is absent | block                                        | block                              |
-| legacy   | on the legacy list                                    | reported as pre-existing                     | block once the file is touched     |
-| upstream | everything else, such as kit code                     | not applied                                  | block when the file is changed     |
-| vendored | generated code, such as `src/shared/ui/`              | not applied                                  | direct edits are denied            |
+| Class    | Which files                                                       | Harness rules (paths, names, sizes, content) | Tool findings (types, lint, tests) |
+| -------- | ----------------------------------------------------------------- | -------------------------------------------- | ---------------------------------- |
+| owned    | every file by default; with an upstream list, the files not on it | block                                        | block                              |
+| legacy   | on the legacy list                                                | reported as pre-existing                     | block once the file is touched     |
+| upstream | on the upstream list: kit code                                    | not applied                                  | block when the file is changed     |
+| vendored | generated code, such as `src/shared/ui/`                          | not applied                                  | direct edits are denied            |
 
 The shape below is `next-modules`, the one this template uses.
 
@@ -233,9 +233,10 @@ such an app and does not downgrade its tools.
 
 ### A Makerkit project
 
-The kit's code stays the kit's. The harness judges only the paths you list in `owned`, and adds its lint
-rules as a second pass on those paths. The kit's `.oxlintrc.json`, `turbo.json` and other files are not
-edited by init, and your kit updates merge as before.
+The kit's code stays the kit's. A file, `tooling/harness-upstream.json`, lists the kit's files. Every file
+that is not on it is yours and gets the harness rules, so a new feature package or route is judged without
+being named anywhere. The kit's `.oxlintrc.json`, `turbo.json` and other files are not edited by init, and
+your kit updates merge as before.
 
 ```ts
 import { defineHarness } from "./tooling/harness/config.ts";
@@ -246,27 +247,35 @@ export default defineHarness({
     { path: "packages/features/*", shape: "makerkit-feature" },
     { path: "apps/web/supabase", shape: "supabase" },
   ],
-  owned: ["packages/features/journal/", "apps/web/app/[locale]/home/[account]/journal/", "apps/web/supabase/"],
+  upstream: "tooling/harness-upstream.json",
+  legacy: "tooling/harness-legacy.json",
   env: "local",
   locked: [".oxlintrc.json", ".oxfmtrc.jsonc", "turbo.json", "tooling/typescript/base.json", "apps/web/next.config.mjs"],
 });
 ```
 
-- `owned` lists your own feature packages, routes and the Supabase folder. Every other file is upstream.
-  Add a path here, after `pnpm harness:unlock`, before an agent starts a new feature package; until then
-  the harness treats that folder as kit code and applies no shape rules to it.
+- `upstream` names the list of kit files. Write it with
+  `node tooling/harness/cli.ts upstream sync <git ref>`, where the ref is the kit's own branch, such as
+  `upstream/main`. It lists the tracked files that also exist in that ref. Run it again after each kit
+  update, so the kit's new files join the list. The list is locked; an agent cannot add its own files.
+- Without a ref the command lists every tracked file, and only while no list exists. Use that for a fresh
+  kit clone that holds no code of yours yet.
+- `owned` is optional here. A prefix in it claims a kit path you have taken over, so the rules apply there.
+  Without an `upstream` list, `owned` works the old way: only the listed prefixes are yours.
+- `legacy` is for a project that already holds your own code with findings; see the monorepo section.
 - `env: "local"` denies only `.env*.local`. The kit commits `.env`, `.env.development` and
   `.env.production`, and they stay writable.
 - `locked` adds the kit's own configs to the lock, so an agent cannot loosen the kit's lint either.
 
-The commands are the same as for a monorepo: subtree add, config, init, install, init again. On a real
+The commands are the same as for a monorepo, plus the list: subtree add, config, init, install, init
+again, `upstream sync`, then `legacy init` when the config names a legacy list. On a real
 Makerkit app init printed two steps: commit, then `pnpm run check`.
 
 What an agent meets in a Makerkit project:
 
 - **In your paths:** the Makerkit layout (`_components/`, `_lib/server/`, `server/actions/`, `schema/`),
   size limits, no inline disables, package boundaries, and the harness's oxlint rules on top of the kit's.
-- **In kit files:** no harness rule. An edit is allowed. The kit's own type check, lint and tests still
+- **In kit files:** no harness rule. An edit is allowed; a new file in a kit folder is yours and is judged. The kit's own type check, lint and tests still
   block when the changed file fails them.
 - **In `supabase/`:** a migration that is already on the remote branch cannot be edited, deleted or moved.
   A new migration is allowed. `supabase db push`, `supabase link` and the `supabase:deploy` script are
@@ -437,7 +446,7 @@ up to five minutes.
 ## Inside `tooling/harness/`
 
 ```text
-cli.ts              hook <claude|codex> · check <fast|done|ci> · audit · blocks · legacy init · init · lock · unlock
+cli.ts              hook <claude|codex> · check <fast|done|ci> · audit · blocks · legacy init · upstream sync · init · lock · unlock
 config.ts           defineHarness, loading harness.config.ts, workspaces and the longest-path match
 package.json        the harness's own pins (typescript for the compiler API, zod), so the folder works as a subtree
 shapes/
@@ -463,6 +472,7 @@ core/
   path-check.ts     one path check: the root layout, then the file's workspace shape
   classes.ts        owned, upstream, legacy and vendored files, and what each one blocks
   legacy.ts         the shrink-only legacy list and `legacy init`
+  upstream.ts       the list of kit files and `upstream sync`
   lock.ts           what is locked, and the four-hour unlock
   telemetry.ts      the block log and the false-block marker
   code-index.ts     the public-export index handed over at session start
