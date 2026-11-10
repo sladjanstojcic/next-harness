@@ -1,6 +1,7 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { APP, initialised, presetFindings, run } from "./preset-fixture.ts";
+import fs from "node:fs";
+import { APP, CNA_ESLINT, CREATE_NEXT_APP, initialised, presetFindings, run, withPresetLines } from "./preset-fixture.ts";
 
 describe("a create-next-app project after init", () => {
   it("lints with the harness rules and passes the presence check", async () => {
@@ -27,12 +28,15 @@ describe("a create-next-app project after init", () => {
     const tsconfig = JSON.parse(repo.read("tsconfig.json")) as { compilerOptions: Record<string, unknown>; exclude: string[] };
     expect(tsconfig.compilerOptions.allowImportingTsExtensions).toBe(true);
     expect(tsconfig.exclude).toEqual(["node_modules", "tooling/harness"]);
+    const typegen = run(repo.root, "next", ["typegen"]);
+    expect(typegen.status, typegen.output).toBe(0);
     const tsc = run(repo.root, "tsc", ["--noEmit"]);
     expect(tsc.status, tsc.output).toBe(0);
     const lint = run(repo.root, "eslint", [".", "--max-warnings", "0"]);
     expect(lint.status, lint.output).toBe(0);
     expect(repo.report).toContain("formatted ");
-    expect(repo.report.split("\n").at(-1)).toBe("Then format the app's own files once in the preset's style: prettier --write .");
+    expect(repo.report).toContain("  1. Format the app's own files once in the preset's style: pnpm exec prettier --write .");
+    expect(run(repo.root, "prettier", ["--write", "."]).status).toBe(0);
     const format = run(repo.root, "prettier", ["--check", "."]);
     expect(format.status, format.output).toBe(0);
     const lockfile = run(repo.root, "prettier", ["--check", "--ignore-path", "", "pnpm-lock.yaml"]);
@@ -71,6 +75,31 @@ describe("a create-next-app project after init", () => {
     expect(knip.output).toContain('{"issues":[');
     expect(knip.output).not.toContain("tooling/harness");
     expect(knip.output).not.toContain("harnessOnly");
+  }, 120_000);
+});
+
+describe("create-next-app with the harness as a workspace package, after init --starter and the steps it prints", () => {
+  it("knip names no harness tool as unused and gives no hint about a setting", () => {
+    const manifest = (text: string) => JSON.parse(text) as Record<string, Record<string, string> | undefined>;
+    const harness = manifest(fs.readFileSync(path.resolve(import.meta.dirname, "../package.json"), "utf8"));
+    const app = manifest(CREATE_NEXT_APP["package.json"] ?? "{}");
+    const repo = initialised(
+      {
+        ...APP,
+        "eslint.config.mjs": CNA_ESLINT,
+        "pnpm-workspace.yaml": `packages:\n  - tooling/harness\n${CREATE_NEXT_APP["pnpm-workspace.yaml"] ?? ""}`,
+        "package.json": JSON.stringify({
+          ...app,
+          dependencies: { ...app.dependencies, zod: harness.dependencies?.zod, "server-only": "0.0.1" },
+          devDependencies: { ...app.devDependencies, ...harness.peerDependencies },
+        }),
+      },
+      true,
+    );
+    repo.write("eslint.config.mjs", withPresetLines(CNA_ESLINT, repo.report));
+    const knip = run(repo.root, "knip", []);
+    expect(knip.output).toBe("");
+    expect(knip.status).toBe(0);
   }, 120_000);
 });
 

@@ -1,4 +1,5 @@
 import { randomInt } from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
@@ -6,6 +7,7 @@ import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
 import { harnessRuleBlocks, type RuleBlock } from "../presets/eslint-rules.ts";
 import { SOURCE_PROBES } from "../shapes/next-modules.ts";
+import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import { bin, CHECK_TIMEOUT_MS } from "./tool-set.ts";
 
 type Options = readonly unknown[];
@@ -75,12 +77,23 @@ export function presetImport(workspacePath: string, file: string): string {
   return `${up}tooling/harness/presets/${file}`;
 }
 
-/** The two lines that put the harness's ESLint rules after a project's own entries. */
-export function eslintPresetLines(workspacePath: string, next: boolean): string[] {
-  return [
-    `import { harnessEslint } from "${presetImport(workspacePath, "eslint.ts")}";`,
-    `...harnessEslint({ root: import.meta.dirname${next ? ", next: true" : ""} }),`,
-  ];
+/**
+ * A config that brings the Next configs, Next's plugin or typescript-eslint itself takes only the harness's blocks; ESLint
+ * refuses a plugin defined twice. Comments do not count.
+ */
+const OWN_BASE = /eslint-config-next|@next\/eslint-plugin-next|typescript-eslint/;
+const COMMENTS = /\/\*[\s\S]*?\*\/|(^|\s)\/\/.*$/gm;
+
+/** The two lines that put the harness's ESLint rules after the entries of a project's own config, given that config's text. */
+export function eslintPresetLines(workspacePath: string, next: boolean, ownConfig: string): string[] {
+  const options = OWN_BASE.test(ownConfig.replace(COMMENTS, "$1")) ? ", base: false" : next ? ", next: true" : "";
+  return [`import { harnessEslint } from "${presetImport(workspacePath, "eslint.ts")}";`, `...harnessEslint({ root: import.meta.dirname${options} }),`];
+}
+
+/** The text of the ESLint config in a workspace folder, or "" when it has none. */
+function eslintConfigText(dir: string): string {
+  const name = TOOL_CONFIG_NAMES.eslint.find((candidate) => fs.existsSync(path.join(dir, candidate)));
+  return name === undefined ? "" : fs.readFileSync(path.join(dir, name), "utf8");
 }
 
 function missingRules(printed: unknown, probe: string, defaults: Record<string, Options>): string[] {
@@ -91,12 +104,10 @@ function missingRules(printed: unknown, probe: string, defaults: Record<string, 
   return config.linterOptions?.noInlineConfig === true ? missing : [...missing, "linterOptions.noInlineConfig"];
 }
 
-function presetFindings(stdout: string, probes: string[], workspacePath: string, next: boolean): Finding[] {
+function presetFindings(stdout: string, probes: string[], workspacePath: string, presetLines: string[]): Finding[] {
   const { configs, defaults } = runnerOutput.parse(JSON.parse(stdout));
   const where = workspacePath === "" ? "the root" : workspacePath;
-  const lines = eslintPresetLines(workspacePath, next)
-    .map((line) => `  ${line}`)
-    .join("\n");
+  const lines = presetLines.map((line) => `  ${line}`).join("\n");
   return probes.flatMap((probe) =>
     missingRules(configs[probe], probe, defaults).map((rule) => ({
       rule: "preset-missing",
@@ -120,6 +131,6 @@ export function eslintPreset(dir: string, workspacePath: string, next: boolean, 
     command: [process.execPath, CONFIG_RUNNER, bin(dir, "eslint"), ...probes],
     cwd: dir,
     timeoutMs: CHECK_TIMEOUT_MS,
-    findings: (stdout) => presetFindings(stdout, probes, workspacePath, next),
+    findings: (stdout) => presetFindings(stdout, probes, workspacePath, eslintPresetLines(workspacePath, next, eslintConfigText(dir))),
   };
 }

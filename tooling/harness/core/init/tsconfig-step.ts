@@ -18,10 +18,15 @@ export function tsconfigStep(root: string, workspace: WorkspaceEntry, force: boo
   try {
     config = readJson(file, target);
   } catch {
-    return { target, status: "kept", detail: `has comments or is not plain JSON; set by hand:${MANUAL}` };
+    return { target, status: "kept", detail: `has comments or is not plain JSON; set by hand:${MANUAL}`, todo: true };
   }
   if (config === undefined) {
-    return { target, status: "kept", detail: `none; give the one you add compilerOptions.allowImportingTsExtensions: true and exclude ${HARNESS_DIR}` };
+    return {
+      target,
+      status: "kept",
+      detail: `none; give the one you add compilerOptions.allowImportingTsExtensions: true and exclude ${HARNESS_DIR}`,
+      todo: true,
+    };
   }
   const options = isObject(config.compilerOptions) ? config.compilerOptions : {};
   const changes: string[] = [];

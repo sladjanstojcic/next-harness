@@ -24,6 +24,9 @@ function consumer(files: Record<string, string>) {
 
 const exists = (root: string, file: string): boolean => fs.existsSync(path.join(root, file));
 
+/** The numbered lines after init's "Next steps" heading. */
+const nextSteps = (report: string): string[] => report.split("\n").slice(report.split("\n").indexOf("Next steps, in this order:") + 1);
+
 describe("init tool configs", () => {
   it("writes this repository's own thin prettier and dependency-cruiser files at a root Next workspace, and an ESLint config that skips the harness", () => {
     const repo = consumer({});
@@ -35,14 +38,19 @@ describe("init tool configs", () => {
     expect(repo.read("eslint.config.ts")).toBe(fs.readFileSync(path.join(template, "eslint.config.ts"), "utf8").replace(', harness: "lint"', ""));
     expect(repo.read("vitest.config.ts")).toContain("harnessVitest()");
     expect(repo.read("knip.config.ts")).toContain("harnessKnip()");
-    expect(repo.read(".gitignore")).toBe(".next/\ntest-results/\n");
+    expect(repo.read(".gitignore")).toBe(".next/\ntest-results/\ntooling/harness/node_modules/\n");
     expect(repo.read(".prettierignore")).toBe("pnpm-lock.yaml\nsrc/shared/ui\n.next\n");
-    expect(result.report).toMatch(/Install the harness's tools \(init does not install\): pnpm add -D @eslint\/js@9\.39\.5 .*vitest@5\.1\.0/);
     expect(exists(repo.root, "src/shared/lib/env.ts")).toBe(false);
     expect(exists(repo.root, "e2e/smoke.test.ts")).toBe(false);
-    expect(result.report).toContain(
-      "Prettier is not installed here; run prettier --write .claude/settings.json .codex/hooks.json package.json .dependency-cruiser.json",
-    );
+    expect(result.report).not.toContain("Prettier is not installed");
+    expect(nextSteps(result.report)).toEqual([
+      expect.stringMatching(/^ {2}1\. Install the harness's tools \(init does not install\): pnpm add -D @eslint\/js@9\.39\.5 .*vitest@5\.1\.0$/),
+      "  2. Make the change each kept file above asks for: tsconfig.json",
+      "  3. Format the app's own files once in the preset's style: pnpm exec prettier --write .",
+      "  4. Install the smoke test's browser: pnpm exec playwright install chromium",
+      '  5. Commit the result: git add -A && git commit -m "Add the harness"',
+      "  6. Run the full gate: pnpm run check",
+    ]);
   });
 
   it("finds the template's own configs already on the preset", () => {
@@ -77,7 +85,7 @@ describe("init tool configs", () => {
       expect(exists(repo.root, file), file).toBe(false);
     expect(result.report).toContain(
       [
-        "kept eslint.config.mjs: your config stays; add the harness preset to it:",
+        "kept eslint.config.mjs: your config stays; add the harness preset to it, the import at the top of the file, the spread as the last element of the exported array:",
         '    import { harnessEslint } from "./tooling/harness/presets/eslint.ts";',
         "    ...harnessEslint({ root: import.meta.dirname, next: true }),",
       ].join("\n"),
@@ -154,9 +162,15 @@ describe("init tool configs", () => {
       "harness:unlock",
     ]);
     expect(repo.read("apps/dashboard/.gitignore")).toBe(".next/\ntest-results/\n");
+    expect(repo.read(".gitignore")).toBe("/.next/\ntooling/harness/node_modules/\n");
     expect(repo.read("apps/dashboard/.prettierignore")).toBe("pnpm-lock.yaml\nsrc/shared/ui\n.next\n");
-    expect(result.report.split("\n").at(-1)).toBe("Then format the app's own files once in the preset's style: (cd apps/dashboard && prettier --write .)");
-    expect(result.report).toContain("cd apps/dashboard && pnpm add -D ");
+    expect(nextSteps(result.report).slice(1)).toEqual([
+      "  2. Make the change each kept file above asks for: apps/dashboard/tsconfig.json",
+      "  3. Format the app's own files once in the preset's style: (cd apps/dashboard && pnpm exec prettier --write .)",
+      '  4. Commit the result: git add -A && git commit -m "Add the harness"',
+      "  5. Run the full gate: pnpm run check",
+    ]);
+    expect(nextSteps(result.report)[0]).toContain("cd apps/dashboard && pnpm add -D ");
     expect(exists(repo.root, "supabase/eslint.config.ts")).toBe(false);
     expect(exists(repo.root, "apps/dashboard/playwright.config.ts")).toBe(false);
     expect(exists(repo.root, "eslint.config.ts")).toBe(false);
@@ -168,6 +182,13 @@ describe("init tool configs", () => {
     expect(result.ok, result.report).toBe(true);
     expect(result.report).toContain("kept src/shared/lib/log.ts: your file stays");
     expect(repo.read("src/shared/lib/log.ts")).toBe("export const mine = 1;\n");
+    const { dependencies } = JSON.parse(fs.readFileSync(path.join(template, "package.json"), "utf8")) as { dependencies: Record<string, string> };
+    const runtime = `Install the runtime packages the starter files import: pnpm add zod@${dependencies.zod ?? ""} server-only@${dependencies["server-only"] ?? ""}`;
+    expect(nextSteps(result.report)[1]).toBe(`  2. ${runtime}`);
+    const declared = consumer({ "package.json": JSON.stringify({ name: "consumer", dependencies: { zod: "4.6.7" } }) });
+    expect(nextSteps(initHarness(declared.root, { force: false, starter: true }).report)[1]).toBe(
+      `  2. Install the runtime packages the starter files import: pnpm add server-only@${dependencies["server-only"] ?? ""}`,
+    );
     const names = fs.readdirSync(STARTER).map((name) => name.replace(/\.txt$/, ""));
     expect(names.filter((name) => !name.endsWith(".test.ts")).sort()).toEqual([...STARTER_HELPERS].sort());
     expect(names.sort()).toEqual(

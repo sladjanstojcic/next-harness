@@ -160,7 +160,22 @@ the browser test starts its own production server.
 Another repository then adds the harness with
 `git subtree add --prefix=tooling/harness <this repo> harness --squash` and updates it with
 `git subtree pull`. Its `harness.config.ts` stays outside that folder, so a pull never overwrites it.
-After the subtree add, `node tooling/harness/cli.ts init` writes the same hook wiring this repo uses:
+Adopting it in a project, in the order that works (shown for pnpm; npm and yarn use `workspaces` in
+`package.json` instead of `pnpm-workspace.yaml`):
+
+1. `git subtree add --prefix=tooling/harness <this repo> harness --squash`.
+2. `node tooling/harness/cli.ts init --starter`. On a fresh subtree the harness's own `zod` is not installed
+   yet, nor `typescript` when the project has none, so init only lists `tooling/harness` under `packages` in `pnpm-workspace.yaml`
+   (creating the key and keeping the rest of the file) and stops. This first step uses Node built-ins only.
+3. `pnpm install`, then the same init command again. Now init writes the wiring and ends with one numbered list
+   of next steps.
+4. Do those steps in order: install the harness's tools, install `zod` and `server-only` for the starter files,
+   add the printed lines to each kept config, `pnpm exec prettier --write .`, install the Playwright browser,
+   `git add -A && git commit`, `pnpm run check`. Each command is printed in the project's package manager.
+   The root `.gitignore` gets `tooling/harness/node_modules/`, since create-next-app ignores only
+   `/node_modules`; the audit reports any committed `node_modules` file as `tracked-node-modules`.
+
+Init writes the same hook wiring this repo uses:
 `.claude/settings.json` hooks, `.codex/hooks.json`, `.codex/config.toml`, `.githooks/pre-push`,
 `core.hooksPath` and the package scripts. It keeps other keys and hooks, refuses changed harness wiring
 unless `--force` is given, and prints the CI steps to add. `--codex-user` also installs the Codex
@@ -170,14 +185,20 @@ In each eslint-prettier workspace, init also writes thin `eslint.config.ts`, `pr
 `vitest.config.ts`, `knip.config.ts` and `.dependency-cruiser.json` files over `tooling/harness/presets/`,
 adds the missing tool scripts, `.gitignore` entries and `.prettierignore` entries (`pnpm-lock.yaml`,
 `src/shared/ui`, `.next`), sets `allowImportingTsExtensions` in `tsconfig.json` and excludes `tooling/harness`
-from the project's type check, and prints the `pnpm add -D` line for missing tools. A root Next workspace also
+from the project's type check, and prints the `pnpm add -D` line for tools that are missing or on another major
+version (create-next-app's `@types/node` 20 fails Vitest's peer range). A root Next workspace also
 gets `playwright.config.ts`, which runs only `e2e/**/*.test.ts`; the CI browser step reports
 `playwright: skipped` until such a file exists. Init formats the JSON files it rewrote with the project's
-Prettier, or prints the `prettier --write` line when Prettier is not installed yet; its report ends with the
-`prettier --write .` line that brings the app's own files to the preset's style. The Vitest preset passes with
+Prettier when it is installed; otherwise the `prettier --write .` step formats them with the app's own files.
+The knip preset lists only entries and ignores that exist and dependencies the project declares, skips the
+harness's own ESLint plugins, and, where the harness is a workspace package, puts its settings under the root
+workspace and ignores the harness's. The Vitest preset passes with
 no test files, since a new project has none; this repository turns that off.
 A project's own ESLint, Prettier, Vitest, Knip or Playwright config is never replaced, even with `--force`:
 init prints the two lines that add the preset to it, and the file is allowed and locked like init's own.
+For an ESLint config that already brings `eslint-config-next`, `@next/eslint-plugin-next` or
+`typescript-eslint`, as create-next-app's does (comments do not count), the lines pass `base: false`: the preset then adds only the harness's rule blocks, since ESLint refuses
+a plugin defined twice.
 CI, and Done when a tool config in the workspace or a folder above it, the workspace's `package.json` or
 `harness.config.ts` changed, then check the preset is active. One Node process asks the workspace's own
 ESLint for the config of one freshly named path in every folder and extension the shape allows code in, one
@@ -191,7 +212,7 @@ preset. Two gaps no probe closes: the config file is code and can read the check
 turned off only for `.mts` or `.cts` files goes unseen while the shape denies those extensions. The thin
 ESLint config skips the vendored `tooling/harness/`, which the project's type check also leaves out.
 `--starter` copies the `src/shared/lib/` helpers the content rules point at and, at a root Next workspace,
-`e2e/smoke.test.ts`.
+`e2e/smoke.test.ts`; its next steps add the `pnpm add zod server-only` line for the ones the project lacks.
 
 ## The lock
 

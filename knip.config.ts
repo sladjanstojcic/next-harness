@@ -1,7 +1,7 @@
 import type { KnipConfig } from "knip";
-import { harnessKnip } from "./tooling/harness/presets/knip.ts";
+import { harnessKnipWorkspace } from "./tooling/harness/presets/knip.ts";
 
-const preset = harnessKnip();
+const preset = harnessKnipWorkspace({ harness: "analyse" });
 
 export default {
   ...preset,
@@ -13,5 +13,4 @@ export default {
     "tooling/harness/shapes/next-modules.ts",
     "tooling/harness/tools/eslint-config-runner.ts",
   ],
-  ignore: preset.ignore.filter((glob) => glob !== "tooling/harness/**"),
 } satisfies KnipConfig;
