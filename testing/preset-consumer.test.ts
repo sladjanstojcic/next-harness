@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import { APP, CNA_ESLINT, CREATE_NEXT_APP, initialised, presetFindings, run, withPresetLines } from "./preset-fixture.ts";
 
+const peers = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, "../presets/peers.json"), "utf8")) as Record<string, string>;
+
 describe("a create-next-app project after init", () => {
   it("lints with the harness rules and passes the presence check", async () => {
     const repo = initialised({
@@ -90,8 +92,8 @@ describe("create-next-app with the harness as a workspace package, after init --
         "pnpm-workspace.yaml": `packages:\n  - tooling/harness\n${CREATE_NEXT_APP["pnpm-workspace.yaml"] ?? ""}`,
         "package.json": JSON.stringify({
           ...app,
-          dependencies: { ...app.dependencies, zod: harness.dependencies?.zod, "server-only": "0.0.1" },
-          devDependencies: { ...app.devDependencies, ...harness.peerDependencies },
+          dependencies: { ...app.dependencies, zod: harness.dependencies?.zod?.replace("npm:zod@", ""), "server-only": "0.0.1" },
+          devDependencies: { ...app.devDependencies, ...peers },
         }),
       },
       true,

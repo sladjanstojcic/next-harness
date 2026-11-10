@@ -39,7 +39,7 @@ describe("init tool configs", () => {
     expect(repo.read("vitest.config.ts")).toContain("harnessVitest()");
     expect(repo.read("knip.config.ts")).toContain("harnessKnip()");
     expect(repo.read(".gitignore")).toBe(".next/\ntest-results/\ntooling/harness/node_modules/\n");
-    expect(repo.read(".prettierignore")).toBe("pnpm-lock.yaml\nsrc/shared/ui\n.next\n");
+    expect(repo.read(".prettierignore")).toBe("pnpm-lock.yaml\nsrc/shared/ui\n.next\ntooling/harness\nharness.config.ts\n");
     expect(exists(repo.root, "src/shared/lib/env.ts")).toBe(false);
     expect(exists(repo.root, "e2e/smoke.test.ts")).toBe(false);
     expect(result.report).not.toContain("Prettier is not installed");
@@ -155,6 +155,7 @@ describe("init tool configs", () => {
     expect(scripts.jscpd).toBe("jscpd src --config ../../tooling/harness/presets/jscpd.json");
     expect(scripts.typecheck).toBe("next typegen && tsc --noEmit");
     expect(Object.keys((JSON.parse(repo.read("package.json")) as { scripts: object }).scripts)).toEqual([
+      "prepare",
       "audit",
       "check",
       "harness:blocks",
@@ -164,6 +165,8 @@ describe("init tool configs", () => {
     expect(repo.read("apps/dashboard/.gitignore")).toBe(".next/\ntest-results/\n");
     expect(repo.read(".gitignore")).toBe("/.next/\ntooling/harness/node_modules/\n");
     expect(repo.read("apps/dashboard/.prettierignore")).toBe("pnpm-lock.yaml\nsrc/shared/ui\n.next\n");
+    expect(repo.read(".prettierignore")).toBe("tooling/harness\nharness.config.ts\n");
+    expect(exists(repo.root, ".eslintignore")).toBe(false);
     expect(nextSteps(result.report).slice(1)).toEqual([
       "  2. Make the change each kept file above asks for: apps/dashboard/tsconfig.json",
       "  3. Format the app's own files once in the preset's style: (cd apps/dashboard && pnpm exec prettier --write .)",

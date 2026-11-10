@@ -5,12 +5,12 @@ import { describe, expect, it } from "vitest";
 import { makeRepo, type RepoFixture } from "../../testing/temp-repo.ts";
 import { initHarness } from "./init.ts";
 import { toolScripts } from "./tool-configs.ts";
-import { PACKAGE_SCRIPTS } from "./wiring.ts";
+import { PACKAGE_SCRIPTS, PREPARE } from "./wiring.ts";
 
 const template = path.resolve(import.meta.dirname, "../../../..");
 const SETTINGS = ".claude/settings.json";
 const WIRED = [SETTINGS, ".codex/hooks.json", ".codex/config.toml", ".githooks/pre-push"];
-const ROOT_SCRIPTS = { ...toolScripts({ path: "", shape: "next-modules", tools: "eslint-prettier", next: true }), ...PACKAGE_SCRIPTS };
+const ROOT_SCRIPTS = { prepare: PREPARE, ...toolScripts({ path: "", shape: "next-modules", tools: "eslint-prettier", next: true }), ...PACKAGE_SCRIPTS };
 
 function consumer(files: Record<string, string>): RepoFixture {
   const repo = makeRepo(files);

@@ -24,6 +24,8 @@ export interface Shape {
   sameNameScope(path: string): string | undefined;
   content: ContentProfile;
   codeIndex(workspaceDir: string): string[];
+  /** The line under a failed CI step whose findings all sit in this shape. */
+  ciAdvice?: string;
 }
 
 export const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -61,6 +63,12 @@ export const PLAIN_SHAPE = {
   limits: { fileLines: MAX_FILE_LINES, folderFiles: MAX_FOLDER_FILES, pageLines: MAX_PAGE_LINES },
   sameNameScope: () => undefined,
 } satisfies Partial<Shape>;
+
+/** A `__tests__/` folder: the name is fine, the place is not; tests sit beside the file they test. */
+export function testsFolderDenial(path: string, layout: string): PathVerdict | undefined {
+  if (!path.split("/").includes("__tests__")) return undefined;
+  return deny("file-name", `Put tests beside the file they test as <name>.test.ts, not in __tests__/, in owned code ${layout}.`);
+}
 
 export function nameDenial(): PathVerdict {
   return deny("file-name", "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/.");

@@ -2,6 +2,7 @@ import path from "node:path";
 import { z } from "zod";
 import { listFiles } from "../core/audit/list-files.ts";
 import type { Finding } from "../core/audit/finding.ts";
+import { MAX_FILE_LINES } from "../shapes/limits.ts";
 import { bin, CHECK_TIMEOUT_MS, relativePath, type ToolSet } from "./tool-set.ts";
 import { projectTypecheck } from "./typescript.ts";
 import { vitest } from "./vitest.ts";
@@ -40,6 +41,12 @@ function oxlintFindings(dir: string, stdout: string): Finding[] {
   });
 }
 
+/** The owned pass's line limit: oxlint puts it in `help`, which the finding does not carry. */
+function ownedFindings(dir: string, stdout: string): Finding[] {
+  const limit = ` (maximum ${String(MAX_FILE_LINES)} lines, blank lines and comments count)`;
+  return oxlintFindings(dir, stdout).map((finding) => (finding.rule === "max-lines" ? { ...finding, message: `${finding.message}${limit}` } : finding));
+}
+
 /** One finding per path `oxfmt --list-different` prints; the last line may lack a newline. */
 function oxfmtFindings(dir: string, stdout: string): Finding[] {
   return stdout
@@ -75,7 +82,7 @@ export const oxc: ToolSet = {
       name: "oxlint-owned",
       command: [bin(dir, "oxlint"), "-c", OXLINT_OWNED, "-f", "json", "--no-error-on-unmatched-pattern", ...files],
       timeoutMs: CHECK_TIMEOUT_MS,
-      findings: (stdout) => oxlintFindings(dir, stdout),
+      findings: (stdout) => ownedFindings(dir, stdout),
     }),
   },
   typecheck: { incremental: projectTypecheck, all: projectTypecheck },

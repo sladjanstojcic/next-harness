@@ -6,7 +6,7 @@ import { changedSince } from "../state/snapshot.ts";
 import { makeRepo } from "../../testing/temp-repo.ts";
 
 const failure: GateResult = { passed: false, findings: [], preExisting: [], report: "broken" };
-const state = { tree: "tree", attempts: 0, lastReport: null };
+const state = { tree: "tree", attempts: 0, lastReport: null, applied: { commits: [], label: "" } };
 
 describe("repair budget", () => {
   it("snapshots the current tree and resets repairs for a new task", () => {
