@@ -1,0 +1,54 @@
+{
+  "forbidden": [
+    {
+      "name": "no-circular",
+      "comment": "Break cycles by moving shared rules to src/shared/lib/ or keeping dependencies in one direction between module public APIs.",
+      "severity": "error",
+      "from": {},
+      "to": { "circular": true }
+    },
+    {
+      "name": "module-public-api",
+      "comment": "Import another module through index.ts, server.ts or actions/<name>-action.ts; keep internal imports inside their own module.",
+      "severity": "error",
+      "from": { "path": "^src/(?:(app|modules/([^/]+))/|[^/]+\\.ts$)" },
+      "to": {
+        "path": "^src/modules/([^/]+)/",
+        "pathNot": ["^src/modules/$2/", "^src/modules/[^/]+/(?:index\\.ts|server\\.ts|actions/[^/]+-action\\.ts)$"]
+      }
+    },
+    {
+      "name": "shared-not-modules",
+      "comment": "Move feature-specific consumers to src/modules/<module>/; shared/ code may depend only on shared infrastructure.",
+      "severity": "error",
+      "from": { "path": "^src/shared/" },
+      "to": { "path": "^src/modules/" }
+    },
+    {
+      "name": "domain-pure-core",
+      "comment": "Put Node I/O in src/modules/<module>/server/; keep domain/ functions pure.",
+      "severity": "error",
+      "from": { "path": "^src/modules/[^/]+/domain/" },
+      "to": { "dependencyTypes": ["core"] }
+    },
+    {
+      "name": "domain-pure-path",
+      "comment": "Put React UI in components/ and Next or I/O code in server/ or actions/; keep domain/ functions pure.",
+      "severity": "error",
+      "from": { "path": "^src/modules/[^/]+/domain/" },
+      "to": { "path": ["(^|/)(react|react-dom|next)(/|$)", "/(components|server|actions)/", "^src/modules/[^/]+/server\\.ts$"] }
+    },
+    {
+      "name": "not-to-test",
+      "comment": "Keep test fixtures and assertions in colocated *.test.ts(x) files; move reusable production logic to domain/ or src/shared/lib/.",
+      "severity": "error",
+      "from": { "pathNot": "\\.test\\.tsx?$" },
+      "to": { "path": "\\.test\\.tsx?$" }
+    }
+  ],
+  "options": {
+    "tsConfig": { "fileName": "tsconfig.json" },
+    "tsPreCompilationDeps": true,
+    "doNotFollow": { "path": "node_modules" }
+  }
+}

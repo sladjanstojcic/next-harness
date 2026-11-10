@@ -2,7 +2,8 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { CONFIG_FILE, loadConfig, type HarnessConfig } from "../config.ts";
+import { CONFIG_FILE, isWorkspaceFolder, loadConfig, toolsOf, type HarnessConfig } from "../config.ts";
+import { ALL_TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import type { Finding } from "./audit/finding.ts";
 import { readState, stateDir, writeState } from "./state/state-file.ts";
 
@@ -16,15 +17,13 @@ const LOCKED_PATHS: readonly string[] = [
   ".github/",
   "tsconfig.json",
   "next.config.ts",
-  "eslint.config.ts",
-  "prettier.config.ts",
+  ...ALL_TOOL_CONFIG_NAMES,
   ".prettierignore",
-  "knip.config.ts",
-  "vitest.config.ts",
-  "playwright.config.ts",
   ".dependency-cruiser.json",
   ".jscpd.json",
 ];
+/** Every tool config name an eslint-prettier workspace may hold, init's and the project's own, and the tsconfig and Prettier ignore file init edits; locked there as at the root. */
+const WORKSPACE_TOOL_CONFIGS: readonly string[] = [...ALL_TOOL_CONFIG_NAMES, ".dependency-cruiser.json", ".jscpd.json", ".prettierignore", "tsconfig.json"];
 export const UNLOCK_COMMAND = /\bharness:unlock\b|cli\.ts\s+unlock\b|harness\/unlock\.json/;
 /** `init --force` replaces locked wiring; while the harness is locked it is the user's command. */
 export const INIT_FORCE_COMMAND = /(?:\bharness:init\b|cli\.ts\s+init\b)[^;&|]*\s--force\b/;
@@ -32,7 +31,13 @@ const unlockState = z.object({ until: z.number() });
 
 export function isLocked(file: string, config?: HarnessConfig): boolean {
   const entries = [...LOCKED_PATHS, CONFIG_FILE, ...(config?.locked ?? []), ...(config?.legacy === undefined ? [] : [config.legacy])];
-  return entries.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) : file === entry));
+  if (entries.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) : file === entry))) return true;
+  const folder = path.posix.dirname(file);
+  return (
+    folder !== "." &&
+    WORKSPACE_TOOL_CONFIGS.includes(path.posix.basename(file)) &&
+    (config?.workspaces ?? []).some((workspace) => toolsOf(workspace) === "eslint-prettier" && isWorkspaceFolder(workspace, folder))
+  );
 }
 
 export function unlocked(root: string, now = Date.now()): boolean {

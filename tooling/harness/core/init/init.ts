@@ -3,47 +3,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { codexHooksSetting, withHooksFeature } from "./codex-user.ts";
 import { compareHooks, hooksBlock, mergeHooks, type HooksBlock } from "./hooks-merge.ts";
+import { indentOf, readJson, scriptsStep, writer, type JsonObject, type Step } from "./files.ts";
+import { resolveHarness } from "../path-check.ts";
+import { bin } from "../../tools/tool-set.ts";
+import { peerHint, toolConfigSteps, toolScripts } from "./tool-configs.ts";
 import { CI_STEPS, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH } from "./wiring.ts";
-
-type Status = "created" | "updated" | "unchanged" | "conflict";
-
-interface Step {
-  target: string;
-  status: Status;
-  detail: string;
-  apply?: () => void;
-}
-
-type JsonObject = Record<string, unknown>;
-
-function isObject(value: unknown): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function readJson(file: string, label: string): JsonObject | undefined {
-  if (!fs.existsSync(file)) return undefined;
-  let value: unknown;
-  try {
-    value = JSON.parse(fs.readFileSync(file, "utf8"));
-  } catch (error) {
-    throw new Error(`${label} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
-  }
-  if (!isObject(value)) throw new Error(`${label} must hold a JSON object.`);
-  return value;
-}
-
-function indentOf(file: string): string {
-  const match = /^([ \t]+)"/m.exec(fs.readFileSync(file, "utf8"));
-  return match?.[1] ?? "  ";
-}
-
-function writer(file: string, text: string, mode?: number): () => void {
-  return () => {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, text);
-    if (mode !== undefined) fs.chmodSync(file, mode);
-  };
-}
 
 function hooksStep(root: string, label: string, wanted: HooksBlock, force: boolean): Step {
   const file = path.join(root, label);
@@ -108,36 +72,59 @@ function hooksPathStep(root: string, force: boolean): Step {
   return { target: label, status: "updated", detail: `${current} replaced by ${HOOKS_PATH}`, apply };
 }
 
-function scriptsStep(root: string, force: boolean): Step {
-  const label = "package.json";
-  const file = path.join(root, label);
-  const pkg = readJson(file, label);
-  if (pkg === undefined) throw new Error(`No ${label} at ${root}; init adds the harness scripts to it.`);
-  const scripts = isObject(pkg.scripts) ? pkg.scripts : {};
-  const names = Object.keys(PACKAGE_SCRIPTS);
-  const missing = names.filter((name) => scripts[name] === undefined);
-  const different = names.filter((name) => scripts[name] !== undefined && scripts[name] !== PACKAGE_SCRIPTS[name]);
-  if (missing.length === 0 && different.length === 0) return { target: label, status: "unchanged", detail: `scripts ${names.join(", ")}` };
-  if (different.length > 0 && !force) return { target: label, status: "conflict", detail: `scripts ${different.join(", ")} differ; --force replaces them` };
-  const next = { ...pkg, scripts: { ...scripts, ...PACKAGE_SCRIPTS } };
-  const changed = [...different, ...missing].join(", ");
-  return { target: label, status: "updated", detail: `scripts ${changed}`, apply: writer(file, `${JSON.stringify(next, null, indentOf(file))}\n`) };
+/** JSON.stringify spreads short arrays over lines; the project's Prettier formats what init rewrote, or the report says to. */
+function formatJson(root: string, files: string[]): string[] {
+  if (files.length === 0) return [];
+  const manual = `run prettier --write ${files.join(" ")}`;
+  const byBinary = new Map<string, string[]>();
+  for (const file of files) {
+    const prettier = bin(path.join(root, path.dirname(file)), "prettier", root);
+    if (prettier === undefined) return [`Prettier is not installed here; ${manual}`];
+    byBinary.set(prettier, [...(byBinary.get(prettier) ?? []), file]);
+  }
+  for (const [prettier, own] of byBinary) {
+    const result = spawnSync(prettier, ["--write", ...own], { cwd: root, encoding: "utf8" });
+    if (result.status !== 0) return [`prettier --write failed: ${(result.stderr || result.stdout).trim()}; ${manual}`];
+  }
+  return [`formatted ${files.join(", ")} with prettier`];
 }
 
-/** Writes the harness wiring every consumer shares; nothing is written while a step conflicts and force is off. The git config step applies first, so a git failure precedes any file write. */
-export function initHarness(root: string, force: boolean): { report: string; ok: boolean } {
+export interface InitOptions {
+  force: boolean;
+  /** Copies the next-modules helper files the content rules point at into each next-modules workspace. */
+  starter: boolean;
+}
+
+/**
+ * Writes the harness wiring every consumer shares and each eslint-prettier workspace's tool configs; nothing is written
+ * while a step conflicts and force is off. The git config step applies first, so a git failure precedes any file write.
+ */
+export function initHarness(root: string, { force, starter }: InitOptions): { report: string; ok: boolean } {
+  const workspaces = resolveHarness(root).workspaces.filter((workspace) => workspace.tools === "eslint-prettier");
+  const atRoot = workspaces.find((workspace) => workspace.path === "");
   const steps = [
     hooksPathStep(root, force),
     hooksStep(root, ".claude/settings.json", CLAUDE_HOOKS, force),
     hooksStep(root, ".codex/hooks.json", CODEX_HOOKS, force),
     codexConfigStep(root, force),
     prePushStep(root, force),
-    scriptsStep(root, force),
+    scriptsStep(root, "package.json", PACKAGE_SCRIPTS, atRoot === undefined ? {} : toolScripts(atRoot), force),
+    ...workspaces.flatMap((workspace) => [
+      ...(workspace.path === "" ? [] : [scriptsStep(root, `${workspace.path}/package.json`, {}, toolScripts(workspace), force)]),
+      ...toolConfigSteps(root, workspace, force, starter),
+    ]),
   ];
   const lines = steps.map((step) => `${step.status} ${step.target}: ${step.detail}`);
   if (steps.some((step) => step.status === "conflict")) {
     return { report: [...lines, "Nothing was written. Rerun with --force to replace the conflicting wiring."].join("\n"), ok: false };
   }
   for (const step of steps) step.apply?.();
-  return { report: [...lines, CI_STEPS].join("\n"), ok: true };
+  const formatted = formatJson(
+    root,
+    steps.filter((step) => step.apply !== undefined && step.target.endsWith(".json")).map((step) => step.target),
+  );
+  const hints = workspaces.flatMap((workspace) => peerHint(root, workspace) ?? []);
+  const formatApp = workspaces.map((workspace) => (workspace.path === "" ? "prettier --write ." : `(cd ${workspace.path} && prettier --write .)`));
+  const last = formatApp.length === 0 ? [] : [`Then format the app's own files once in the preset's style: ${formatApp.join("; ")}`];
+  return { report: [...lines, ...formatted, ...hints, CI_STEPS, ...last].join("\n"), ok: true };
 }

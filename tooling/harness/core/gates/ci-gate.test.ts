@@ -1,15 +1,20 @@
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as auditor from "../audit/audit.ts";
+import { SOURCE_PROBES } from "../../shapes/next-modules.ts";
+import { normaliseProbes } from "../../testing/preset-fixture.ts";
+import { CONFIG_RUNNER } from "../../tools/eslint-preset.ts";
 import { makeRepo } from "../../testing/temp-repo.ts";
 import { ciGate } from "./ci-gate.ts";
 import * as runner from "./run-tool.ts";
 
 afterEach(() => vi.restoreAllMocks());
 
+const SMOKE = { "e2e/smoke.test.ts": "" };
+
 describe("CI gate", () => {
   it("runs all checks in order with full typed lint even after middle failures", async () => {
-    const repo = makeRepo({ "src/utils/date.ts": "export const today = 1;" });
+    const repo = makeRepo({ ...SMOKE, "src/utils/date.ts": "export const today = 1;" });
     const calls: string[] = [];
     const audit = vi.spyOn(auditor, "audit");
     audit.mockImplementation((root) => {
@@ -17,19 +22,22 @@ describe("CI gate", () => {
       return [{ rule: "src-shape", file: path.relative(root, path.join(root, "src/utils/date.ts")), message: "Put utilities in src/shared/lib/." }];
     });
     const run = vi.spyOn(runner, "runTool").mockImplementation(async (_root, step) => {
-      calls.push([path.basename(step.command[0] ?? ""), ...step.command.slice(1)].join(" "));
+      calls.push(normaliseProbes([path.basename(step.command[0] ?? ""), ...step.command.slice(1)].join(" ")));
       return step.name === "knip" ? [{ rule: "knip-failed", file: "", message: "Unused exports" }] : [];
     });
     const result = await ciGate(repo.root);
     expect(calls).toEqual([
       "prettier --check .",
       "eslint . --max-warnings 0",
+      ["node", CONFIG_RUNNER, path.join(repo.root, "node_modules/.bin/eslint"), ...SOURCE_PROBES.map((probe) => probe.replaceAll("{name}", "<probe>"))].join(
+        " ",
+      ),
       "next typegen",
       "tsc --noEmit",
       "audit",
       "depcruise src --config .dependency-cruiser.json",
       "knip",
-      "jscpd src tooling --config .jscpd.json",
+      "jscpd src tooling --config ./tooling/harness/presets/jscpd.json",
       "vitest run",
       "next build",
       "playwright test",
@@ -45,10 +53,10 @@ describe("CI gate", () => {
 
   it("reports every successful step", async () => {
     vi.spyOn(runner, "runTool").mockResolvedValue([]);
-    const result = await ciGate(makeRepo().root);
+    const result = await ciGate(makeRepo(SMOKE).root);
     expect(result.passed).toBe(true);
     expect(result.findings).toEqual([]);
-    expect(result.report.match(/: passed/g)).toHaveLength(11);
+    expect(result.report.match(/: passed/g)).toHaveLength(12);
   });
 
   it("reports an audit exception and still reaches the browser step", async () => {
@@ -56,9 +64,17 @@ describe("CI gate", () => {
       throw new Error("Cannot read source");
     });
     vi.spyOn(runner, "runTool").mockResolvedValue([]);
-    const result = await ciGate(makeRepo().root);
+    const result = await ciGate(makeRepo(SMOKE).root);
     expect(result.passed).toBe(false);
     expect(result.report).toContain("Cannot read source");
     expect(result.report).toContain("playwright: passed");
+  });
+
+  it("skips the browser step when the root Next workspace has no e2e/**/*.test.ts", async () => {
+    const run = vi.spyOn(runner, "runTool").mockResolvedValue([]);
+    const result = await ciGate(makeRepo({ "e2e/helpers.ts": "" }).root);
+    expect(result.passed).toBe(true);
+    expect(result.report).toContain("build: passed\nplaywright: skipped");
+    expect(run.mock.calls.some(([, step]) => step.name === "playwright")).toBe(false);
   });
 });

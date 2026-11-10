@@ -166,13 +166,41 @@ After the subtree add, `node tooling/harness/cli.ts init` writes the same hook w
 unless `--force` is given, and prints the CI steps to add. `--codex-user` also installs the Codex
 user-level hooks.
 
+In each eslint-prettier workspace, init also writes thin `eslint.config.ts`, `prettier.config.ts`,
+`vitest.config.ts`, `knip.config.ts` and `.dependency-cruiser.json` files over `tooling/harness/presets/`,
+adds the missing tool scripts, `.gitignore` entries and `.prettierignore` entries (`pnpm-lock.yaml`,
+`src/shared/ui`, `.next`), sets `allowImportingTsExtensions` in `tsconfig.json` and excludes `tooling/harness`
+from the project's type check, and prints the `pnpm add -D` line for missing tools. A root Next workspace also
+gets `playwright.config.ts`, which runs only `e2e/**/*.test.ts`; the CI browser step reports
+`playwright: skipped` until such a file exists. Init formats the JSON files it rewrote with the project's
+Prettier, or prints the `prettier --write` line when Prettier is not installed yet; its report ends with the
+`prettier --write .` line that brings the app's own files to the preset's style. The Vitest preset passes with
+no test files, since a new project has none; this repository turns that off.
+A project's own ESLint, Prettier, Vitest, Knip or Playwright config is never replaced, even with `--force`:
+init prints the two lines that add the preset to it, and the file is allowed and locked like init's own.
+CI, and Done when a tool config in the workspace or a folder above it, the workspace's `package.json` or
+`harness.config.ts` changed, then check the preset is active. One Node process asks the workspace's own
+ESLint for the config of one freshly named path in every folder and extension the shape allows code in, one
+area subfolder, a colocated test, a `scripts/` file, Next's `page.tsx`, `layout.tsx` and `route.ts`, a route
+two levels deep, one under a route group and one under a dynamic segment, plus the fixed module entry and
+starter helper names. Each name is 3 to 24 random characters, some with a hyphen, some with a digit. Every
+rule the preset sets on that path must hold as an error with the harness's options; a rule it sets without
+options must print the rule's own defaults. Otherwise a `preset-missing` finding names the rule and the path.
+The lock is what protects a project's config; the check is the second line, against a config that loses the
+preset. Two gaps no probe closes: the config file is code and can read the check's arguments, and a rule
+turned off only for `.mts` or `.cts` files goes unseen while the shape denies those extensions. The thin
+ESLint config skips the vendored `tooling/harness/`, which the project's type check also leaves out.
+`--starter` copies the `src/shared/lib/` helpers the content rules point at and, at a root Next workspace,
+`e2e/smoke.test.ts`.
+
 ## The lock
 
 An agent that can edit the harness can switch it off, so it cannot. Locked: `tooling/harness/`,
 `.claude/settings.json`, `.codex/`, `.githooks/`, `.github/`, `tsconfig.json`, `next.config.ts`,
 `eslint.config.ts`, `prettier.config.ts`, `.prettierignore`, `knip.config.ts`, `vitest.config.ts`,
 `playwright.config.ts`, `.dependency-cruiser.json`, `.jscpd.json` and `harness.config.ts` (creating it
-too), plus the legacy list and `locked` paths that config names. Edits by tool are denied, edits
+too), the tool configs init writes in each eslint-prettier workspace, plus the legacy list and `locked`
+paths that config names. Edits by tool are denied, edits
 by shell are reported and block Done, and the unlock command is denied to agents.
 
 ```sh
@@ -206,7 +234,7 @@ up to five minutes.
 ## Inside `tooling/harness/`
 
 ```text
-cli.ts              hook <claude|codex> · check <fast|done|ci> · audit · blocks · legacy init · lock · unlock
+cli.ts              hook <claude|codex> · check <fast|done|ci> · audit · blocks · legacy init · init · lock · unlock
 config.ts           defineHarness, loading harness.config.ts, workspaces and the longest-path match
 package.json        the harness's own pins (typescript for the compiler API, zod), so the folder works as a subtree
 shapes/
@@ -216,6 +244,9 @@ shapes/
   supabase.ts       a Supabase folder: migration, schema, seed and test names
   limits.ts         file, folder and page size limits
   shape.ts          the contract every shape implements
+presets/            the rule sets the tool configs import: ESLint, Prettier, Vitest, Knip, Playwright,
+                    depcruise, jscpd; starter/ holds the src/shared/lib/ helpers and the e2e smoke test
+                    as text for `init --starter`
 tools/
   tool-set.ts       the contract every tool set implements, and binary lookup per workspace
   eslint-prettier.ts the eslint-prettier tool set: format, lint, type check and test steps
@@ -223,6 +254,7 @@ tools/
   typescript.ts     Next type generation, tsc steps and the compiler API
   vitest.ts         related and full test runs
   analysis.ts       depcruise, knip, jscpd, build and browser smoke steps
+  eslint-preset.ts  the preset presence check
 core/
   root-layout.ts    what may sit at the repository root, and JS_EXCEPTIONS
   path-check.ts     one path check: the root layout, then the file's workspace shape

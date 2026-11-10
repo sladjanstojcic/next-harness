@@ -1,23 +1,17 @@
 import type { KnipConfig } from "knip";
+import { harnessKnip } from "./tooling/harness/presets/knip.ts";
+
+const preset = harnessKnip();
 
 export default {
-  next: true,
+  ...preset,
   entry: [
+    ...preset.entry,
     "scripts/*.ts",
     "e2e/**",
     "tooling/harness/shapes/limits.ts",
     "tooling/harness/shapes/next-modules.ts",
-    "src/shared/lib/env.ts",
-    "src/shared/lib/user-error.ts",
-    "src/shared/lib/format.ts",
-    "src/shared/lib/define-action.ts",
-    "src/shared/lib/log.ts",
+    "tooling/harness/tools/eslint-config-runner.ts",
   ],
-  ignore: ["src/shared/ui/**", "src/shared/lib/utils.ts"],
-  ignoreDependencies: [
-    "cn", // Used only by the vendored src/shared/lib/utils.ts helper.
-    "@base-ui/react", // Used by vendored shadcn primitives.
-    "class-variance-authority", // Used by vendored shadcn variants.
-    "lucide-react", // Used by vendored shadcn icons.
-  ],
+  ignore: preset.ignore.filter((glob) => glob !== "tooling/harness/**"),
 } satisfies KnipConfig;

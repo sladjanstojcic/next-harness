@@ -1,6 +1,7 @@
 import path from "node:path";
 import { z } from "zod";
 import type { Finding } from "../core/audit/finding.ts";
+import { eslintPreset } from "./eslint-preset.ts";
 import { bin, CHECK_TIMEOUT_MS, type ToolSet } from "./tool-set.ts";
 import { fullTypecheck, incrementalTypecheck } from "./typescript.ts";
 import { vitest } from "./vitest.ts";
@@ -46,6 +47,7 @@ export const eslintPrettier: ToolSet = {
       findings: (stdout) => eslintFindings(dir, stdout),
     }),
     all: (dir) => ({ name: "eslint", command: [bin(dir, "eslint"), ".", "--max-warnings", "0"], timeoutMs: CHECK_TIMEOUT_MS, findings: () => [] }),
+    preset: eslintPreset,
   },
   typecheck: { incremental: incrementalTypecheck, all: fullTypecheck },
   test: vitest,

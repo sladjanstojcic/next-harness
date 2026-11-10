@@ -160,8 +160,8 @@ export default defineHarness({
 - `env: "local"` denies only `.env*.local` and allows the committed `.env`,
   `.env.development`, `.env.production` and `.env.test`. Without it every `.env*`
   but `.env.example` is denied.
-- `analysis` lists which of `depcruise`, `knip` and `jscpd` run in Done and CI. With
-  no config file all three run; with a config, only the listed ones.
+- `analysis` lists which of `depcruise`, `knip` and `jscpd` run in Done and CI, in each
+  next-modules workspace's folder: all three unless listed, never in the other shapes.
 - A committed migration under a supabase workspace's `migrations/` cannot be edited,
   deleted or moved, by tool or by shell; add a new one with
   `supabase migration new <name>`. Applying schema changes to a linked project is the
@@ -170,8 +170,8 @@ export default defineHarness({
 - `pnpm harness:split` creates or moves the local `harness` branch to a
   `git subtree split` of `tooling/harness/`. Another repository consumes it with
   `git subtree add --prefix=tooling/harness <repo> harness --squash`. Pushing the
-  branch is the user's step. `tooling/harness/package.json` pins the harness's own
-  `typescript` (for the compiler API) and `zod`.
+  branch is the user's step. `tooling/harness/package.json` pins `typescript` and `zod`;
+  its peers are the tools whose rules `presets/` holds, and `init` writes their thin configs.
 
 ## Checks and when they run
 
@@ -187,11 +187,11 @@ export default defineHarness({
   lone `pnpm` or `npm` `install`, `i` or `ci` passes, optionally after `cd <dir> &&`
   or `corepack`, with a short list of flags such as `--frozen-lockfile`. Package
   names, chained commands, pipes, redirects and substitutions are denied.
-- Stop runs the Done gate on changes since the user prompt: Next type generation,
-  types, lint, audit, imports, unused code, duplicates and related tests. Findings
+- Stop runs the Done gate on changes since the user prompt: Next type generation, types,
+  lint, preset check, audit, imports, unused code, duplicates and related tests. Findings
   outside the blocking scope are reported separately; changed files and affected
   importers block. Scope alone does not prove when a finding was introduced.
-- `pnpm check` runs the CI gate: format check, full typed lint, Next type generation,
+- `pnpm check` runs the CI gate: format check, full typed lint, preset check, Next type generation,
   types, audit, depcruise, knip, jscpd, all unit tests, production build and browser
   smoke. Every step runs and all failures are reported. Pre-push and GitHub Actions
   call the same gate directly (`node tooling/harness/cli.ts check ci`), so a changed

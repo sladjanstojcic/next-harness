@@ -91,10 +91,13 @@ try {
     const { initLegacy } = await import("./core/legacy.ts");
     const { loadConfig } = await import("./config.ts");
     process.stdout.write(`${initLegacy(root, loadConfig(root))}\n`);
-  } else if (command === "init" && [mode, ...paths].every((flag) => flag === undefined || flag === "--force" || flag === "--codex-user")) {
+  } else if (
+    command === "init" &&
+    [mode, ...paths].every((flag) => flag === undefined || flag === "--force" || flag === "--codex-user" || flag === "--starter")
+  ) {
     const flags = [mode, ...paths];
     const { initHarness } = await import("./core/init/init.ts");
-    const result = initHarness(root, flags.includes("--force"));
+    const result = initHarness(root, { force: flags.includes("--force"), starter: flags.includes("--starter") });
     process.stdout.write(`${result.report}\n`);
     if (result.ok && flags.includes("--codex-user")) {
       const { installCodexHooks } = await import("./core/init/codex-user.ts");
@@ -115,7 +118,7 @@ try {
     }
   } else {
     throw new Error(
-      "Usage: hook <claude|codex> | check <fast|done|ci> [paths…] | audit | blocks [--false <id> [note…]] | legacy init | init [--force] [--codex-user] | lock | unlock",
+      "Usage: hook <claude|codex> | check <fast|done|ci> [paths…] | audit | blocks [--false <id> [note…]] | legacy init | init [--force] [--codex-user] [--starter] | lock | unlock",
     );
   }
 } catch (error) {

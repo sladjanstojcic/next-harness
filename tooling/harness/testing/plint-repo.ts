@@ -34,6 +34,9 @@ export function plintRepo(files: Record<string, string> = {}): RepoFixture {
     "node_modules/.bin/eslint": "",
     "node_modules/.bin/prettier": "",
     "node_modules/.bin/tsc": "",
+    "node_modules/.bin/depcruise": "",
+    "node_modules/.bin/knip": "",
+    "node_modules/.bin/jscpd": "",
     "apps/dashboard/node_modules/.bin/next": "",
     ...files,
   });

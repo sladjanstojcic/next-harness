@@ -42,7 +42,7 @@ export const HARNESS_RULES: ReadonlySet<string> = new Set([
 ]);
 
 export const ALWAYS_BLOCKS = (finding: Finding): boolean =>
-  ["harness-lock", "legacy-append", "legacy-invalid", "migration-applied"].includes(finding.rule) || finding.rule.endsWith("-failed");
+  ["harness-lock", "legacy-append", "legacy-invalid", "migration-applied", "preset-missing"].includes(finding.rule) || finding.rule.endsWith("-failed");
 
 function isOwned(file: string, owned: readonly string[] | undefined): boolean {
   if (owned === undefined) return true;
