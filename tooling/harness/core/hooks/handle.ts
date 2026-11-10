@@ -8,6 +8,7 @@ import { changedSince, snapshotTree } from "../state/snapshot.ts";
 import { readState, sessionFile, writeState } from "../state/state-file.ts";
 import type { HookEvent } from "./event.ts";
 import { checkGuards } from "./guards.ts";
+import { lintConfigFindings } from "./lint-config-guard.ts";
 import { migrationFindings } from "./migration-guard.ts";
 import type { Outcome } from "./respond.ts";
 
@@ -39,6 +40,7 @@ export async function handleEvent(event: HookEvent, root: string): Promise<Outco
         const findings: Finding[] = [
           ...lockFindings(root, changed, config),
           ...migrationFindings(root, harness, changed, shell.tree),
+          ...lintConfigFindings(root, harness),
           ...legacyInvalidFindings(root, config),
         ];
         try {

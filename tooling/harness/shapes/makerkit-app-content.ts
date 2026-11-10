@@ -1,6 +1,7 @@
 import type { ContentProfile } from "./shape.ts";
 
 export const ROUTE_ACTION_FILE = /(?:^|\/)_lib\/server\/(?:[a-z0-9-]+-)?server-actions\.ts$/;
+export const MAKERKIT_INLINE_DISABLE = "Remove the {directive} comment and fix the code it silences; owned code may not turn off lint rules or type checks.";
 export const MAKERKIT_ACTION_BUILDERS: readonly string[] = ["authActionClient", "publicActionClient", "captchaActionClient", "adminActionClient"];
 
 export const makerkitAppContent: ContentProfile = {
@@ -12,6 +13,9 @@ export const makerkitAppContent: ContentProfile = {
   aliases: { "~/config/": "config/", "~/components/": "components/", "~/lib/": "lib/", "~/": "app/" },
   envScope: /^/,
   publicEnvAllowed: true,
+  inlineDisable: MAKERKIT_INLINE_DISABLE,
+  packageBoundary:
+    "Import a feature package through its package.json exports (@kit/<name>/<export>), never by a relative path out of the app (Makerkit layout).",
   envAllowed: /^(?:config\/[^/]+\.config\.tsx?|proxy\.ts|i18n\/request\.ts|lib\/create-csp-response\.ts|next\.config\.mjs)$/,
   messages: {
     serverOnly: 'Import "server-only" in the route\'s _lib/server/ files; client-safe helpers belong in _lib/ (Makerkit layout).',

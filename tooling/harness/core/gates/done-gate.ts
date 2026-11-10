@@ -4,9 +4,10 @@ import { stripVTControlCharacters } from "node:util";
 import { audit } from "../audit/audit.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
 import { analysisOf, CONFIG_FILE } from "../../config.ts";
-import { ALWAYS_BLOCKS, classify, HARNESS_RULES, legacyInvalidFindings, readLegacy, type PathClass } from "../classes.ts";
+import { ALWAYS_BLOCKS, classify, HARNESS_RULES, legacyInvalidFindings, harnessLinted, readLegacy, type PathClass } from "../classes.ts";
 import { realPath } from "../hooks/shell.ts";
 import { legacyAppendFindings } from "../legacy.ts";
+import { lintConfigFindings } from "../hooks/lint-config-guard.ts";
 import { migrationFindings } from "../hooks/migration-guard.ts";
 import { lockFindings } from "../lock.ts";
 import { resolveHarness } from "../path-check.ts";
@@ -40,8 +41,12 @@ function presetInputChanged(changed: ReadonlySet<string>, workspacePath: string)
 
 /** `base` is the task's starting tree; without it, changed migrations are judged against HEAD. */
 export async function doneGate(root: string, changed: string[], base?: string): Promise<GateResult> {
-  if (changed.length === 0) return { passed: true, findings: [], preExisting: [], report: "" };
   const directory = realPath(path.resolve(root));
+  if (changed.length === 0) {
+    // A git-ignored lint config changes no tracked path, yet the linters read it.
+    const findings = fs.existsSync(path.join(directory, CONFIG_FILE)) ? lintConfigFindings(directory, resolveHarness(directory)) : [];
+    return { passed: findings.length === 0, findings, preExisting: [], report: stableReport(findings) };
+  }
   // Type generation and incremental tsc write shared files; parallel agents in one checkout take turns.
   return withGateLock(directory, () => runDoneGate(directory, changed, base));
 }
@@ -62,6 +67,8 @@ async function runDoneGate(directory: string, changed: string[], base: string | 
     for (const step of tools.typecheck.incremental(dir, workspace.next)) await run(workspace.path, step);
     const files = sourceGroups.find((group) => group.workspace === workspace)?.files ?? [];
     if (files.length > 0) await run(workspace.path, tools.lint.files(dir, files, false));
+    const owned = harnessLinted(harness, legacy, workspace.path, files);
+    if (tools.lint.owned !== undefined && owned.length > 0) await run(workspace.path, tools.lint.owned(dir, owned));
   }
   for (const { workspace, tools, dir } of toolWorkspaces(directory, harness.workspaces)) {
     if (tools.lint.preset !== undefined && presetInputChanged(changedPaths, workspace.path))
@@ -71,6 +78,7 @@ async function runDoneGate(directory: string, changed: string[], base: string | 
     ...audit(directory),
     ...lockFindings(directory, changedPaths, harness.config),
     ...migrationFindings(directory, harness, changedPaths, base),
+    ...lintConfigFindings(directory, harness),
     ...legacyAppendFindings(directory, harness.config),
     ...legacyInvalidFindings(directory, harness.config),
   );

@@ -1,3 +1,4 @@
+import path from "node:path";
 import { z } from "zod";
 import { listFiles } from "../core/audit/list-files.ts";
 import type { Finding } from "../core/audit/finding.ts";
@@ -6,6 +7,13 @@ import { projectTypecheck } from "./typescript.ts";
 import { vitest } from "./vitest.ts";
 
 const SOURCE_FILE = /\.[cm]?[jt]sx?$/;
+
+/**
+ * The harness's rules for owned files, run as a second oxlint pass beside the project's own config. oxlint resolves a
+ * config's override globs against that config's folder, so extending the kit's .oxlintrc.json from here would drop its
+ * folder overrides; `-c` also skips nested configs, so nothing in the project can turn these rules off.
+ */
+export const OXLINT_OWNED = path.join(import.meta.dirname, "../presets/oxlint-owned.json");
 
 const lintOutput = z.object({
   diagnostics: z.array(
@@ -60,6 +68,12 @@ export const oxc: ToolSet = {
     all: (dir) => ({
       name: "oxlint",
       command: [bin(dir, "oxlint"), "-f", "json", "--no-error-on-unmatched-pattern"],
+      timeoutMs: CHECK_TIMEOUT_MS,
+      findings: (stdout) => oxlintFindings(dir, stdout),
+    }),
+    owned: (dir, files) => ({
+      name: "oxlint-owned",
+      command: [bin(dir, "oxlint"), "-c", OXLINT_OWNED, "-f", "json", "--no-error-on-unmatched-pattern", ...files],
       timeoutMs: CHECK_TIMEOUT_MS,
       findings: (stdout) => oxlintFindings(dir, stdout),
     }),

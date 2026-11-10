@@ -3,11 +3,13 @@ import path from "node:path";
 import { analysisOf } from "../../config.ts";
 import { audit } from "../audit/audit.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
-import { PRE_EXISTING_HEADING, splitLegacy } from "../classes.ts";
+import { harnessLinted, PRE_EXISTING_HEADING, readLegacy, splitLegacy } from "../classes.ts";
+import { listFiles } from "../audit/list-files.ts";
+import { lintConfigFindings } from "../hooks/lint-config-guard.ts";
 import { resolveHarness } from "../path-check.ts";
 import { E2E_TESTS } from "../../presets/e2e.ts";
 import { build, depcruise, jscpd, knip, playwright } from "../../tools/analysis.ts";
-import { toolWorkspaces } from "../../tools/index.ts";
+import { toolWorkspaces, workspaceTools } from "../../tools/index.ts";
 import { placeStep } from "../../tools/tool-set.ts";
 import type { GateResult } from "./gate-result.ts";
 import { runTool, type ToolStep } from "./run-tool.ts";
@@ -42,10 +44,21 @@ export async function ciGate(root: string): Promise<GateResult> {
       else await record(name, () => [placed.finding]);
     }
   };
+  const legacy = readLegacy(directory, harness.config);
+  const ownedLint = groups.some(({ tools }) => tools.lint.owned !== undefined);
+  const sources = ownedLint
+    ? workspaceTools(
+        directory,
+        harness.workspaces,
+        listFiles(directory).filter((file) => /\.tsx?$/.test(file)),
+      )
+    : [];
   for (const { workspace, tools, dir } of groups) {
+    const owned = harnessLinted(harness, legacy, workspace.path, sources.find((group) => group.workspace === workspace)?.files ?? []);
     await run(workspace.path, [
       tools.format.check(dir),
       tools.lint.all(dir),
+      ...(tools.lint.owned === undefined || owned.length === 0 ? [] : [tools.lint.owned(dir, owned)]),
       ...(tools.lint.preset === undefined ? [] : [tools.lint.preset(dir, workspace.path, workspace.next)]),
       ...tools.typecheck.all(dir, workspace.next),
     ]);
@@ -54,7 +67,7 @@ export async function ciGate(root: string): Promise<GateResult> {
   await record("audit", () => {
     const split = splitLegacy(directory, audit(directory));
     preExisting.push(...split.preExisting);
-    return split.blocking;
+    return [...split.blocking, ...lintConfigFindings(directory, harness)];
   });
   for (const { workspace, dir } of groups) {
     const analysis = new Set(analysisOf(harness.config, workspace));

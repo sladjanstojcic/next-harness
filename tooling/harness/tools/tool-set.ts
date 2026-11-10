@@ -13,6 +13,8 @@ export interface ToolSet {
     all(dir: string): ToolStep;
     /** Checks the harness's rules are active in the workspace's own lint config; the message names the workspace path. */
     preset?(dir: string, workspacePath: string, next: boolean): ToolStep;
+    /** Lints owned files with the harness's own rules on top of the project's untouched config; workspace-relative paths. */
+    owned?(dir: string, files: string[]): ToolStep;
   };
   typecheck: { incremental(dir: string, next: boolean): ToolStep[]; all(dir: string, next: boolean): ToolStep[] };
   test: { related(dir: string, files: string[]): ToolStep; all(dir: string): ToolStep };

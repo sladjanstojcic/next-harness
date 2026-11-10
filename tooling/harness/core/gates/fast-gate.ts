@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { auditChanged } from "../audit/audit.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
-import { dropUnownedHarnessFindings } from "../classes.ts";
+import { dropUnownedHarnessFindings, harnessLinted, readLegacy } from "../classes.ts";
 import { isInside, realPath } from "../hooks/shell.ts";
 import { isVendoredIn, resolveHarness, type Harness } from "../path-check.ts";
 import { isIgnored } from "../state/git-ignore.ts";
@@ -39,10 +39,13 @@ export async function fastGate(root: string, paths: string[]): Promise<GateResul
   const files = selectedPaths(directory, paths, harness);
   const findings: Finding[] = [];
   if (files.length > 0) {
+    const legacy = readLegacy(directory, harness.config);
     for (const { workspace, tools, dir, files: local } of workspaceTools(directory, harness.workspaces, files)) {
       findings.push(...(await runInWorkspace(directory, workspace.path, tools.format.write(dir, local))));
       const sources = local.filter((file) => /\.tsx?$/.test(file));
       if (sources.length > 0) findings.push(...(await runInWorkspace(directory, workspace.path, tools.lint.files(dir, sources, true))));
+      const owned = harnessLinted(harness, legacy, workspace.path, sources);
+      if (tools.lint.owned !== undefined && owned.length > 0) findings.push(...(await runInWorkspace(directory, workspace.path, tools.lint.owned(dir, owned))));
     }
     findings.push(...auditChanged(directory, files));
   }
