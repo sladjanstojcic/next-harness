@@ -138,6 +138,7 @@ export default defineHarness({
   files that exist in that ref, such as the kit's `upstream/main`; repeat it after a kit
   update. Without a ref it lists every tracked file, once. The list is locked, and a
   missing or invalid list means every file is judged.
+- Upstream files count neither towards a folder's size nor as a duplicate file name.
 - A file that starts a new folder under a `/*` workspace is checked against that
   workspace's shape before the folder exists.
 - Harness rules (paths, names, sizes, content) judge owned files only. On legacy

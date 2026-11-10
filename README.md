@@ -256,8 +256,8 @@ export default defineHarness({
 
 - `upstream` names the list of kit files. Write it with
   `node tooling/harness/cli.ts upstream sync <git ref>`, where the ref is the kit's own branch, such as
-  `upstream/main`. It lists the tracked files that also exist in that ref. Run it again after each kit
-  update, so the kit's new files join the list. The list is locked; an agent cannot add its own files.
+  `upstream/main`, or the kit commit you last merged. It lists the tracked files that also exist in that
+  ref. Run it again after each kit update, so the kit's new files join the list. The list is locked; an agent cannot add its own files.
 - Without a ref the command lists every tracked file, and only while no list exists. Use that for a fresh
   kit clone that holds no code of yours yet.
 - `owned` is optional here. A prefix in it claims a kit path you have taken over, so the rules apply there.
@@ -269,13 +269,16 @@ export default defineHarness({
 
 The commands are the same as for a monorepo, plus the list: subtree add, config, init, install, init
 again, `upstream sync`, then `legacy init` when the config names a legacy list. On a real
-Makerkit app init printed two steps: commit, then `pnpm run check`.
+Makerkit app the list held 1454 kit files of 1691 tracked, the 62 files outside it and outside the
+harness were the project's own, and the full gate took 9 seconds. Tracked folders of your own at the
+repository root, such as a notes folder, need a line in `root.entries`.
 
 What an agent meets in a Makerkit project:
 
 - **In your paths:** the Makerkit layout (`_components/`, `_lib/server/`, `server/actions/`, `schema/`),
   size limits, no inline disables, package boundaries, and the harness's oxlint rules on top of the kit's.
-- **In kit files:** no harness rule. An edit is allowed; a new file in a kit folder is yours and is judged. The kit's own type check, lint and tests still
+- **In kit files:** no harness rule. An edit is allowed; a new file in a kit folder is yours and is judged.
+  The kit's files do not count towards that folder's size limit. The kit's own type check, lint and tests still
   block when the changed file fails them.
 - **In `supabase/`:** a migration that is already on the remote branch cannot be edited, deleted or moved.
   A new migration is allowed. `supabase db push`, `supabase link` and the `supabase:deploy` script are

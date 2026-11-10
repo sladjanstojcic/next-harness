@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { loadConfig } from "../config.ts";
 import { MAKERKIT_KIT_ROUTE, makerkitRepo } from "../testing/makerkit-repo.ts";
 import { makeRepo } from "../testing/temp-repo.ts";
+import { auditPaths } from "./audit/path-rules.ts";
 import { classify } from "./classes.ts";
 import { parseEvent, type HookEvent } from "./hooks/event.ts";
 import { checkGuards } from "./hooks/guards.ts";
@@ -45,6 +46,19 @@ describe("the upstream list", () => {
   it("is locked", () => {
     const repo = makeRepo({ "harness.config.ts": config() });
     expect(isLocked(LIST, loadConfig(repo.root))).toBe(true);
+  });
+});
+
+describe("the audit with an upstream list", () => {
+  it("does not count the kit's files towards the size of a folder that holds one own file", () => {
+    const kit = Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`src/modules/kit/components/kit-${String(index)}.tsx`, ""]));
+    const repo = makeRepo({ "harness.config.ts": config(), [LIST]: list(Object.keys(kit)), ...kit, "src/modules/kit/components/mine.tsx": "" });
+    expect(auditPaths(repo.root, ["src/modules/kit/components/mine.tsx"])).toEqual([]);
+  });
+
+  it("accepts the list at the repository root", () => {
+    const repo = makeRepo({ "harness.config.ts": config().replace(LIST, "harness-upstream.json"), "harness-upstream.json": list([]) });
+    expect(auditPaths(repo.root, ["harness-upstream.json"])).toEqual([]);
   });
 });
 

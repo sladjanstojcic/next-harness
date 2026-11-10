@@ -42,6 +42,7 @@ export function rootEntries(config: HarnessConfig, hasConfigFile = false): RootL
       ...jsExceptions,
       ...(hasConfigFile ? [CONFIG_FILE, ...HARNESS_IGNORE_FILES] : []),
       ...(config.legacy === undefined ? [] : [config.legacy]),
+      ...(config.upstream === undefined ? [] : [config.upstream]),
     ]),
     folders: new Set([...ROOT_FOLDERS, ...extra]),
     jsExceptions,
