@@ -28,14 +28,14 @@
       "name": "domain-pure-core",
       "comment": "Put Node I/O in src/modules/<module>/server/; keep domain/ functions pure.",
       "severity": "error",
-      "from": { "path": "^src/modules/[^/]+/domain/" },
+      "from": { "path": "^src/modules/[^/]+/domain/", "pathNot": "\\.test\\.tsx?$" },
       "to": { "dependencyTypes": ["core"] }
     },
     {
       "name": "domain-pure-path",
       "comment": "Put React UI in components/ and Next or I/O code in server/ or actions/; keep domain/ functions pure.",
       "severity": "error",
-      "from": { "path": "^src/modules/[^/]+/domain/" },
+      "from": { "path": "^src/modules/[^/]+/domain/", "pathNot": "\\.test\\.tsx?$" },
       "to": { "path": ["(^|/)(react|react-dom|next)(/|$)", "/(components|server|actions)/", "^src/modules/[^/]+/server\\.ts$"] }
     },
     {
