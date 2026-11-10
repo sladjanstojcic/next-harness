@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { atLeast } from "../core/init/peers.ts";
 import { ts } from "../tools/typescript.ts";
 
 const harness = path.resolve(import.meta.dirname, "..");
@@ -17,7 +18,7 @@ function manifest(dir: string): Manifest {
   return JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")) as Manifest;
 }
 
-const peers = JSON.parse(fs.readFileSync(path.join(presets, "peers.json"), "utf8")) as Record<string, string>;
+const peers = JSON.parse(fs.readFileSync(path.join(presets, "peers.json"), "utf8")) as Record<string, { version: string; minimum: string }>;
 const PEERS = Object.keys(peers);
 
 function sources(dir: string): string[] {
@@ -37,11 +38,11 @@ function outside(file: string, target: string): boolean {
   if (target.startsWith(".")) return path.relative(harness, path.resolve(path.dirname(file), target)).startsWith("..");
   if (target.startsWith("node:")) return false;
   const name = packageName(target);
-  return !PACKAGES.includes(name) && !(file.startsWith(`${presets}${path.sep}`) && PEERS.includes(name));
+  return !PACKAGES.includes(name);
 }
 
 describe("the harness as a subtree", () => {
-  it("imports only its own files, Node built-ins, zod, typescript and vitest; presets also import their peer tools", () => {
+  it("imports only its own files, Node built-ins, zod, typescript and vitest; presets load their tools from the calling workspace", () => {
     const leaks = sources(harness).flatMap((file) =>
       ts
         .preProcessFile(fs.readFileSync(file, "utf8"), true, true)
@@ -53,7 +54,14 @@ describe("the harness as a subtree", () => {
 
   it("pins each peer tool to the template's exact version", () => {
     const template = manifest(path.resolve(harness, "../..")).devDependencies ?? {};
-    expect(Object.fromEntries(PEERS.map((name) => [name, template[name]]))).toEqual(peers);
+    expect(Object.fromEntries(PEERS.map((name) => [name, template[name]]))).toEqual(Object.fromEntries(PEERS.map((name) => [name, peers[name]?.version])));
+  });
+
+  it("asks for no tool below the version the template itself runs", () => {
+    for (const [name, { version, minimum }] of Object.entries(peers)) expect(atLeast(version, minimum), name).toBe(true);
+    expect(atLeast("10.14.0", "9.22.0")).toBe(true);
+    expect(atLeast("9.21.9", "9.22.0")).toBe(false);
+    expect(atLeast("", "9.22.0")).toBe(false);
   });
 
   it("gives a kit's manypkg nothing to fix: no peerDependencies, and its own pins as npm: aliases of the template's versions", () => {

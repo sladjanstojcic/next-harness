@@ -23,6 +23,8 @@ export interface WorkspaceConfig {
   shape: ShapeName;
   tools?: ToolSetName;
   next?: boolean;
+  /** A package script that runs the workspace's own tests; the gates run it instead of Vitest. */
+  test?: string;
 }
 
 export interface HarnessConfig {
@@ -40,6 +42,7 @@ export interface WorkspaceEntry {
   shape: ShapeName;
   tools: ToolSetName;
   next: boolean;
+  test?: string;
 }
 
 export const CONFIG_FILE = "harness.config.ts";
@@ -76,10 +79,15 @@ const schema = z.strictObject({
           shape: z.enum(SHAPE_NAMES),
           tools: z.enum(TOOL_SET_NAMES).exactOptional(),
           next: z.boolean().exactOptional(),
+          test: z.string().min(1).exactOptional(),
         })
         .refine((workspace) => workspace.shape !== "supabase" || (workspace.tools ?? "none") === "none", {
           path: ["tools"],
           message: 'must be "none" for the supabase shape',
+        })
+        .refine((workspace) => workspace.test === undefined || (workspace.tools ?? DEFAULT_TOOLS[workspace.shape]) !== "none", {
+          path: ["test"],
+          message: 'needs a tool set; a workspace with tools: "none" runs no steps',
         }),
     )
     .min(1),
@@ -138,6 +146,7 @@ export function expandWorkspaces(gitRoot: string, config: HarnessConfig): Worksp
       shape: workspace.shape,
       tools: toolsOf(workspace),
       next: workspace.next ?? false,
+      ...(workspace.test === undefined ? {} : { test: workspace.test }),
     }));
   });
 }

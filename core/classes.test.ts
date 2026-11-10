@@ -179,13 +179,36 @@ describe("legacy list", () => {
     expect(legacyAppendFindings(makeRepo().root, loadConfig(makeRepo().root))).toEqual([]);
   });
 
-  it("writes the list once from the audit and refuses a second time", () => {
+  it("writes the list once from the audit and refuses a second time", async () => {
+    vi.spyOn(runner, "runTool").mockResolvedValue([]);
     const repo = configuredRepo({ "src/modules/mine/helpers/x.ts": "export {};\n", "src/modules/kit/helpers/y.ts": "export {};\n" });
-    const config = loadConfig(repo.root);
-    expect(initLegacy(repo.root, config)).toBe(`Wrote ${LEGACY} with 1 files. Commit it; until then legacy-append is inert.`);
+    const harness = resolveHarness(repo.root);
+    expect(await initLegacy(repo.root, harness)).toBe(`Wrote ${LEGACY} with 1 files. Commit it; until then legacy-append is inert.`);
     expect(JSON.parse(repo.read(LEGACY))).toEqual({ version: 1, files: ["src/modules/mine/helpers/x.ts"] });
-    expect(() => initLegacy(repo.root, config)).toThrow("already exists");
-    expect(() => initLegacy(repo.root, { workspaces: config.workspaces })).toThrow("legacy");
+    await expect(initLegacy(repo.root, harness)).rejects.toThrow("already exists");
+    await expect(initLegacy(repo.root, { ...harness, config: { workspaces: harness.config.workspaces } })).rejects.toThrow("legacy");
+  });
+
+  it("lists a well-placed file with a tool finding too, from the per-file reports, and names a tool that could not run", async () => {
+    const repo = configuredRepo({ "src/modules/mine/index.ts": "export const one = 1;\n", "src/modules/mine/helpers/x.ts": "export {};\n" });
+    const steps: string[] = [];
+    vi.spyOn(runner, "runTool").mockImplementation(async (_root, step) => {
+      steps.push([path.basename(step.command[0] ?? ""), ...step.command.slice(1, 3)].join(" "));
+      if (step.name === "eslint") return [{ rule: "no-console", file: "src/modules/mine/index.ts", message: "Unexpected console statement." }];
+      return step.name === "knip" ? [{ rule: "knip-failed", file: "", message: "knip crashed\nstack" }] : [];
+    });
+    expect(await initLegacy(repo.root, resolveHarness(repo.root))).toBe(
+      `Wrote ${LEGACY} with 2 files. Commit it; until then legacy-append is inert.\nThese steps did not run to the end, so their findings are not on the list and will fail CI:\nknip-failed: knip crashed`,
+    );
+    expect(JSON.parse(repo.read(LEGACY))).toEqual({ version: 1, files: ["src/modules/mine/helpers/x.ts", "src/modules/mine/index.ts"] });
+    expect(steps).toEqual([
+      "prettier --list-different .",
+      "eslint . --format",
+      "tsc --noEmit --pretty",
+      "depcruise src --config",
+      "knip --reporter json",
+      "jscpd src --config",
+    ]);
   });
 });
 
@@ -198,7 +221,7 @@ describe("whole-repository audits", () => {
     const clean = await ciGate(repo.root);
     expect(clean.passed).toBe(true);
     expect(clean.preExisting).toEqual([expect.objectContaining({ rule: "src-shape", file: "apps/web/src/utils/x.ts" })]);
-    expect(clean.report).toContain(`audit: passed\n${PRE_EXISTING_HEADING}\napps/web/src/utils/x.ts:1 src-shape`);
+    expect(clean.report).toContain(`audit: passed\n${PRE_EXISTING_HEADING}\naudit: 1 finding in 1 file\napps/web/src/utils/x.ts:1 src-shape`);
     repo.write("apps/web/src/utils/y.ts", "export {};\n");
     const failing = await ciGate(repo.root);
     expect(failing.passed).toBe(false);

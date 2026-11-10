@@ -1,3 +1,4 @@
-import type { Config } from "prettier";
+/** The harness's formatting style, for a project that has no Prettier config of its own. */
+const preset = { printWidth: 160 };
 
-export default { printWidth: 160 } satisfies Config;
+export default preset;

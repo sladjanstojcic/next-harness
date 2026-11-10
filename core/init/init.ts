@@ -1,16 +1,18 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { managerCommands } from "./bootstrap.ts";
+import { HARNESS_PACKAGE, managerCommands } from "./bootstrap.ts";
 import { codexHooksSetting, withHooksFeature } from "./codex-user.ts";
 import { compareHooks, hooksBlock, mergeHooks, type HooksBlock } from "./hooks-merge.ts";
 import { indentOf, isObject, readJson, scriptsStep, writer, type JsonObject, type Step } from "./files.ts";
-import { resolveHarness } from "../path-check.ts";
+import { resolveHarness, type Harness } from "../path-check.ts";
+import { ALL_TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { bin } from "../../tools/tool-set.ts";
 import { gitignoreStep, HARNESS_MODULES, rootIgnoreSteps } from "./ignore-files.ts";
-import { peerInstall, starterInstall, toolConfigSteps, toolScripts } from "./tool-configs.ts";
-import type { WorkspaceEntry } from "../../config.ts";
-import { CI_STEPS, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH, PREPARE } from "./wiring.ts";
+import { peerInstall, starterInstall } from "./peers.ts";
+import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
+import { CONFIG_FILE, type WorkspaceEntry } from "../../config.ts";
+import { ciSteps, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH, PREPARE } from "./wiring.ts";
 
 function hooksStep(root: string, label: string, wanted: HooksBlock, force: boolean): Step {
   const file = path.join(root, label);
@@ -75,22 +77,30 @@ function hooksPathStep(root: string, force: boolean): Step {
   return { target: label, status: "updated", detail: `${current} replaced by ${HOOKS_PATH}`, apply };
 }
 
-/** JSON.stringify spreads short arrays over lines; the project's Prettier formats what init rewrote, or the next steps' format run does. */
-function formatJson(root: string, files: string[]): string[] {
-  if (files.length === 0) return [];
-  const manual = `run prettier --write ${files.join(" ")}`;
+/**
+ * The project's Prettier formats what init wrote: JSON.stringify spreads short arrays over lines, and the thin configs
+ * are in the harness's style, not the project's. A file with no Prettier in reach is left for the next steps' format run.
+ */
+function formatWritten(root: string, files: string[]): string[] {
   const byBinary = new Map<string, string[]>();
   for (const file of files) {
     const prettier = bin(path.join(root, path.dirname(file)), "prettier", root);
-    if (prettier === undefined) return [];
-    byBinary.set(prettier, [...(byBinary.get(prettier) ?? []), file]);
+    if (prettier !== undefined) byBinary.set(prettier, [...(byBinary.get(prettier) ?? []), file]);
   }
+  const formatted = [...byBinary.values()].flat();
+  if (formatted.length === 0) return [];
   for (const [prettier, own] of byBinary) {
-    const result = spawnSync(prettier, ["--write", ...own], { cwd: root, encoding: "utf8" });
-    if (result.status !== 0) return [`prettier --write failed: ${(result.stderr || result.stdout).trim()}; ${manual}`];
+    // From the folder that installs Prettier: a config names its plugins bare, and Prettier resolves them from where it runs.
+    const cwd = path.resolve(prettier, "../../..");
+    const result = spawnSync(prettier, ["--write", ...own.map((file) => path.relative(cwd, path.join(root, file)))], { cwd, encoding: "utf8" });
+    if (result.status !== 0) return [`prettier --write failed: ${(result.stderr || result.stdout).trim()}; run prettier --write ${formatted.join(" ")}`];
   }
-  return [`formatted ${files.join(", ")} with prettier`];
+  return [`formatted ${formatted.join(", ")} with prettier`];
 }
+
+/** A JSON file init wrote, or a TypeScript tool config it created. */
+const isFormatted = (target: string): boolean =>
+  target.endsWith(".json") || (target.endsWith(".ts") && ALL_TOOL_CONFIG_NAMES.includes(path.posix.basename(target)));
 
 /** Whether the root "prepare" script, which installs run on a fresh clone, points git at the harness's hooks. */
 function preparesHooks(root: string): boolean {
@@ -99,24 +109,49 @@ function preparesHooks(root: string): boolean {
   return typeof prepare === "string" && prepare.includes(PREPARE);
 }
 
+/** The config line that makes the gates run a workspace's own test script; the config file is the user's to edit. */
+function ownTestsItem(harness: Harness, workspace: WorkspaceEntry): string {
+  const where = workspace.path === "" ? "." : workspace.path;
+  const create = harness.configured
+    ? ""
+    : ` (no ${CONFIG_FILE} yet: export default defineHarness({ workspaces: [{ path: ".", shape: "next-modules", next: true, test: "test" }] }))`;
+  return `Run this workspace's own tests in the gates instead of Vitest: add test: "test" to the "${where}" workspace in ${CONFIG_FILE}${create}`;
+}
+
 /** One numbered list of what the user runs after init, in the order that works: tools before the files that need them. */
-function nextSteps(root: string, workspaces: readonly WorkspaceEntry[], steps: readonly Step[], starter: boolean): string[] {
+function nextSteps(root: string, harness: Harness, workspaces: readonly WorkspaceEntry[], steps: readonly Step[], starter: boolean): string[] {
   const todo = steps.filter((step) => step.todo === true).map((step) => step.target);
   const { exec, run } = managerCommands(root);
-  const format = workspaces.map((workspace) => (workspace.path === "" ? `${exec} prettier --write .` : `(cd ${workspace.path} && ${exec} prettier --write .)`));
+  const inFolder = (workspace: WorkspaceEntry, command: string): string => (workspace.path === "" ? command : `(cd ${workspace.path} && ${command})`);
+  const format = workspaces.filter((workspace) => usesPrettierPreset(root, workspace)).map((workspace) => inFolder(workspace, `${exec} prettier --write .`));
+  // A workspace with its own style is not reformatted; only the kept files the user has just edited are.
+  const edited = workspaces
+    .filter((workspace) => !usesPrettierPreset(root, workspace))
+    .flatMap((workspace) => {
+      const prefix = workspace.path === "" ? "" : `${workspace.path}/`;
+      const own = todo.filter((file) => file.startsWith(prefix) && !file.slice(prefix.length).includes("/")).map((file) => file.slice(prefix.length));
+      return own.length === 0 ? [] : [inFolder(workspace, `${exec} prettier --write ${own.join(" ")}`)];
+    });
+  const { legacy } = harness.config;
+  const ownTests = workspaces.filter((workspace) => workspace.test === undefined && runsOwnTests(root, workspace) !== undefined);
   const items = [
     ...workspaces
-      .flatMap((workspace) => peerInstall(root, workspace) ?? [])
+      .flatMap((workspace) => peerInstall(root, harness.config, workspace) ?? [])
       .map((command) => `Install the harness's tools (init does not install): ${command}`),
     ...(starter ? workspaces.filter((workspace) => workspace.shape === "next-modules") : [])
       .flatMap((workspace) => starterInstall(root, workspace) ?? [])
       .map((command) => `Install the runtime packages the starter files import: ${command}`),
     ...(todo.length === 0 ? [] : [`Make the change each kept file above asks for: ${todo.join(", ")}`]),
+    ...ownTests.map((workspace) => ownTestsItem(harness, workspace)),
     ...(preparesHooks(root) ? [] : [`Add to the root package.json "prepare" script, so a fresh clone gets the pre-push hook: ${PREPARE}`]),
     ...(format.length === 0 ? [] : [`Format the app's own files once in the preset's style: ${format.join("; ")}`]),
+    ...(edited.length === 0 ? [] : [`Format the kept files you edited, in the project's own style: ${edited.join("; ")}`]),
     ...(workspaces.some((workspace) => workspace.path === "" && workspace.next)
       ? [`Install the smoke test's browser: ${exec} playwright install chromium`]
       : []),
+    ...(legacy === undefined || fs.existsSync(path.join(root, legacy))
+      ? []
+      : [`List the files with findings today, which the gates then tolerate until someone touches them: node ${HARNESS_PACKAGE}/cli.ts legacy init`]),
     'Commit the result: git add -A && git commit -m "Add the harness"',
     `Run the full gate: ${run} check`,
   ];
@@ -134,7 +169,8 @@ export interface InitOptions {
  * while a step conflicts and force is off. The git config step applies first, so a git failure precedes any file write.
  */
 export function initHarness(root: string, { force, starter }: InitOptions): { report: string; ok: boolean } {
-  const all = resolveHarness(root).workspaces;
+  const harness = resolveHarness(root);
+  const all = harness.workspaces;
   const workspaces = all.filter((workspace) => workspace.tools === "eslint-prettier");
   const atRoot = workspaces.find((workspace) => workspace.path === "");
   const steps = [
@@ -156,9 +192,12 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
     return { report: [...lines, "Nothing was written. Rerun with --force to replace the conflicting wiring."].join("\n"), ok: false };
   }
   for (const step of steps) step.apply?.();
-  const formatted = formatJson(
+  const formatted = formatWritten(
     root,
-    steps.filter((step) => step.apply !== undefined && step.target.endsWith(".json")).map((step) => step.target),
+    steps.filter((step) => step.apply !== undefined && isFormatted(step.target)).map((step) => step.target),
   );
-  return { report: [...lines, ...formatted, CI_STEPS, ...nextSteps(root, workspaces, steps, starter)].join("\n"), ok: true };
+  return {
+    report: [...lines, ...formatted, ciSteps(harness.config.legacy !== undefined), ...nextSteps(root, harness, workspaces, steps, starter)].join("\n"),
+    ok: true,
+  };
 }

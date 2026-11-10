@@ -1,3 +1,4 @@
+import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { audit } from "../core/audit/audit.ts";
 import { doneGate } from "../core/gates/done-gate.ts";
@@ -110,9 +111,10 @@ describe("the preset presence check", () => {
   });
 
   it("adds no plugin of its own on top of a project's config, so none is defined twice", () => {
-    const blocks = harnessEslint({ root: "/repo", base: false });
+    const root = path.resolve(import.meta.dirname, "../../..");
+    const blocks = harnessEslint({ root, base: false });
     expect(blocks.filter((block) => block.plugins !== undefined)).toEqual([]);
-    expect(harnessEslint({ root: "/repo", next: true }).some((block) => block.plugins?.import !== undefined)).toBe(true);
+    expect(harnessEslint({ root, next: true }).some((block) => block.plugins?.import !== undefined)).toBe(true);
   });
 
   it("runs in Done only when a lint config input changed, and then blocks a weakened rule", async () => {

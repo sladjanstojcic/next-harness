@@ -41,8 +41,11 @@ export const PACKAGE_SCRIPTS: Readonly<Record<string, string>> = {
   "harness:unlock": "node tooling/harness/cli.ts unlock",
 };
 
-export const CI_STEPS = `CI is not written. Add these steps to a job in .github/workflows/ (Playwright only for a Next workspace at the root):
-      - uses: actions/checkout@v7
+/** With a legacy list CI compares with the remote default branch, which a shallow checkout does not hold. */
+export const ciSteps = (
+  legacy: boolean,
+): string => `CI is not written. Add these steps to a job in .github/workflows/ (Playwright only for a Next workspace at the root):
+      - uses: actions/checkout@v7${legacy ? "\n        with:\n          fetch-depth: 0" : ""}
       - uses: actions/setup-node@v7
         with:
           node-version: 24

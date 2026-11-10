@@ -44,7 +44,7 @@ export function ignoreEntriesStep(root: string, target: string, entries: readonl
 }
 
 /** The repository that develops the harness formats and lints it as its own code; its root ESLint config says so. */
-function developsHarness(root: string): boolean {
+export function developsHarness(root: string): boolean {
   return TOOL_CONFIG_NAMES.eslint.some((name) => {
     const file = path.join(root, name);
     return fs.existsSync(file) && /\bharness:\s*["']lint["']/.test(fs.readFileSync(file, "utf8"));

@@ -23,8 +23,14 @@ describe("the knip preset", () => {
     });
   });
 
-  it("leaves the harness and its preset tools to analysis in the harness's own repository", () => {
+  it("leaves the harness to analysis in the harness's own repository; the preset's tools have no import there either", () => {
     const repo = makeRepo({ "package.json": PACKAGE });
-    expect(harnessKnipWorkspace({ harness: "analyse" }, repo.root)).toEqual({ next: true, entry: [], ignore: [], ignoreDependencies: ["server-only"] });
+    const analysed = { next: true, entry: [], ignore: [], ignoreDependencies: ["server-only", "@eslint/js"] };
+    expect(harnessKnipWorkspace({ harness: "analyse" }, repo.root)).toEqual(analysed);
+  });
+
+  it("does not ignore a preset tool the project's own ESLint config imports", () => {
+    const repo = makeRepo({ "package.json": PACKAGE, "eslint.config.mjs": 'import js from "@eslint/js";\nexport default [js.configs.recommended];\n' });
+    expect(harnessKnipWorkspace({}, repo.root).ignoreDependencies).toEqual(["server-only"]);
   });
 });

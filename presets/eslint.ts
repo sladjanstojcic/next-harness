@@ -1,15 +1,16 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import js from "@eslint/js";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
-import prettier from "eslint-config-prettier/flat";
-import tseslint from "typescript-eslint";
+import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import { harnessRuleBlocks } from "./eslint-rules.ts";
+import { call, defaultOf, isRecord, list, member, toolLoader } from "./load-tool.ts";
 
 const VENDORED = ["src/shared/ui/**", "src/shared/lib/utils.ts"];
 
+/** The TypeScript tool configs at a workspace top; a consumer's tsconfig leaves them out, so they are linted without types. */
+const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
+  .flat()
+  .filter((name) => name.endsWith(".ts"));
+
 export interface HarnessEslintOptions {
-  /** The workspace folder holding tsconfig.json, for typed rules. */
+  /** The workspace folder holding tsconfig.json, for typed rules; ESLint and its plugins load from there. */
   root: string;
   /** Adds the Next.js core-web-vitals and TypeScript configs. */
   next?: boolean;
@@ -24,23 +25,43 @@ export interface HarnessEslintOptions {
   harness?: "lint" | "ignore";
 }
 
+/** One flat-config entry, as far as the harness reads it. */
+export interface EslintEntry {
+  plugins?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+const isEntry = (value: unknown): value is EslintEntry => isRecord(value) && (value.plugins === undefined || isRecord(value.plugins));
+
 /** The harness's ESLint rules for a next-modules workspace; a project with its own config appends these after its entries. */
-export function harnessEslint({ root, next = false, base = true, vendored = VENDORED, harness = "ignore" }: HarnessEslintOptions) {
+export function harnessEslint({ root, next = false, base = true, vendored = VENDORED, harness = "ignore" }: HarnessEslintOptions): EslintEntry[] {
+  const tool = toolLoader(root);
+  const eslint = tool("eslint/config");
+  const tseslint = defaultOf(tool("typescript-eslint"));
+  const disableTypeChecked = member(member(tseslint, "configs"), "disableTypeChecked");
   const parserOptions = { projectService: true, tsconfigRootDir: root };
   const ignored = [...vendored, ...(harness === "ignore" ? ["tooling/harness/**"] : [])];
-  return defineConfig([
-    globalIgnores([...ignored, ".next/**", "next-env.d.ts", "out/**", "build/**", ".superpowers/**", ".serena/**"]),
-    ...(base ? [js.configs.recommended, ...(next ? [...nextVitals, ...nextTs] : tseslint.configs.recommended)] : []),
+  const recommended = (): unknown[] => [
+    member(member(defaultOf(tool("@eslint/js")), "configs"), "recommended"),
+    ...(next
+      ? [...list(defaultOf(tool("eslint-config-next/core-web-vitals"))), ...list(defaultOf(tool("eslint-config-next/typescript")))]
+      : list(member(member(tseslint, "configs"), "recommended"))),
+  ];
+  const entries = [
+    call(member(eslint, "globalIgnores"), [[...ignored, ".next/**", "next-env.d.ts", "out/**", "build/**", ".superpowers/**", ".serena/**"]]),
+    ...(base ? recommended() : []),
     ...harnessRuleBlocks().map((block, index) =>
       index === 0
         ? {
             ...block,
-            languageOptions: base ? { parser: tseslint.parser, parserOptions } : { parserOptions },
+            languageOptions: base ? { parser: member(tseslint, "parser"), parserOptions } : { parserOptions },
             linterOptions: { noInlineConfig: true },
           }
         : block,
     ),
-    ...(process.env.HARNESS_FAST_LINT === "1" ? [tseslint.configs.disableTypeChecked] : []),
-    prettier,
-  ]);
+    ...(harness === "ignore" && isRecord(disableTypeChecked) ? [{ ...disableTypeChecked, files: CONFIG_FILES }] : []),
+    ...(process.env.HARNESS_FAST_LINT === "1" ? [disableTypeChecked] : []),
+    defaultOf(tool("eslint-config-prettier/flat")),
+  ];
+  return list(call(member(eslint, "defineConfig"), [entries])).filter(isEntry);
 }
