@@ -84,9 +84,11 @@ export function presetImport(workspacePath: string, file: string): string {
 const OWN_BASE = /eslint-config-next|@next\/eslint-plugin-next|typescript-eslint/;
 const COMMENTS = /\/\*[\s\S]*?\*\/|(^|\s)\/\/.*$/gm;
 
+const bringsBase = (ownConfig: string): boolean => OWN_BASE.test(ownConfig.replace(COMMENTS, "$1"));
+
 /** The two lines that put the harness's ESLint rules after the entries of a project's own config, given that config's text. */
 export function eslintPresetLines(workspacePath: string, next: boolean, ownConfig: string): string[] {
-  const options = OWN_BASE.test(ownConfig.replace(COMMENTS, "$1")) ? ", base: false" : next ? ", next: true" : "";
+  const options = bringsBase(ownConfig) ? ", base: false" : next ? ", next: true" : "";
   return [`import { harnessEslint } from "${presetImport(workspacePath, "eslint.ts")}";`, `...harnessEslint({ root: import.meta.dirname${options} }),`];
 }
 
@@ -95,6 +97,9 @@ function eslintConfigText(dir: string): string {
   const name = TOOL_CONFIG_NAMES.eslint.find((candidate) => fs.existsSync(path.join(dir, candidate)));
   return name === undefined ? "" : fs.readFileSync(path.join(dir, name), "utf8");
 }
+
+/** Whether the workspace's own ESLint config brings the base configs, so the preset's base packages are not needed there. */
+export const bringsOwnBase = (dir: string): boolean => bringsBase(eslintConfigText(dir));
 
 function missingRules(printed: unknown, probe: string, defaults: Record<string, Options>): string[] {
   const config = printedConfig.parse(printed ?? {});

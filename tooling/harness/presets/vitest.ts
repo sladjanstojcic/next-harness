@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { defineConfig } from "vitest/config";
 
 function serverOnlyEntry(): string {
   for (let dir = process.cwd(); ; dir = path.dirname(dir)) {
@@ -16,7 +15,7 @@ export interface HarnessVitestOptions {
 
 /** Vitest for a next-modules workspace, run from its folder: unit tests in src/ and scripts/, never the harness's own. */
 export function harnessVitest({ passWithNoTests = true }: HarnessVitestOptions = {}) {
-  return defineConfig({
+  return {
     resolve: {
       tsconfigPaths: true,
     },
@@ -29,5 +28,5 @@ export function harnessVitest({ passWithNoTests = true }: HarnessVitestOptions =
       // Most tests spawn git, Node or the real tools; the 5 s default fails them on a loaded machine.
       testTimeout: 30_000,
     },
-  });
+  };
 }

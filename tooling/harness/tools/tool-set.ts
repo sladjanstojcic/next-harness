@@ -7,16 +7,28 @@ import type { ToolStep } from "../core/gates/run-tool.ts";
 /** Formatter, linter, type checker and test runner of one workspace; commands are built for the workspace directory. */
 export interface ToolSet {
   name: Exclude<ToolSetName, "none">;
-  format: { write(dir: string, files: string[]): ToolStep; check(dir: string): ToolStep };
+  format: {
+    write(dir: string, files: string[]): ToolStep;
+    check(dir: string): ToolStep;
+    /** The whole-workspace check with one finding per file, where `check` judges by exit code only. */
+    report?(dir: string): ToolStep;
+  };
   lint: {
     files(dir: string, files: string[], fast: boolean): ToolStep;
     all(dir: string): ToolStep;
+    /** The whole-workspace lint with one finding per message, where `all` judges by exit code only. */
+    report?(dir: string): ToolStep;
     /** Checks the harness's rules are active in the workspace's own lint config; the message names the workspace path. */
     preset?(dir: string, workspacePath: string, next: boolean): ToolStep;
     /** Lints owned files with the harness's own rules on top of the project's untouched config; workspace-relative paths. */
     owned?(dir: string, files: string[]): ToolStep;
   };
-  typecheck: { incremental(dir: string, next: boolean): ToolStep[]; all(dir: string, next: boolean): ToolStep[] };
+  typecheck: {
+    incremental(dir: string, next: boolean): ToolStep[];
+    all(dir: string, next: boolean): ToolStep[];
+    /** The whole-workspace type check with one finding per error, where `all` judges by exit code only. */
+    report?(dir: string, next: boolean): ToolStep[];
+  };
   test: { related(dir: string, files: string[]): ToolStep; all(dir: string): ToolStep };
 }
 

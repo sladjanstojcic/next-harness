@@ -325,6 +325,11 @@ Exact versions, no ranges; every config file is TypeScript.
 - The `oxc` tool set runs oxlint without `--type-aware`, because oxlint-tsgolint is not installed
   where it was measured. Type-aware rules such as `no-floating-promises` do not run there. oxlint's
   default rules also miss `any`; a project enables the rules it wants in its locked `.oxlintrc.json`.
+- The legacy list in CI: CI has no `legacy-append` check, so once a longer list is committed (which
+  needs the user's unlock) CI tolerates harness-rule findings on the newly listed file; tool findings
+  there still fail. On the default branch itself CI compares with HEAD, so a legacy file changed by a
+  direct push is judged by the pre-push gate, not after the push. A new test file in an adopted app's
+  own `tests/` folder fails the audit (`unknown-root`, `folder-size`); the list covers the old ones only.
 - Shell guards match the command's text. A command built through a variable
   (`SB=supabase; $SB db push`) passes them. Text that merely quotes a guarded command, such as an
   `echo` or a script holding it, is denied; mark such a block false.

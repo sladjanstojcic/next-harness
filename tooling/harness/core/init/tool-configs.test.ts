@@ -22,6 +22,9 @@ function consumer(files: Record<string, string>) {
   return repo;
 }
 
+/** The thin configs init writes at a root Next workspace; its tsconfig.json leaves them out. */
+const THIN = ["eslint.config.ts", "prettier.config.ts", "vitest.config.ts", "knip.config.ts", "playwright.config.ts"];
+
 const exists = (root: string, file: string): boolean => fs.existsSync(path.join(root, file));
 
 /** The numbered lines after init's "Next steps" heading. */
@@ -100,10 +103,12 @@ describe("init tool configs", () => {
 
   it("adds .ts imports and the harness exclude to tsconfig.json, refusing a false setting without --force", () => {
     const added = consumer({ "tsconfig.json": '{\n  "compilerOptions": { "strict": true }\n}\n' });
-    expect(initHarness(added.root, OFF).report).toContain("updated tsconfig.json: compilerOptions.allowImportingTsExtensions: true, exclude tooling/harness");
+    expect(initHarness(added.root, OFF).report).toContain(
+      `updated tsconfig.json: compilerOptions.allowImportingTsExtensions: true, exclude tooling/harness, ${THIN.join(", ")}`,
+    );
     expect(JSON.parse(added.read("tsconfig.json"))).toEqual({
       compilerOptions: { strict: true, allowImportingTsExtensions: true },
-      exclude: ["node_modules", "tooling/harness"],
+      exclude: ["node_modules", "tooling/harness", ...THIN],
     });
     const refused = consumer({ "tsconfig.json": JSON.stringify({ compilerOptions: { allowImportingTsExtensions: false } }) });
     expect(initHarness(refused.root, OFF).report).toContain(
@@ -112,7 +117,7 @@ describe("init tool configs", () => {
     expect(initHarness(refused.root, { force: true, starter: false }).ok).toBe(true);
     expect(JSON.parse(refused.read("tsconfig.json"))).toEqual({
       compilerOptions: { allowImportingTsExtensions: true },
-      exclude: ["node_modules", "tooling/harness"],
+      exclude: ["node_modules", "tooling/harness", ...THIN],
     });
   });
 
@@ -122,7 +127,7 @@ describe("init tool configs", () => {
     const result = initHarness(repo.root, OFF);
     expect(result.ok, result.report).toBe(true);
     expect(result.report).toContain(
-      'kept tsconfig.json: has comments or is not plain JSON; set by hand:\n    "compilerOptions": { "allowImportingTsExtensions": true }\n    "exclude": [..., "tooling/harness"]',
+      `kept tsconfig.json: has comments or is not plain JSON; set by hand:\n    "compilerOptions": { "allowImportingTsExtensions": true }\n    "exclude": [..., "tooling/harness", ${THIN.map((name) => `"${name}"`).join(", ")}]`,
     );
     expect(repo.read("tsconfig.json")).toBe(text);
   });

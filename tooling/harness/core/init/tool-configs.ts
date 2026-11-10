@@ -1,12 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import { z } from "zod";
 import type { WorkspaceEntry } from "../../config.ts";
 import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { eslintPresetLines, presetImport } from "../../tools/eslint-preset.ts";
-import { managerCommands } from "./bootstrap.ts";
-import { writer, type Step } from "./files.ts";
-import { gitignoreStep, HARNESS_MODULES, IGNORED, PRETTIER_IGNORED, ignoreEntriesStep } from "./ignore-files.ts";
+import { isObject, readJson, writer, type Step } from "./files.ts";
+import { developsHarness, gitignoreStep, HARNESS_MODULES, IGNORED, PRETTIER_IGNORED, ignoreEntriesStep } from "./ignore-files.ts";
 import { tsconfigStep } from "./tsconfig-step.ts";
 
 const HARNESS = path.resolve(import.meta.dirname, "../..");
@@ -20,44 +18,45 @@ interface ToolConfig {
   text(workspace: WorkspaceEntry): string;
   /** Where the lines go, when the lines do not say it themselves. */
   placement?: string;
-  /** The lines that add the preset to a project's own config, given its text. */
-  lines(workspace: WorkspaceEntry, own: string): string[];
+  /** The lines that add the preset to a project's own config, given its text; none when a kept config needs nothing. */
+  lines?(workspace: WorkspaceEntry, own: string): string[];
+  /** A package.json key that also holds this tool's config. */
+  packageKey?: string;
 }
 
-const TOOL_CONFIGS: readonly ToolConfig[] = [
-  {
-    names: TOOL_CONFIG_NAMES.eslint,
-    marker: "harnessEslint(",
-    text: (workspace) =>
-      `import { harnessEslint } from "${presetImport(workspace.path, "eslint.ts")}";\n\nexport default harnessEslint({ root: import.meta.dirname${workspace.next ? ", next: true" : ""} });\n`,
-    placement: "the import at the top of the file, the spread as the last element of the exported array",
-    lines: (workspace, own) => eslintPresetLines(workspace.path, workspace.next, own),
-  },
-  {
-    names: TOOL_CONFIG_NAMES.prettier,
-    marker: "presets/prettier.ts",
-    text: (workspace) => `export { default } from "${presetImport(workspace.path, "prettier.ts")}";\n`,
-    lines: (workspace) => [
-      `import harnessPrettier from "${presetImport(workspace.path, "prettier.ts")}";`,
-      "...harnessPrettier, // first in the exported object",
-    ],
-  },
-  {
-    names: TOOL_CONFIG_NAMES.vitest,
-    marker: "harnessVitest(",
-    text: (workspace) => `import { harnessVitest } from "${presetImport(workspace.path, "vitest.ts")}";\n\nexport default harnessVitest();\n`,
-    lines: (workspace) => [
-      `import { mergeConfig } from "vitest/config"; import { harnessVitest } from "${presetImport(workspace.path, "vitest.ts")}";`,
-      "export default mergeConfig(harnessVitest(), yourConfig);",
-    ],
-  },
-  {
-    names: TOOL_CONFIG_NAMES.knip,
-    marker: "harnessKnip",
-    text: (workspace) => `import { harnessKnip } from "${presetImport(workspace.path, "knip.ts")}";\n\nexport default harnessKnip();\n`,
-    lines: (workspace) => [`import { harnessKnip } from "${presetImport(workspace.path, "knip.ts")}";`, "...harnessKnip(), // first in the exported object"],
-  },
-];
+const ESLINT: ToolConfig = {
+  names: TOOL_CONFIG_NAMES.eslint,
+  marker: "harnessEslint(",
+  text: (workspace) =>
+    `import { harnessEslint } from "${presetImport(workspace.path, "eslint.ts")}";\n\nexport default harnessEslint({ root: import.meta.dirname${workspace.next ? ", next: true" : ""} });\n`,
+  placement: "the import at the top of the file, the spread as the last element of the exported array",
+  lines: (workspace, own) => eslintPresetLines(workspace.path, workspace.next, own),
+};
+
+/** A project's formatting style is its own: a kept Prettier config, in any form, needs nothing from the preset. */
+const PRETTIER: ToolConfig = {
+  names: TOOL_CONFIG_NAMES.prettier,
+  marker: "presets/prettier.ts",
+  text: (workspace) => `export { default } from "${presetImport(workspace.path, "prettier.ts")}";\n`,
+  packageKey: "prettier",
+};
+
+const VITEST: ToolConfig = {
+  names: TOOL_CONFIG_NAMES.vitest,
+  marker: "harnessVitest(",
+  text: (workspace) => `import { harnessVitest } from "${presetImport(workspace.path, "vitest.ts")}";\n\nexport default harnessVitest();\n`,
+  lines: (workspace) => [
+    `import { mergeConfig } from "vitest/config"; import { harnessVitest } from "${presetImport(workspace.path, "vitest.ts")}";`,
+    "export default mergeConfig(harnessVitest(), yourConfig);",
+  ],
+};
+
+const KNIP: ToolConfig = {
+  names: TOOL_CONFIG_NAMES.knip,
+  marker: "harnessKnip",
+  text: (workspace) => `import { harnessKnip } from "${presetImport(workspace.path, "knip.ts")}";\n\nexport default harnessKnip();\n`,
+  lines: (workspace) => [`import { harnessKnip } from "${presetImport(workspace.path, "knip.ts")}";`, "...harnessKnip(), // first in the exported object"],
+};
 
 /** Browser tests run only for a Next workspace at the git root, where the CI gate builds and serves it. */
 const PLAYWRIGHT: ToolConfig = {
@@ -72,22 +71,86 @@ const PLAYWRIGHT: ToolConfig = {
 
 const label = (workspace: WorkspaceEntry, file: string): string => (workspace.path === "" ? file : `${workspace.path}/${file}`);
 
-function toolConfigStep(root: string, workspace: WorkspaceEntry, tool: ToolConfig): Step {
-  const dir = path.join(root, workspace.path);
-  const own = tool.names.find((name) => fs.existsSync(path.join(dir, name)));
-  const file = tool.names[0] ?? "";
-  if (own === undefined) {
-    return { target: label(workspace, file), status: "created", detail: "harness preset", apply: writer(path.join(dir, file), tool.text(workspace)) };
+/** The workspace's package.json as an object; an absent or unreadable one is empty. */
+function packageJson(root: string, workspace: WorkspaceEntry): Record<string, unknown> {
+  try {
+    return readJson(path.join(root, workspace.path, "package.json"), "package.json") ?? {};
+  } catch {
+    return {};
   }
-  const text = fs.readFileSync(path.join(dir, own), "utf8");
-  if (text.includes(tool.marker)) return { target: label(workspace, own), status: "unchanged", detail: "uses the harness preset" };
-  const lines = tool.lines(workspace, text).map((line) => `\n    ${line}`);
+}
+
+/**
+ * The package script that runs the workspace's own tests: the one harness.config.ts names, else a `test` script that
+ * does not run Vitest. The gates then run that script, so init writes no vitest.config.ts and asks for no Vitest.
+ */
+export function runsOwnTests(root: string, workspace: WorkspaceEntry): string | undefined {
+  if (workspace.test !== undefined) return workspace.test;
+  const { scripts } = packageJson(root, workspace);
+  const test = isObject(scripts) ? scripts.test : undefined;
+  return typeof test === "string" && !/\bvitest\b/.test(test) ? "test" : undefined;
+}
+
+type Found = { state: "absent" } | { state: "preset" | "own"; file: string; text: string };
+
+function find(root: string, workspace: WorkspaceEntry, tool: ToolConfig): Found {
+  const dir = path.join(root, workspace.path);
+  const file = tool.names.find((name) => fs.existsSync(path.join(dir, name)));
+  if (file === undefined) {
+    const inPackage = tool.packageKey !== undefined && packageJson(root, workspace)[tool.packageKey] !== undefined;
+    return inPackage ? { state: "own", file: "package.json", text: "" } : { state: "absent" };
+  }
+  const text = fs.readFileSync(path.join(dir, file), "utf8");
+  return { state: text.includes(tool.marker) ? "preset" : "own", file, text };
+}
+
+function toolConfigStep(root: string, workspace: WorkspaceEntry, tool: ToolConfig): Step {
+  const found = find(root, workspace, tool);
+  const file = tool.names[0] ?? "";
+  if (found.state === "absent") {
+    const apply = writer(path.join(root, workspace.path, file), tool.text(workspace));
+    return { target: label(workspace, file), status: "created", detail: "harness preset", apply };
+  }
+  if (found.state === "preset") return { target: label(workspace, found.file), status: "unchanged", detail: "uses the harness preset" };
+  if (tool.lines === undefined) return { target: label(workspace, found.file), status: "kept", detail: "your config stays as it is" };
+  const lines = tool.lines(workspace, found.text).map((line) => `\n    ${line}`);
   return {
-    target: label(workspace, own),
+    target: label(workspace, found.file),
     status: "kept",
     detail: `your config stays; add the harness preset to it${tool.placement === undefined ? "" : `, ${tool.placement}`}:${lines.join("")}`,
     todo: true,
   };
+}
+
+/** The tools whose config a workspace gets: Vitest only where the gates run it, Playwright only for a Next workspace at the git root. */
+function toolsOf(root: string, workspace: WorkspaceEntry): ToolConfig[] {
+  const browser = workspace.path === "" && workspace.next;
+  return [ESLINT, PRETTIER, ...(runsOwnTests(root, workspace) === undefined ? [VITEST] : []), KNIP, ...(browser ? [PLAYWRIGHT] : [])];
+}
+
+/** Whether the workspace formats with the harness's Prettier preset rather than a style of its own. */
+export function usesPrettierPreset(root: string, workspace: WorkspaceEntry): boolean {
+  return find(root, workspace, PRETTIER).state !== "own";
+}
+
+/**
+ * The workspace's tool config files that import a preset, now or once the printed lines are added. The project's type
+ * check must not follow them into the harness, so its tsconfig.json leaves them out.
+ */
+function presetConfigs(root: string, workspace: WorkspaceEntry): string[] {
+  return toolsOf(root, workspace).flatMap((tool) => {
+    const found = find(root, workspace, tool);
+    if (found.state === "absent") return [tool.names[0] ?? ""];
+    return found.state === "own" && tool.lines === undefined ? [] : [found.file];
+  });
+}
+
+function ownTestsStep(root: string, workspace: WorkspaceEntry): Step[] {
+  const script = runsOwnTests(root, workspace);
+  if (script === undefined) return [];
+  const target = label(workspace, "package.json");
+  if (workspace.test !== undefined) return [{ target, status: "unchanged", detail: `the gates run its "${script}" script; no Vitest config is written` }];
+  return [{ target, status: "kept", detail: `its "${script}" script does not run Vitest; no Vitest config is written (see the next steps)` }];
 }
 
 function dependencyCruiserStep(root: string, workspace: WorkspaceEntry, force: boolean): Step {
@@ -134,66 +197,13 @@ function starterSteps(root: string, workspace: WorkspaceEntry, set: string, fold
 export function toolConfigSteps(root: string, workspace: WorkspaceEntry, force: boolean, starter: boolean): Step[] {
   const browser = workspace.path === "" && workspace.next;
   return [
-    ...TOOL_CONFIGS.map((tool) => toolConfigStep(root, workspace, tool)),
-    ...(browser ? [toolConfigStep(root, workspace, PLAYWRIGHT)] : []),
+    ...toolsOf(root, workspace).map((tool) => toolConfigStep(root, workspace, tool)),
+    ...ownTestsStep(root, workspace),
     dependencyCruiserStep(root, workspace, force),
-    tsconfigStep(root, workspace, force),
+    tsconfigStep(root, workspace, force, developsHarness(root) ? [] : presetConfigs(root, workspace)),
     gitignoreStep(root, workspace.path, workspace.path === "" ? [...IGNORED, HARNESS_MODULES] : IGNORED),
     ...(workspace.path === "" ? [] : [ignoreEntriesStep(root, label(workspace, ".prettierignore"), PRETTIER_IGNORED)]),
     ...(starter && workspace.shape === "next-modules" ? starterSteps(root, workspace, "next-modules", "src/shared/lib") : []),
     ...(starter && browser ? starterSteps(root, workspace, "e2e", "e2e") : []),
   ];
-}
-
-const manifest = z.object({
-  version: z.string().optional(),
-  dependencies: z.record(z.string(), z.string()).optional(),
-  devDependencies: z.record(z.string(), z.string()).optional(),
-});
-
-const readManifest = (file: string) => manifest.parse(JSON.parse(fs.readFileSync(file, "utf8")));
-
-/**
- * The tools whose rules presets/ holds, at the template's versions. They are not peerDependencies: a kit's `manypkg fix`
- * copies peers into devDependencies of the vendored package.
- */
-const PEERS = z.record(z.string(), z.string()).parse(JSON.parse(fs.readFileSync(path.join(HARNESS, "presets/peers.json"), "utf8")));
-
-/** The version of an `npm:<name>@<version>` alias, which keeps manypkg's external-mismatch fix off the harness's pins. */
-const aliasVersion = (spec: string): string => spec.replace(/^npm:(?:@[^@/]+\/)?[^@]+@/, "");
-
-/** server-only is the starter's other runtime dependency; the harness itself does not import it. */
-const STARTER_RUNTIME: Readonly<Record<string, string>> = { "server-only": "0.0.1" };
-
-const inWorkspace = (workspace: WorkspaceEntry, command: string): string => (workspace.path === "" ? command : `cd ${workspace.path} && ${command}`);
-
-/** The version a node_modules folder between the workspace and the git root provides, or undefined. */
-function reachableVersion(root: string, workspace: WorkspaceEntry, name: string): string | undefined {
-  for (let dir = path.join(root, workspace.path); ; dir = path.dirname(dir)) {
-    const file = path.join(dir, "node_modules", name, "package.json");
-    if (fs.existsSync(file)) return readManifest(file).version ?? "";
-    if (path.relative(root, dir) === "") return undefined;
-  }
-}
-
-const major = (version: string): string => /^\D*(\d+)/.exec(version)?.[1] ?? "";
-
-/**
- * The install line for the peer tools no folder up to the git root provides, or provides at another major version
- * (create-next-app's @types/node 20 fails Vitest's peer range); init does not install.
- */
-export function peerInstall(root: string, workspace: WorkspaceEntry): string | undefined {
-  const missing = Object.entries(PEERS).filter(([name, version]) => major(reachableVersion(root, workspace, name) ?? "") !== major(version));
-  if (missing.length === 0) return undefined;
-  return inWorkspace(workspace, `${managerCommands(root).addDev} ${missing.map(([name, version]) => `${name}@${version}`).join(" ")}`);
-}
-
-/** The install line for the runtime packages the starter files import and the workspace's package.json does not declare. */
-export function starterInstall(root: string, workspace: WorkspaceEntry): string | undefined {
-  const { dependencies: harness = {} } = readManifest(path.join(HARNESS, "package.json"));
-  const { dependencies = {}, devDependencies = {} } = readManifest(path.join(root, workspace.path, "package.json"));
-  const wanted = { zod: aliasVersion(harness.zod ?? ""), ...STARTER_RUNTIME };
-  const missing = Object.entries(wanted).filter(([name]) => dependencies[name] === undefined && devDependencies[name] === undefined);
-  if (missing.length === 0) return undefined;
-  return inWorkspace(workspace, `${managerCommands(root).add} ${missing.map(([name, version]) => `${name}@${version}`).join(" ")}`);
 }

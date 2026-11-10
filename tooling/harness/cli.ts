@@ -89,8 +89,8 @@ try {
     }
   } else if (command === "legacy" && mode === "init" && paths.length === 0) {
     const { initLegacy } = await import("./core/legacy.ts");
-    const { loadConfig } = await import("./config.ts");
-    process.stdout.write(`${initLegacy(root, loadConfig(root))}\n`);
+    const { resolveHarness } = await import("./core/path-check.ts");
+    process.stdout.write(`${await initLegacy(root, resolveHarness(root))}\n`);
   } else if (
     command === "init" &&
     [mode, ...paths].every((flag) => flag === undefined || flag === "--force" || flag === "--codex-user" || flag === "--starter")

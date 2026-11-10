@@ -134,10 +134,18 @@ export default defineHarness({
 - Harness rules (paths, names, sizes, content) judge owned files only. On legacy
   files, Done, CI and `pnpm run audit` report them as pre-existing without failing.
   Tool findings (types, lint, tests) on upstream and legacy files block in Done when
-  the file is changed or affected, and anywhere in CI. A lock breach, a growing or
-  invalid legacy list, and a crashed tool always block.
+  the file is changed or affected. A lock breach, a growing or invalid legacy list,
+  and a crashed tool always block.
+- The legacy list is a ratchet: old code is tolerated, new and touched code is held to
+  the rules. In CI a tool finding (format, lint, types, depcruise, knip, jscpd) on a
+  legacy file passes only while that file equals its version at the merge base with
+  the remote default branch (without a remote: at HEAD); on any other file, and
+  without a file, it fails. A checkout with a remote but without that base commit, such
+  as a shallow CI checkout, fails with `legacy-base-failed`: fetch the default branch
+  (`fetch-depth: 0`). The old debt is printed once, as a count per step.
 - `node tooling/harness/cli.ts legacy init` writes the legacy list once, from the
-  files that have harness findings today. Commit it; from then on it may only shrink.
+  files that have a harness finding or a tool finding today; it runs the tools, so
+  install them first. Commit it; from then on it may only shrink.
   The list may sit at the root or under an approved folder such as `tooling/`.
 - A config that fails to load denies every PreToolUse call with the loader's error;
   one that fails validation names the field. Other hook events allow and print it.
@@ -146,6 +154,11 @@ export default defineHarness({
   missing type checker, linter or formatter is `<tool>-failed`; a missing `vitest`
   skips the test step. `next build` and the browser smoke run only for a Next
   workspace at the root.
+- A workspace with `test: "<package script>"` runs that script through the project's
+  package manager instead of Vitest, in CI and in Done. Done runs the whole script, not
+  only related tests; a non-zero exit is `test-failed` with the end of the output.
+- With a config file, a next-modules workspace without `src/` skips depcruise and jscpd
+  (`skipped (no src/)`); they run once `src/` exists.
 
 ### Shapes, tool sets and the other config fields
 
@@ -177,8 +190,16 @@ export default defineHarness({
   `git subtree add --prefix=tooling/harness <repo> harness --squash`. Pushing the
   branch is the user's step. `tooling/harness/package.json` pins `typescript` and `zod`
   as `npm:` aliases and declares no peers, so a kit's `manypkg fix` leaves it alone.
-  `presets/peers.json` lists the tools whose rules `presets/` holds; `init` prints their
-  install line and writes their thin configs.
+  `presets/peers.json` lists the tools whose rules `presets/` holds, each with the
+  template's version and the minimum the presets work with. Presets import no tool
+  package: they load each one from the workspace that calls them.
+- `init` writes the thin configs and prints one install line: only tools that are
+  missing, at the template's version, or below the minimum. An installed tool at or
+  above the minimum stays, also when newer. A project's own Prettier config is kept as
+  it is. A `test` script that does not run Vitest gets no `vitest.config.ts`; init
+  prints the `test: "test"` line for `harness.config.ts` instead. The workspace's
+  `tsconfig.json` excludes every tool config that imports a preset, so the project's
+  type check never enters `tooling/harness/`; ESLint lints those files without types.
 
 ## Checks and when they run
 

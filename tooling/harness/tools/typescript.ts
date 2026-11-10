@@ -29,6 +29,13 @@ export function fullTypecheck(dir: string, next: boolean): ToolStep[] {
   return next ? [{ name: "typegen", command: [bin(dir, "next"), "typegen"], timeoutMs: CHECK_TIMEOUT_MS, findings: () => [] }, tsc] : [tsc];
 }
 
+/** CI with a legacy list: the same steps, tsc's errors parsed into findings so each can be judged by its file. */
+export function reportTypecheck(dir: string, next: boolean): ToolStep[] {
+  return fullTypecheck(dir, next).map((step) =>
+    step.name === "tsc" ? { ...step, command: [...step.command, "--pretty", "false"], findings: (stdout: string) => typeFindings(dir, stdout) } : step,
+  );
+}
+
 /** oxc workspaces: the same order, plain project tsc in Done and CI, with parsed findings. */
 export function projectTypecheck(dir: string, next: boolean): ToolStep[] {
   const tsc: ToolStep = {

@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import { APP, CNA_ESLINT, CREATE_NEXT_APP, initialised, presetFindings, run, withPresetLines } from "./preset-fixture.ts";
 
-const peers = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, "../presets/peers.json"), "utf8")) as Record<string, string>;
+const listed = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, "../presets/peers.json"), "utf8")) as Record<string, { version: string }>;
+const peers = Object.fromEntries(Object.entries(listed).map(([name, { version }]) => [name, version]));
+
+/** The thin configs init writes; the project's tsconfig leaves them out, so its type check never enters the harness. */
+const CONFIGS = ["eslint.config.ts", "prettier.config.ts", "vitest.config.ts", "knip.config.ts", "playwright.config.ts"];
 
 describe("a create-next-app project after init", () => {
   it("lints with the harness rules and passes the presence check", async () => {
@@ -29,7 +33,7 @@ describe("a create-next-app project after init", () => {
     const repo = initialised(APP);
     const tsconfig = JSON.parse(repo.read("tsconfig.json")) as { compilerOptions: Record<string, unknown>; exclude: string[] };
     expect(tsconfig.compilerOptions.allowImportingTsExtensions).toBe(true);
-    expect(tsconfig.exclude).toEqual(["node_modules", "tooling/harness"]);
+    expect(tsconfig.exclude).toEqual(["node_modules", "tooling/harness", ...CONFIGS]);
     const typegen = run(repo.root, "next", ["typegen"]);
     expect(typegen.status, typegen.output).toBe(0);
     const tsc = run(repo.root, "tsc", ["--noEmit"]);

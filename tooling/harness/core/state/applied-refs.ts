@@ -20,16 +20,20 @@ function remoteRef(root: string, ref: string): { name: string; commit: string } 
   return commit === null || !target.startsWith(REMOTES) ? undefined : { name: target.slice(REMOTES.length), commit };
 }
 
+/** The remote default branch: `origin/HEAD`, else `origin/main`, else `origin/master`. */
+export function remoteDefault(root: string): { name: string; commit: string } | undefined {
+  return ["origin/HEAD", "origin/main", "origin/master"].map((ref) => remoteRef(root, `${REMOTES}${ref}`)).find((found) => found !== undefined);
+}
+
 /**
  * The branch's upstream when it is a remote-tracking branch, and the remote default branch (`origin/HEAD`, else
  * `origin/main`, else `origin/master`), resolved to commits now. An empty list means the task's own snapshot decides.
  */
 export function pinAppliedRefs(root: string): AppliedPins {
   const upstream = git(root, ["rev-parse", "--symbolic-full-name", "@{upstream}"]);
-  const candidates = [
-    ...(upstream?.startsWith(REMOTES) === true ? [remoteRef(root, upstream)] : []),
-    ["origin/HEAD", "origin/main", "origin/master"].map((ref) => remoteRef(root, `${REMOTES}${ref}`)).find((found) => found !== undefined),
-  ].filter((found) => found !== undefined);
+  const candidates = [...(upstream?.startsWith(REMOTES) === true ? [remoteRef(root, upstream)] : []), remoteDefault(root)].filter(
+    (found) => found !== undefined,
+  );
   const names = [...new Set(candidates.map((found) => found.name))];
   return { commits: [...new Set(candidates.map((found) => found.commit))], label: names.join(" or ") };
 }

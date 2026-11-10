@@ -16,7 +16,9 @@ import { stateDir } from "../state/state-file.ts";
 import { depcruise, jscpd, knip } from "../../tools/analysis.ts";
 import { ALL_TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { toolWorkspaces, workspaceTools } from "../../tools/index.ts";
+import { testScript } from "../../tools/test-script.ts";
 import { relativePath } from "../../tools/tool-set.ts";
+import { lacksSources, skippedLine, summarizePreExisting } from "./ci-steps.ts";
 import { runInWorkspace, selectedPaths } from "./fast-gate.ts";
 import type { GateResult } from "./gate-result.ts";
 import type { ToolStep } from "./run-tool.ts";
@@ -82,8 +84,12 @@ async function runDoneGate(directory: string, changed: string[], applied: Applie
     ...legacyAppendFindings(directory, harness.config),
     ...legacyInvalidFindings(directory, harness.config),
   );
+  const skipped: string[] = [];
   for (const { workspace, dir, files } of groups) {
     const analysis = new Set(analysisOf(harness.config, workspace));
+    if (lacksSources(harness, dir)) {
+      for (const name of ["depcruise", "jscpd"] as const) if (analysis.delete(name)) skipped.push(skippedLine(name, workspace.path, "no src/"));
+    }
     if (analysis.has("depcruise"))
       await run(
         workspace.path,
@@ -101,7 +107,9 @@ async function runDoneGate(directory: string, changed: string[], applied: Applie
       }
     }
   }
-  for (const { workspace, tools, dir, files } of groups) await run(workspace.path, tools.test.related(dir, files), true);
+  // A workspace's own test script has no notion of related tests: it runs whole.
+  for (const { workspace, tools, dir, files } of groups)
+    await run(workspace.path, workspace.test === undefined ? tools.test.related(dir, files) : testScript(directory, dir, workspace.test), true);
   const blockingPaths = affected;
   const isHarnessRule = (finding: Finding): boolean => HARNESS_RULES.has(finding.rule);
   const classOf = (finding: Finding): PathClass => classify(finding.file, harness, legacy);
@@ -110,7 +118,21 @@ async function runDoneGate(directory: string, changed: string[], applied: Applie
   const findings = all.filter(blocks);
   // Upstream tool findings outside this turn's files are the kit's, not the agent's: dropped rather than reported.
   const preExisting = all.filter((finding) => !blocks(finding) && (isHarnessRule(finding) || classOf(finding) !== "upstream"));
-  const report = [stableReport(findings), preExisting.length > 0 ? `Outside this turn's files (not blocking):\n${stableReport(preExisting)}` : ""]
+  // With a legacy list the old debt runs to thousands of lines: counts and the first findings, as CI prints it.
+  const outside = (found: Finding[]): string =>
+    harness.config.legacy === undefined
+      ? stableReport(found)
+      : summarizePreExisting(
+          new Map([
+            ["harness rules", found.filter(isHarnessRule)],
+            ["tools", found.filter((finding) => !isHarnessRule(finding))],
+          ]),
+        );
+  const report = [
+    stableReport(findings),
+    preExisting.length > 0 ? `Outside this turn's files (not blocking):\n${outside(preExisting)}` : "",
+    skipped.join("\n"),
+  ]
     .filter(Boolean)
     .join("\n\n");
   return { passed: findings.length === 0, findings, preExisting, report };
