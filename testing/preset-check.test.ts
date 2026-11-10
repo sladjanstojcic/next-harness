@@ -7,10 +7,14 @@ import { checkGuards } from "../core/hooks/guards.ts";
 import { unlock } from "../core/lock.ts";
 import { SOURCE_PROBES } from "../shapes/next-modules.ts";
 import { doubleCast, harnessRuleBlocks, workarounds } from "../presets/eslint-rules.ts";
-import { eslintPreset, expectedRules, probeToken } from "../tools/eslint-preset.ts";
-import { APP, CNA_ESLINT, initialised, presetFindings } from "./preset-fixture.ts";
+import { eslintPreset, eslintPresetLines, expectedRules, probeToken } from "../tools/eslint-preset.ts";
+import { harnessEslint } from "../presets/eslint.ts";
+import { APP, CNA_ESLINT, initialised, presetFindings, run, withPresetLines } from "./preset-fixture.ts";
 
 afterEach(() => vi.restoreAllMocks());
+
+/** The harness's findings on create-next-app's own generated app code. */
+const CNA_APP_FINDINGS = ["app-file src/app/page.module.css", "thin-page src/app/page.tsx"];
 
 const IMPORT = 'import { harnessEslint } from "./tooling/harness/presets/eslint.ts";';
 const WITH_PRESET = `${IMPORT}\nexport default [{ rules: { "no-console": "error" } }, ...harnessEslint({ root: import.meta.dirname, next: true })];\n`;
@@ -80,25 +84,46 @@ describe("the preset presence check", () => {
     ]);
   });
 
-  it("names each missing rule per probe path with the lines to add, and passes once they are added", async () => {
+  it("names each missing rule per probe path with the lines to add, and passes once create-next-app's config has them", async () => {
     const repo = initialised({ ...APP, "eslint.config.mjs": CNA_ESLINT });
     const missing = await presetFindings(repo.root);
-    const rules = harnessRuleBlocks().flatMap((block) => Object.keys(block.rules));
+    // Next's TypeScript config already sets no-explicit-any as an error.
+    const rules = harnessRuleBlocks()
+      .flatMap((block) => Object.keys(block.rules))
+      .filter((rule) => rule !== "@typescript-eslint/no-explicit-any");
     expect(new Set(missing.map(({ message }) => message.split(" ")[0]))).toEqual(new Set([...rules, "linterOptions.noInlineConfig"]));
-    expect(missing[0]?.message).toContain(`  ${IMPORT}\n  ...harnessEslint({ root: import.meta.dirname, next: true }),`);
-    repo.write("eslint.config.mjs", WITH_PRESET);
+    const lines = `  ${IMPORT}\n  ...harnessEslint({ root: import.meta.dirname, base: false }),`;
+    expect(missing[0]?.message).toContain(lines);
+    expect(repo.report).toContain(lines.replaceAll("  ", "    "));
+    repo.write("eslint.config.mjs", withPresetLines(CNA_ESLINT, repo.report));
     expect(await presetFindings(repo.root)).toEqual([]);
+    const lint = run(repo.root, "eslint", ["src", "--max-warnings", "0"]);
+    expect(lint.status, lint.output).toBe(0);
   }, 120_000);
+
+  it("prints base: false for a config that brings Next's or typescript-eslint's plugins, comments aside", () => {
+    const spread = (config: string) => eslintPresetLines("", true, config)[1];
+    expect(spread(CNA_ESLINT)).toContain("base: false");
+    expect(spread('import next from "@next/eslint-plugin-next";\nexport default [];\n')).toContain("base: false");
+    expect(spread("// like eslint-config-next\n/* or typescript-eslint */\nexport default [];\n")).toContain("next: true");
+    expect(spread('const url = "https://x";\nexport default [];\n')).toContain("next: true");
+  });
+
+  it("adds no plugin of its own on top of a project's config, so none is defined twice", () => {
+    const blocks = harnessEslint({ root: "/repo", base: false });
+    expect(blocks.filter((block) => block.plugins !== undefined)).toEqual([]);
+    expect(harnessEslint({ root: "/repo", next: true }).some((block) => block.plugins?.import !== undefined)).toBe(true);
+  });
 
   it("runs in Done only when a lint config input changed, and then blocks a weakened rule", async () => {
     const repo = initialised({ ...APP, "eslint.config.mjs": WITH_PRESET });
     const real = runner.runTool;
     const run = vi.spyOn(runner, "runTool").mockImplementation(async (root, step) => (step.name === "eslint-preset" ? real(root, step) : []));
     const presetRuns = () => run.mock.calls.filter(([, step]) => step.name === "eslint-preset").length;
-    expect((await doneGate(repo.root, ["src/app/page.tsx"])).passed).toBe(true);
+    expect((await doneGate(repo.root, ["src/app/layout.tsx"])).passed).toBe(true);
     expect(presetRuns()).toBe(0);
     repo.write("eslint.config.mjs", WITH_PRESET.replace("next: true })]", 'next: true }), { rules: { "no-eval": "off" } }]'));
-    const result = await doneGate(repo.root, ["src/app/page.tsx", "eslint.config.mjs"]);
+    const result = await doneGate(repo.root, ["src/app/layout.tsx", "eslint.config.mjs"]);
     expect(presetRuns()).toBe(1);
     expect(result.passed).toBe(false);
     const missing = result.findings.filter(({ rule }) => rule === "preset-missing");
@@ -118,7 +143,7 @@ describe("a project's own tool configs kept by init", () => {
 
   it("pass the audit, are locked for agents, and become editable once the user unlocks", () => {
     const repo = initialised({ ...APP, ...OWN });
-    expect(audit(repo.root)).toEqual([]);
+    expect(audit(repo.root).map(({ rule, file }) => `${rule} ${file}`)).toEqual(CNA_APP_FINDINGS);
     const edit = (file: string) =>
       checkGuards(
         parseEvent(

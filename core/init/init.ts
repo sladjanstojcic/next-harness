@@ -1,12 +1,14 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { managerCommands } from "./bootstrap.ts";
 import { codexHooksSetting, withHooksFeature } from "./codex-user.ts";
 import { compareHooks, hooksBlock, mergeHooks, type HooksBlock } from "./hooks-merge.ts";
 import { indentOf, readJson, scriptsStep, writer, type JsonObject, type Step } from "./files.ts";
 import { resolveHarness } from "../path-check.ts";
 import { bin } from "../../tools/tool-set.ts";
-import { peerHint, toolConfigSteps, toolScripts } from "./tool-configs.ts";
+import { gitignoreStep, HARNESS_MODULES, peerInstall, starterInstall, toolConfigSteps, toolScripts } from "./tool-configs.ts";
+import type { WorkspaceEntry } from "../../config.ts";
 import { CI_STEPS, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH } from "./wiring.ts";
 
 function hooksStep(root: string, label: string, wanted: HooksBlock, force: boolean): Step {
@@ -72,14 +74,14 @@ function hooksPathStep(root: string, force: boolean): Step {
   return { target: label, status: "updated", detail: `${current} replaced by ${HOOKS_PATH}`, apply };
 }
 
-/** JSON.stringify spreads short arrays over lines; the project's Prettier formats what init rewrote, or the report says to. */
+/** JSON.stringify spreads short arrays over lines; the project's Prettier formats what init rewrote, or the next steps' format run does. */
 function formatJson(root: string, files: string[]): string[] {
   if (files.length === 0) return [];
   const manual = `run prettier --write ${files.join(" ")}`;
   const byBinary = new Map<string, string[]>();
   for (const file of files) {
     const prettier = bin(path.join(root, path.dirname(file)), "prettier", root);
-    if (prettier === undefined) return [`Prettier is not installed here; ${manual}`];
+    if (prettier === undefined) return [];
     byBinary.set(prettier, [...(byBinary.get(prettier) ?? []), file]);
   }
   for (const [prettier, own] of byBinary) {
@@ -87,6 +89,29 @@ function formatJson(root: string, files: string[]): string[] {
     if (result.status !== 0) return [`prettier --write failed: ${(result.stderr || result.stdout).trim()}; ${manual}`];
   }
   return [`formatted ${files.join(", ")} with prettier`];
+}
+
+/** One numbered list of what the user runs after init, in the order that works: tools before the files that need them. */
+function nextSteps(root: string, workspaces: readonly WorkspaceEntry[], steps: readonly Step[], starter: boolean): string[] {
+  const todo = steps.filter((step) => step.todo === true).map((step) => step.target);
+  const { exec, run } = managerCommands(root);
+  const format = workspaces.map((workspace) => (workspace.path === "" ? `${exec} prettier --write .` : `(cd ${workspace.path} && ${exec} prettier --write .)`));
+  const items = [
+    ...workspaces
+      .flatMap((workspace) => peerInstall(root, workspace) ?? [])
+      .map((command) => `Install the harness's tools (init does not install): ${command}`),
+    ...(starter ? workspaces.filter((workspace) => workspace.shape === "next-modules") : [])
+      .flatMap((workspace) => starterInstall(root, workspace) ?? [])
+      .map((command) => `Install the runtime packages the starter files import: ${command}`),
+    ...(todo.length === 0 ? [] : [`Make the change each kept file above asks for: ${todo.join(", ")}`]),
+    ...(format.length === 0 ? [] : [`Format the app's own files once in the preset's style: ${format.join("; ")}`]),
+    ...(workspaces.some((workspace) => workspace.path === "" && workspace.next)
+      ? [`Install the smoke test's browser: ${exec} playwright install chromium`]
+      : []),
+    'Commit the result: git add -A && git commit -m "Add the harness"',
+    `Run the full gate: ${run} check`,
+  ];
+  return ["Next steps, in this order:", ...items.map((item, index) => `  ${String(index + 1)}. ${item}`)];
 }
 
 export interface InitOptions {
@@ -109,6 +134,7 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
     codexConfigStep(root, force),
     prePushStep(root, force),
     scriptsStep(root, "package.json", PACKAGE_SCRIPTS, atRoot === undefined ? {} : toolScripts(atRoot), force),
+    ...(atRoot === undefined ? [gitignoreStep(root, "", [HARNESS_MODULES])] : []),
     ...workspaces.flatMap((workspace) => [
       ...(workspace.path === "" ? [] : [scriptsStep(root, `${workspace.path}/package.json`, {}, toolScripts(workspace), force)]),
       ...toolConfigSteps(root, workspace, force, starter),
@@ -123,8 +149,5 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
     root,
     steps.filter((step) => step.apply !== undefined && step.target.endsWith(".json")).map((step) => step.target),
   );
-  const hints = workspaces.flatMap((workspace) => peerHint(root, workspace) ?? []);
-  const formatApp = workspaces.map((workspace) => (workspace.path === "" ? "prettier --write ." : `(cd ${workspace.path} && prettier --write .)`));
-  const last = formatApp.length === 0 ? [] : [`Then format the app's own files once in the preset's style: ${formatApp.join("; ")}`];
-  return { report: [...lines, ...formatted, ...hints, CI_STEPS, ...last].join("\n"), ok: true };
+  return { report: [...lines, ...formatted, CI_STEPS, ...nextSteps(root, workspaces, steps, starter)].join("\n"), ok: true };
 }

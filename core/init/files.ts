@@ -9,6 +9,8 @@ export interface Step {
   status: Status;
   detail: string;
   apply?: () => void;
+  /** A kept file whose detail names a change the user makes by hand. */
+  todo?: boolean;
 }
 
 export type JsonObject = Record<string, unknown>;

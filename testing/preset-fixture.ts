@@ -1,6 +1,8 @@
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { expect } from "vitest";
+import { z } from "zod";
 import { runTool } from "../core/gates/run-tool.ts";
 import { initHarness } from "../core/init/init.ts";
 import { eslintPreset } from "../tools/eslint-preset.ts";
@@ -8,57 +10,34 @@ import type { Finding } from "../core/audit/finding.ts";
 import { SOURCE_PROBES } from "../shapes/next-modules.ts";
 import { consumerRepo } from "./template-repo.ts";
 
-/** create-next-app's tsconfig.json: no `.ts` imports allowed, every TypeScript file included. */
-const CNA_TSCONFIG = `${JSON.stringify(
-  {
-    compilerOptions: {
-      target: "ES2017",
-      lib: ["dom", "dom.iterable", "esnext"],
-      allowJs: true,
-      skipLibCheck: true,
-      strict: true,
-      noEmit: true,
-      esModuleInterop: true,
-      module: "esnext",
-      moduleResolution: "bundler",
-      resolveJsonModule: true,
-      isolatedModules: true,
-      jsx: "react-jsx",
-      incremental: true,
-      plugins: [{ name: "next" }],
-      paths: { "@/*": ["./src/*"] },
-    },
-    include: ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts", "**/*.mts"],
-    exclude: ["node_modules"],
-  },
-  null,
-  2,
-)}\n`;
+/** The files create-next-app 16.4.5 generates (`--typescript --eslint --app --src-dir --no-tailwind --use-pnpm`), but its lockfile and assets. */
+export const CREATE_NEXT_APP: Readonly<Record<string, string>> = z
+  .record(z.string(), z.string())
+  .parse(JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "fixtures/create-next-app-16.4.5.json"), "utf8")));
 
 /** pnpm's own lockfile style, which Prettier would rewrite (quotes, blank lines, flow mappings). */
 const PNPM_LOCK =
   "lockfileVersion: '9.0'\n\nimporters:\n\n  .:\n    dependencies:\n      next:\n        specifier: 16.4.5\n        version: 16.4.5\n\npackages:\n\n  '@next/env@16.4.5':\n    resolution: {integrity: sha512-x}\n";
 
+/** create-next-app's own ESLint config, which init keeps. */
+export const CNA_ESLINT = CREATE_NEXT_APP["eslint.config.mjs"] ?? "";
+
+/** A create-next-app project without its ESLint config, so init writes the thin one. */
 export const APP: Record<string, string> = {
-  "tsconfig.json": CNA_TSCONFIG,
+  ...Object.fromEntries(Object.entries(CREATE_NEXT_APP).filter(([file]) => file !== "eslint.config.mjs")),
   "pnpm-lock.yaml": PNPM_LOCK,
-  "src/app/layout.tsx": [
-    'import type { ReactNode } from "react";',
-    "",
-    "export default function Layout({ children }: { children: ReactNode }) {",
-    "  return (",
-    "    <html>",
-    "      <body>{children}</body>",
-    "    </html>",
-    "  );",
-    "}",
-    "",
-  ].join("\n"),
-  "src/app/page.tsx": "export default function Page() {\n  return <main>Hello</main>;\n}\n",
 };
 
-/** create-next-app's own ESLint config, which init keeps. */
-export const CNA_ESLINT = 'export default [{ rules: { "no-console": "error" } }];\n';
+/** A kept config with the lines init printed for it: the import first, the spread as the last entry of the exported array. */
+export function withPresetLines(config: string, report: string): string {
+  const [importLine, spread] = report
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.includes("harnessEslint"));
+  if (importLine === undefined || spread === undefined) throw new Error(`init printed no ESLint lines:\n${report}`);
+  const end = config.lastIndexOf("]");
+  return `${importLine}\n${config.slice(0, end)}  ${spread}\n${config.slice(end)}`;
+}
 
 export function run(cwd: string, tool: string, args: string[]): { status: number | null; output: string } {
   const root = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd, encoding: "utf8" }).stdout.trim();

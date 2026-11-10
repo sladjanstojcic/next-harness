@@ -12,6 +12,15 @@ function filesUnder(dir: string): string[] {
   });
 }
 
+/** The presets, the harness files they import and the harness's package.json, as a subtree holds them. */
+const PRESETS = [
+  "tooling/harness/package.json",
+  "tooling/harness/shapes/limits.ts",
+  "tooling/harness/core/init/bootstrap.ts",
+  "tooling/harness/core/init/files.ts",
+  ...filesUnder("tooling/harness/presets"),
+];
+
 export function templateRepo(files: Record<string, string> = {}) {
   const configs = [
     "package.json",
@@ -24,8 +33,7 @@ export function templateRepo(files: Record<string, string> = {}) {
     ".dependency-cruiser.json",
     ".jscpd.json",
     ".gitignore",
-    "tooling/harness/shapes/limits.ts",
-    ...filesUnder("tooling/harness/presets"),
+    ...PRESETS,
   ];
   const repo = makeRepo({
     ...Object.fromEntries(configs.map((file) => [file, fs.readFileSync(path.join(template, file), "utf8")])),
@@ -37,10 +45,9 @@ export function templateRepo(files: Record<string, string> = {}) {
   return repo;
 }
 
-/** A project before init: the harness presets with the limits they read, the template's node_modules, no tool configs and no git hooks path. */
+/** A project before init: the presets as a subtree holds them, the template's node_modules, no tool configs and no git hooks path. */
 export function consumerRepo(files: Record<string, string>) {
-  const harness = ["tooling/harness/shapes/limits.ts", ...filesUnder("tooling/harness/presets")];
-  const repo = makeRepo({ ...Object.fromEntries(harness.map((file) => [file, fs.readFileSync(path.join(template, file), "utf8")])), ...files });
+  const repo = makeRepo({ ...Object.fromEntries(PRESETS.map((file) => [file, fs.readFileSync(path.join(template, file), "utf8")])), ...files });
   repo.git("config", "--unset", "core.hooksPath");
   fs.symlinkSync(path.join(template, "node_modules"), path.join(repo.root, "node_modules"), "dir");
   return repo;

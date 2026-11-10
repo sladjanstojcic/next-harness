@@ -95,18 +95,24 @@ try {
     command === "init" &&
     [mode, ...paths].every((flag) => flag === undefined || flag === "--force" || flag === "--codex-user" || flag === "--starter")
   ) {
-    const flags = [mode, ...paths];
-    const { initHarness } = await import("./core/init/init.ts");
-    const result = initHarness(root, { force: flags.includes("--force"), starter: flags.includes("--starter") });
-    process.stdout.write(`${result.report}\n`);
-    if (result.ok && flags.includes("--codex-user")) {
-      const { installCodexHooks } = await import("./core/init/codex-user.ts");
-      const user = installCodexHooks(root, os.homedir());
-      process.stdout.write(
-        `Codex user hooks: ${String(user.added)} added in ${user.file}. They run only inside linked git worktrees; review them once in Codex with /hooks.\n`,
-      );
+    const flags = [mode, ...paths].filter((flag) => flag !== undefined);
+    // The rest of init needs the harness's own dependencies, which a fresh subtree does not have yet.
+    const { bootstrapHarness } = await import("./core/init/bootstrap.ts");
+    const bootstrap = bootstrapHarness(root, flags);
+    if (!bootstrap.ready) process.stdout.write(`${bootstrap.report}\n`);
+    else {
+      const { initHarness } = await import("./core/init/init.ts");
+      const result = initHarness(root, { force: flags.includes("--force"), starter: flags.includes("--starter") });
+      process.stdout.write(`${result.report}\n`);
+      if (result.ok && flags.includes("--codex-user")) {
+        const { installCodexHooks } = await import("./core/init/codex-user.ts");
+        const user = installCodexHooks(root, os.homedir());
+        process.stdout.write(
+          `Codex user hooks: ${String(user.added)} added in ${user.file}. They run only inside linked git worktrees; review them once in Codex with /hooks.\n`,
+        );
+      }
+      process.exitCode = result.ok ? 0 : 1;
     }
-    process.exitCode = result.ok ? 0 : 1;
   } else if ((command === "lock" || command === "unlock") && mode === undefined) {
     const { lock, unlock, UNLOCK_HOURS } = await import("./core/lock.ts");
     if (command === "unlock") {
