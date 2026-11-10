@@ -1,3 +1,1 @@
-import type { Config } from "prettier";
-
-export default { printWidth: 160 } satisfies Config;
+export { default } from "./tooling/harness/presets/prettier.ts";

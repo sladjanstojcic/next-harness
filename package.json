@@ -19,7 +19,8 @@
     "harness:blocks": "node tooling/harness/cli.ts blocks",
     "harness:lock": "node tooling/harness/cli.ts lock",
     "harness:unlock": "node tooling/harness/cli.ts unlock",
-    "codex:hooks": "node scripts/install-codex-hooks.ts",
+    "harness:split": "node scripts/split-harness.ts",
+    "codex:hooks": "node tooling/harness/cli.ts init --codex-user",
     "prepare": "git config core.hooksPath .githooks",
     "rename": "node scripts/rename.ts"
   },

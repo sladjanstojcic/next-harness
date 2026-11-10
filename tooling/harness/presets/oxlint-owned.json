@@ -1,0 +1,18 @@
+{
+  "plugins": ["typescript"],
+  "categories": { "correctness": "off" },
+  "rules": {
+    "typescript/ban-ts-comment": ["error", { "ts-check": true, "ts-ignore": true, "ts-expect-error": true, "ts-nocheck": true }],
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "error",
+    "no-console": "error",
+    "no-eval": "error",
+    "max-lines": ["error", { "max": 250, "skipBlankLines": false, "skipComments": false }]
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": { "typescript/no-non-null-assertion": "off" }
+    }
+  ]
+}

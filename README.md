@@ -46,7 +46,13 @@ where the code belongs, and the agent cannot edit the rules.
 
 **One shape.** Routes in `src/app/`, features in `src/modules/<module>/`, cross-cutting code in
 `src/shared/`. Nothing else under `src/`, and nothing new at the repository root without a deliberate
-entry in [`tooling/harness/structure.ts`](tooling/harness/structure.ts).
+entry. [`tooling/harness/shapes/next-modules.ts`](tooling/harness/shapes/next-modules.ts) defines the
+shape inside a workspace; [`tooling/harness/core/root-layout.ts`](tooling/harness/core/root-layout.ts)
+defines the repository root. An optional `harness.config.ts` adds workspaces, root entries and path
+classes; AGENTS.md describes it. With it, a monorepo can give each folder its own shape: `next-modules`
+(below), `makerkit-app` and `makerkit-feature` for a Makerkit app and its feature packages, and
+`supabase` for append-only migrations. Each workspace also gets a tool set: `eslint-prettier`, `oxc`
+(oxlint and oxfmt) or `none`.
 
 ```text
 src/
@@ -79,16 +85,16 @@ no inline disables, no `@ts-ignore`.
 The harness is a small TypeScript CLI that both agent clients call from their hooks. Node 24 runs it
 directly, with no build step.
 
-| Moment                      | What runs                                                                                                                              | Takes    |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| Session start               | A code index of every module's public exports, so the agent reuses before it writes                                                    | one read |
-| User prompt                 | A snapshot of the working tree; Done judges only what this turn changed                                                                | ms       |
-| Before a write              | Guards: structure, secrets (`.env*`), the lockfile, vendored UI, the harness lock                                                      | ms       |
-| Before a command            | Guards: force push, `rm` outside the checkout, destructive Prisma and Supabase migrations, the unlock and false-block commands         | ms       |
-| After a write               | Fast gate: Prettier writes, syntax-level lint, path and content audit of that file                                                     | ≈ 1–2 s  |
-| After a command             | Path and content audit of whatever the command created or changed, plus the lock                                                       | ≈ 1 s    |
-| Stop                        | Done gate: `next typegen`, `tsc`, typed ESLint on changed files, full audit, dependency-cruiser, knip, jscpd, `vitest related`         | seconds  |
-| Pre-push and GitHub Actions | The full gate: format check, typed lint, typegen, types, audit, boundaries, dead code, copies, all tests, `next build`, Chromium smoke | minutes  |
+| Moment                      | What runs                                                                                                                                                            | Takes    |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| Session start               | A code index of every module's public exports, so the agent reuses before it writes                                                                                  | one read |
+| User prompt                 | A snapshot of the working tree; Done judges only what this turn changed                                                                                              | ms       |
+| Before a write              | Guards: structure, secrets (`.env*`), the lockfile, vendored UI, applied migrations, the harness lock                                                                | ms       |
+| Before a command            | Guards: force push, `rm` outside the checkout, destructive Prisma and Supabase migrations, Supabase deploys to a linked project, the unlock and false-block commands | ms       |
+| After a write               | Fast gate: Prettier writes, syntax-level lint, path and content audit of that file                                                                                   | ≈ 1–2 s  |
+| After a command             | Path and content audit of whatever the command created or changed, plus the lock                                                                                     | ≈ 1 s    |
+| Stop                        | Done gate: `next typegen`, `tsc`, typed ESLint on changed files, full audit, dependency-cruiser, knip, jscpd, `vitest related`                                       | seconds  |
+| Pre-push and GitHub Actions | The full gate: format check, typed lint, typegen, types, audit, boundaries, dead code, copies, all tests, `next build`, Chromium smoke                               | minutes  |
 
 When the Done gate fails, the agent's turn does not end: it gets the findings and fixes them. Changed
 files and their importers block; older problems elsewhere are reported, not blamed on this turn.
@@ -143,18 +149,86 @@ pnpm vitest run <file>     # focused unit tests
 pnpm harness:blocks        # the block log
 pnpm harness:unlock        # open the harness for four hours; pnpm harness:lock closes it
 pnpm codex:hooks           # user-level Codex hooks for linked worktrees
+pnpm harness:split         # point the local harness branch at a subtree split of tooling/harness/
 pnpm rename --name <pkg> --port <n> --title "<title>"
 ```
 
 Smoke uses `127.0.0.1:3210`; set `SMOKE_PORT` when that port is taken. The gate forces CI mode, so
 the browser test starts its own production server.
 
+`harness:split` only moves a local branch. Publishing it with `git push origin harness` is your step.
+Another repository then adds the harness with
+`git subtree add --prefix=tooling/harness <this repo> harness --squash` and updates it with
+`git subtree pull`. Its `harness.config.ts` stays outside that folder, so a pull never overwrites it.
+Adopting it in a project, in the order that works (shown for pnpm; npm and yarn use `workspaces` in
+`package.json` instead of `pnpm-workspace.yaml`):
+
+1. `git subtree add --prefix=tooling/harness <this repo> harness --squash`, on a clean working tree. If it
+   fails with "working tree has modifications" although `git status` is clean (an install touched file times,
+   so git's index is stale), run `git update-index --refresh` and repeat it.
+2. `node tooling/harness/cli.ts init --starter`. On a fresh subtree the harness's own `zod` is not installed
+   yet, nor `typescript` when the project has none, so init only lists `tooling/harness` under `packages` in `pnpm-workspace.yaml`
+   (creating the key and keeping the rest of the file) and stops. This first step uses Node built-ins only.
+3. `pnpm install`, then the same init command again. Now init writes the wiring and ends with one numbered list
+   of next steps.
+4. Do those steps in order: install the harness's tools, install `zod` and `server-only` for the starter files,
+   add the printed lines to each kept config, `pnpm exec prettier --write .`, install the Playwright browser,
+   `git add -A && git commit`, `pnpm run check`. Each command is printed in the project's package manager.
+   The root `.gitignore` gets `tooling/harness/node_modules/`, since create-next-app ignores only
+   `/node_modules`; the audit reports any committed `node_modules` file as `tracked-node-modules`.
+
+Init writes the same hook wiring this repo uses:
+`.claude/settings.json` hooks, `.codex/hooks.json`, `.codex/config.toml`, `.githooks/pre-push`,
+`core.hooksPath` and the package scripts. It adds `"prepare": "git config core.hooksPath .githooks"` to the
+root `package.json`, so a fresh clone gets the pre-push hook on install; when a `prepare` script exists, it
+prints that command to add. The root `.prettierignore`, which Prettier and oxfmt read, gets `tooling/harness`
+and `harness.config.ts`, and so does `.eslintignore`, which oxlint reads, when a workspace uses oxc: a
+project's `prettier --write .`, `oxfmt` or `oxlint --fix` then leaves the locked harness alone. The repository
+that develops the harness (its ESLint config passes `harness: "lint"`) keeps formatting it. It keeps other keys and hooks, refuses changed harness wiring
+unless `--force` is given, and prints the CI steps to add. `--codex-user` also installs the Codex
+user-level hooks.
+
+In each eslint-prettier workspace, init also writes thin `eslint.config.ts`, `prettier.config.ts`,
+`vitest.config.ts`, `knip.config.ts` and `.dependency-cruiser.json` files over `tooling/harness/presets/`,
+adds the missing tool scripts, `.gitignore` entries and `.prettierignore` entries (`pnpm-lock.yaml`,
+`src/shared/ui`, `.next`), sets `allowImportingTsExtensions` in `tsconfig.json` and excludes `tooling/harness`
+from the project's type check, and prints the `pnpm add -D` line for tools that are missing or on another major
+version (create-next-app's `@types/node` 20 fails Vitest's peer range). A root Next workspace also
+gets `playwright.config.ts`, which runs only `e2e/**/*.test.ts`; the CI browser step reports
+`playwright: skipped` until such a file exists. Init formats the JSON files it rewrote with the project's
+Prettier when it is installed; otherwise the `prettier --write .` step formats them with the app's own files.
+The knip preset lists only entries and ignores that exist and dependencies the project declares, skips the
+harness's own ESLint plugins, and, where the harness is a workspace package, puts its settings under the root
+workspace and ignores the harness's. The Vitest preset passes with
+no test files, since a new project has none; this repository turns that off.
+A project's own ESLint, Prettier, Vitest, Knip or Playwright config is never replaced, even with `--force`:
+init prints the two lines that add the preset to it, and the file is allowed and locked like init's own.
+For an ESLint config that already brings `eslint-config-next`, `@next/eslint-plugin-next` or
+`typescript-eslint`, as create-next-app's does (comments do not count), the lines pass `base: false`: the preset then adds only the harness's rule blocks, since ESLint refuses
+a plugin defined twice.
+CI, and Done when a tool config in the workspace or a folder above it, the workspace's `package.json` or
+`harness.config.ts` changed, then check the preset is active. One Node process asks the workspace's own
+ESLint for the config of one freshly named path in every folder and extension the shape allows code in, one
+area subfolder, a colocated test, a `scripts/` file, Next's `page.tsx`, `layout.tsx` and `route.ts`, a route
+two levels deep, one under a route group and one under a dynamic segment, plus the fixed module entry and
+starter helper names. Each name is 3 to 24 random characters, some with a hyphen, some with a digit. Every
+rule the preset sets on that path must hold as an error with the harness's options; a rule it sets without
+options must print the rule's own defaults. Otherwise a `preset-missing` finding names the rule and the path.
+The lock is what protects a project's config; the check is the second line, against a config that loses the
+preset. Two gaps no probe closes: the config file is code and can read the check's arguments, and a rule
+turned off only for `.mts` or `.cts` files goes unseen while the shape denies those extensions. The thin
+ESLint config skips the vendored `tooling/harness/`, which the project's type check also leaves out.
+`--starter` copies the `src/shared/lib/` helpers the content rules point at and, at a root Next workspace,
+`e2e/smoke.test.ts`; its next steps add the `pnpm add zod server-only` line for the ones the project lacks.
+
 ## The lock
 
 An agent that can edit the harness can switch it off, so it cannot. Locked: `tooling/harness/`,
 `.claude/settings.json`, `.codex/`, `.githooks/`, `.github/`, `tsconfig.json`, `next.config.ts`,
 `eslint.config.ts`, `prettier.config.ts`, `.prettierignore`, `knip.config.ts`, `vitest.config.ts`,
-`playwright.config.ts`, `.dependency-cruiser.json` and `.jscpd.json`. Edits by tool are denied, edits
+`playwright.config.ts`, `.dependency-cruiser.json`, `.jscpd.json` and `harness.config.ts` (creating it
+too), the tool configs init writes in each eslint-prettier workspace, plus the legacy list and `locked`
+paths that config names. Edits by tool are denied, edits
 by shell are reported and block Done, and the unlock command is denied to agents.
 
 ```sh
@@ -188,16 +262,41 @@ up to five minutes.
 ## Inside `tooling/harness/`
 
 ```text
-structure.ts        the one definition: roots, shape, names, limits
-lock.ts             what is locked, and the four-hour unlock
-telemetry.ts        the block log and the false-block marker
-code-index.ts       the public-export index handed over at session start
-cli.ts              hook <claude|codex> · check <fast|done|ci> · audit · blocks · lock · unlock
-hooks/              event parsing for both clients, guards, responses, apply_patch paths
-audit/              path rules, content rules, duplicate exports
-gates/              fast, done and ci gates, the tool runner, the repair budget
-state/              tree snapshots, per-session state files and the gate lock under .git/harness/
-testing/            disposable git repositories for the tests
+cli.ts              hook <claude|codex> · check <fast|done|ci> · audit · blocks · legacy init · init · lock · unlock
+config.ts           defineHarness, loading harness.config.ts, workspaces and the longest-path match
+package.json        the harness's own pins (typescript for the compiler API, zod), so the folder works as a subtree
+shapes/
+  next-modules.ts   the next-modules shape: folders, names, content rules, vendored files
+  makerkit-app.ts   a Makerkit apps/web; its content rules sit in makerkit-app-content.ts
+  makerkit-feature.ts a Makerkit feature package and its package.json exports
+  supabase.ts       a Supabase folder: migration, schema, seed and test names
+  limits.ts         file, folder and page size limits
+  shape.ts          the contract every shape implements
+presets/            the rule sets the tool configs import: ESLint, Prettier, Vitest, Knip, Playwright,
+                    depcruise, jscpd; starter/ holds the src/shared/lib/ helpers and the e2e smoke test
+                    as text for `init --starter`
+tools/
+  tool-set.ts       the contract every tool set implements, and binary lookup per workspace
+  eslint-prettier.ts the eslint-prettier tool set: format, lint, type check and test steps
+  oxc.ts            the oxc tool set: oxlint JSON findings, oxfmt --list-different
+  typescript.ts     Next type generation, tsc steps and the compiler API
+  vitest.ts         related and full test runs
+  analysis.ts       depcruise, knip, jscpd, build and browser smoke steps
+  eslint-preset.ts  the preset presence check
+core/
+  root-layout.ts    what may sit at the repository root, and JS_EXCEPTIONS
+  path-check.ts     one path check: the root layout, then the file's workspace shape
+  classes.ts        owned, upstream, legacy and vendored files, and what each one blocks
+  legacy.ts         the shrink-only legacy list and `legacy init`
+  lock.ts           what is locked, and the four-hour unlock
+  telemetry.ts      the block log and the false-block marker
+  code-index.ts     the public-export index handed over at session start
+  hooks/            event parsing for both clients, guards, responses, apply_patch paths
+  audit/            path rules, content rules, duplicate exports
+  gates/            fast, done and ci gates, the tool runner, the repair budget
+  state/            tree snapshots, per-session state files and the gate lock under .git/harness/
+testing/            disposable git repositories (template, Makerkit and Plint miniatures), the decision corpus,
+                    the Makerkit and Plint acceptance tests, the lint-config and server-only tests
 ```
 
 Every file obeys the same rules as application code.
@@ -223,6 +322,38 @@ Exact versions, no ranges; every config file is TypeScript.
   code is what the block log will tell. Say so rather than work around a wrong block.
 - Content rules are mostly regular expressions; the duplicate check is the only syntax-tree rule.
 - The fast gate was measured at about 1.6 s per edit on the empty template, not on a large project.
+- The `oxc` tool set runs oxlint without `--type-aware`, because oxlint-tsgolint is not installed
+  where it was measured. Type-aware rules such as `no-floating-promises` do not run there. oxlint's
+  default rules also miss `any`; a project enables the rules it wants in its locked `.oxlintrc.json`.
+- The legacy list in CI: CI has no `legacy-append` check, so once a longer list is committed (which
+  needs the user's unlock) CI tolerates harness-rule findings on the newly listed file; tool findings
+  there still fail. On the default branch itself CI compares with HEAD, so a legacy file changed by a
+  direct push is judged by the pre-push gate, not after the push. A new test file in an adopted app's
+  own `tests/` folder fails the audit (`unknown-root`, `folder-size`); the list covers the old ones only.
+- Shell guards match the command's text. A command built through a variable
+  (`SB=supabase; $SB db push`) passes them. Text that merely quotes a guarded command, such as an
+  `echo` or a script holding it, is denied; mark such a block false.
+- The harness keeps its task and shell state in `.git/harness`. A command that names that folder,
+  even to read it, is denied (`harness-state`), and file tools cannot write under `.git/`. That guard
+  ignores prose: a quoted string with whitespace, unless it follows an interpreter's `-c`, `-e` or
+  `--eval` or holds a command substitution (so the heredoc form `git commit -m "$(cat <<'EOF' …)"` is
+  still denied). The Supabase, Prisma and force-push guards keep matching quoted text, because the
+  program that receives a quoted string can execute it (`ssh`, `hc run`, `xargs`). A shell can still
+  reach the state folder indirectly (`cd .git; cd harness`, a symlink, a variable, a script), and a
+  command can feed the hook a forged prompt event, which re-pins the applied migrations. Pre-push and
+  CI run the full gate, but CI does not check migrations, so for migrations the hooks are the only
+  check. A Stop whose task file is gone uses the copy the last shell command took; with no copy either,
+  it judges every path that differs from HEAD plus the commits since the upstream. A clean tree with
+  no such commits passes, and the next task starts fresh.
+- After a shell command, the lock check reports a locked file only while it differs from HEAD. A
+  locked file edited and committed in the same command therefore passes. The migration check compares
+  with the applied version (upstream, remote default branch, else the task's start) and catches that case, but CI does not check migrations, and
+  `cli.ts check done` run by hand compares with HEAD.
+- Inside a workspace, denials name paths relative to that workspace: `src/shared/lib/`, not
+  `apps/dashboard/src/shared/lib/`. A stray top-level file in a Makerkit app or package still gets the
+  next-modules advice that application code belongs in `src/`.
+- `pnpm install` inside a subtree copy of `tooling/harness/` writes its own `pnpm-lock.yaml`. Whether a
+  consumer commits it is not decided yet.
 - A cloned project keeps the harness version it was cloned with until the harness ships as a package.
 - The user-level Codex hook relies on Codex skipping project hooks in linked worktrees. If a later
   Codex loads them there, remove the user-level entries to avoid a double run.

@@ -25,15 +25,23 @@ src/
     components/              composed shared UI; one optional area subfolder
     lib/                     cross-cutting infrastructure; flat
     hooks/                   generic React hooks; flat
-tooling/harness/             guards, audit, gates, state and their tests
+tooling/harness/
+  cli.ts                     hook, check, audit, blocks, legacy init, init, lock, unlock
+  config.ts                  reads harness.config.ts; workspaces and their defaults
+  core/                      guards, audit, gates, state, root layout, path classes
+  shapes/                    a workspace's paths, names, content rules, size limits
+  tools/                     a workspace's formatter, linter, type checker, tests
 scripts/                     repository automation
 e2e/                         Playwright browser tests
 docs/                        review guidance
 ```
 
 The closed shape prevents helper folders from becoming parallel architectures.
-`tooling/harness/structure.ts` defines allowed roots, names and limits for both the
-pre-write guard and audit; change that source of truth when a rule must change.
+`tooling/harness/shapes/next-modules.ts` defines the folders, names and content
+rules inside a workspace, and `shapes/limits.ts` its size limits.
+`tooling/harness/core/root-layout.ts` defines what may sit at the repository root.
+The pre-write guard and the audit read both; change that source of truth when a
+rule must change.
 
 - Use kebab-case file and folder names in `src/`, `tooling/`, `scripts/` and `e2e/`.
   Next route segments are exceptions. Names in docs, public assets and tool config
@@ -41,7 +49,7 @@ pre-write guard and audit; change that source of truth when a rule must change.
 - Root config may include `.mcp.json`, `.npmrc`, `.nvmrc`, `.node-version`,
   `.editorconfig`, `.gitattributes`, `LICENSE` and `CHANGELOG.md`. Deployment files
   such as `vercel.json`, `Dockerfile` and `.vscode/` require a deliberate addition
-  to `structure.ts` before use.
+  to `core/root-layout.ts`, or to `root.entries` in `harness.config.ts`, before use.
 - Keep files at most 250 lines, including blanks and comments; pages at most 60.
 - Keep folders at most 10 source files. Colocated `*.test.ts(x)` files do not count.
 - Components, server and domain permit one level of area folders named after the
@@ -49,7 +57,8 @@ pre-write guard and audit; change that source of truth when a rule must change.
   `helpers/`, `common/` or `misc/` are denied. Keep actions, shared lib and hooks flat.
   Split a module when responsibility warrants it and report why.
 - Use TypeScript everywhere. A tool unable to read TS config needs an explicit
-  `JS_EXCEPTIONS` entry in `structure.ts`.
+  `JS_EXCEPTIONS` entry in `core/root-layout.ts`, or `root.jsExceptions` in
+  `harness.config.ts`.
 - `shared/` must never depend on modules. Module dependencies must have no cycles.
   Domain code has no React or I/O dependencies and has a test beside each file.
 - Generated `shared/ui/` and `shared/lib/utils.ts` are vendored and exempt from size
@@ -69,7 +78,7 @@ pre-write guard and audit; change that source of truth when a rule must change.
 - Need environment values → validate them in `src/shared/lib/env.ts` with Zod and
   declare their names in `.env.example`. The tool runner passes those shell/CI
   values and every `NEXT_PUBLIC_*` variable, plus its base allowlist in
-  `tooling/harness/gates/run-tool.ts`; extend `.env.example` for product variables.
+  `tooling/harness/core/gates/run-tool.ts`; extend `.env.example` for product variables.
 - Need user-facing errors → use `UserError` from `shared/lib/user-error.ts`.
 - Need formatting or logging → reuse `shared/lib/format.ts` or `shared/lib/log.ts`.
 - Need a generic hook or composed component → use `shared/hooks/` or `shared/components/`.
@@ -94,29 +103,132 @@ Read the installed guides on server/client components and updating data before
 changing these boundaries. SessionStart supplies a code index of public exports,
 action files and shared/lib; reuse these before creating helpers.
 
+## Workspaces and harness.config.ts
+
+Without a `harness.config.ts` at the repository root, the whole repository is one
+workspace: the `next-modules` shape, the `eslint-prettier` tools and Next type
+generation. That file lets a repository with several apps or vendored kit code say
+where each shape applies. It is locked like the rest of the harness.
+
+```ts
+import { defineHarness } from "./tooling/harness/config.ts";
+
+export default defineHarness({
+  workspaces: [{ path: ".", shape: "next-modules", next: true }],
+  owned: ["src/modules/billing/"],
+  legacy: "tooling/harness-legacy.json",
+  locked: ["supabase/migrations/"],
+  root: { entries: ["supabase", "vercel.json"] },
+});
+```
+
+- A workspace path is relative to the root; `./` and a trailing `/` are dropped, and a
+  final `/*` means every non-hidden folder under it. A file belongs to the workspace
+  with the longest matching path, and its shape sees the path inside that workspace.
+  A file in no workspace gets only the root layout rules from `core/root-layout.ts`.
+  In a configured workspace `next` defaults to false and `tools` follows the shape:
+  `eslint-prettier` for next-modules, `oxc` for the Makerkit shapes, `none` for supabase.
+- Each file has a path class. Vendored files are the shape's generated code, such as
+  `src/shared/ui/`. Legacy files are listed in the legacy file. Owned files match an
+  `owned` prefix, or every file when `owned` is absent. All other files are upstream.
+- Harness rules (paths, names, sizes, content) judge owned files only. On legacy
+  files, Done, CI and `pnpm run audit` report them as pre-existing without failing.
+  Tool findings (types, lint, tests) on upstream and legacy files block in Done when
+  the file is changed or affected. A lock breach, a growing or invalid legacy list,
+  and a crashed tool always block.
+- The legacy list is a ratchet: old code is tolerated, new and touched code is held to
+  the rules. In CI a tool finding (format, lint, types, depcruise, knip, jscpd) on a
+  legacy file passes only while that file equals its version at the merge base with
+  the remote default branch (without a remote: at HEAD); on any other file, and
+  without a file, it fails. A checkout with a remote but without that base commit, such
+  as a shallow CI checkout, fails with `legacy-base-failed`: fetch the default branch
+  (`fetch-depth: 0`). The old debt is printed once, as a count per step.
+- `node tooling/harness/cli.ts legacy init` writes the legacy list once, from the
+  files that have a harness finding or a tool finding today; it runs the tools, so
+  install them first. Commit it; from then on it may only shrink.
+  The list may sit at the root or under an approved folder such as `tooling/`.
+- A config that fails to load denies every PreToolUse call with the loader's error;
+  one that fails validation names the field. Other hook events allow and print it.
+- Each workspace's tools run in its own folder, once per gate, and findings name
+  git-root paths. A binary is looked up from the workspace folder up to the root. A
+  missing type checker, linter or formatter is `<tool>-failed`; a missing `vitest`
+  skips the test step. `next build` and the browser smoke run only for a Next
+  workspace at the root.
+- A workspace with `test: "<package script>"` runs that script through the project's
+  package manager instead of Vitest, in CI and in Done. Done runs the whole script, not
+  only related tests; a non-zero exit is `test-failed` with the end of the output.
+- With a config file, a next-modules workspace without `src/` skips depcruise and jscpd
+  (`skipped (no src/)`); they run once `src/` exists.
+
+### Shapes, tool sets and the other config fields
+
+- Shapes: `next-modules` (the layout above, at any workspace root), `makerkit-app`
+  (a Makerkit `apps/web`: `app/[locale]`, `_components/`, `_lib/server/`, `config/`,
+  `lib/`), `makerkit-feature` (a package under `packages/features/*` with
+  `components`, `hooks`, `schema`, `server/{actions,services,policies}`, `shared`) and
+  `supabase` (`migrations/` named `<14 digits>_<name>.sql`, `schemas/NN-name.sql`,
+  seeds, tests, templates). Denials in the Makerkit shapes say "(Makerkit layout)".
+- Tool sets: `eslint-prettier` (ESLint, Prettier, tsc and Vitest, as without a config),
+  `oxc` (`oxlint -f json`, `oxfmt --list-different`, project `tsc`, Vitest) and `none`.
+- `env: "local"` denies only `.env*.local` and allows the committed `.env`,
+  `.env.development`, `.env.production` and `.env.test`. Without it every `.env*`
+  but `.env.example` is denied.
+- `analysis` lists which of `depcruise`, `knip` and `jscpd` run in Done and CI, in each
+  next-modules workspace's folder: all three unless listed, never in the other shapes.
+- An applied migration under a supabase workspace's `migrations/` cannot be edited,
+  deleted or moved, by tool or by shell; add a new one with
+  `supabase migration new <name>`. Applied means the branch's upstream or the remote
+  default branch held it when the prompt arrived (those commits are pinned, so a push
+  during the task changes nothing); without either, the tree the task started from.
+  Restoring it is not an edit, and the agent's own unpushed migrations stay editable.
+  In a repository without a remote, a migration committed in one prompt counts as
+  applied from the next prompt on, though no database ran it. Applying
+  schema changes to a linked project is the user's step: `supabase db push`, `supabase link`, `supabase migration up --linked`
+  and a package runner starting the `supabase:deploy` script are denied in every project.
+- `pnpm harness:split` creates or moves the local `harness` branch to a
+  `git subtree split` of `tooling/harness/`. Another repository consumes it with
+  `git subtree add --prefix=tooling/harness <repo> harness --squash`. Pushing the
+  branch is the user's step. `tooling/harness/package.json` pins `typescript` and `zod`
+  as `npm:` aliases and declares no peers, so a kit's `manypkg fix` leaves it alone.
+  `presets/peers.json` lists the tools whose rules `presets/` holds, each with the
+  template's version and the minimum the presets work with. Presets import no tool
+  package: they load each one from the workspace that calls them.
+- `init` writes the thin configs and prints one install line: only tools that are
+  missing, at the template's version, or below the minimum. An installed tool at or
+  above the minimum stays, also when newer. A project's own Prettier config is kept as
+  it is. A `test` script that does not run Vitest gets no `vitest.config.ts`; init
+  prints the `test: "test"` line for `harness.config.ts` instead. The workspace's
+  `tsconfig.json` excludes every tool config that imports a preset, so the project's
+  type check never enters `tooling/harness/`; ESLint lints those files without types.
+
 ## Checks and when they run
 
-- PreToolUse blocks disallowed paths, direct secret/lockfile/vendor edits, and named
-  destructive shell operations. Denials explain where code belongs.
+- PreToolUse blocks disallowed paths, direct secret/lockfile/vendor edits, committed
+  migrations, and named destructive or deploying shell operations. Denials explain
+  where code belongs.
 - PostToolUse on a file runs the fast gate: Prettier writes, syntax lint and the path
   and content audit of that file. Typed ESLint rules and duplicate-export detection run
   in Done and CI. After Bash, only the path and content audit runs on the files changed
   since the pre-command snapshot.
 - On a fresh clone without `node_modules`, the hooks deny every tool call except the
-  dependency install and say so; run `pnpm install --frozen-lockfile` first.
-- Stop runs the Done gate on changes since the user prompt: Next type generation,
-  types, lint, audit, imports, unused code, duplicates and related tests. Findings
+  dependency install and say so; run `pnpm install --frozen-lockfile` first. Only a
+  lone `pnpm` or `npm` `install`, `i` or `ci` passes, optionally after `cd <dir> &&`
+  or `corepack`, with a short list of flags such as `--frozen-lockfile`. Package
+  names, chained commands, pipes, redirects and substitutions are denied.
+- Stop runs the Done gate on changes since the user prompt: Next type generation, types,
+  lint, preset check, audit, imports, unused code, duplicates and related tests. Findings
   outside the blocking scope are reported separately; changed files and affected
   importers block. Scope alone does not prove when a finding was introduced.
-- `pnpm check` runs the CI gate: format check, full typed lint, Next type generation,
+- `pnpm check` runs the CI gate: format check, full typed lint, preset check, Next type generation,
   types, audit, depcruise, knip, jscpd, all unit tests, production build and browser
   smoke. Every step runs and all failures are reported. Pre-push and GitHub Actions
   call the same gate directly (`node tooling/harness/cli.ts check ci`), so a changed
   package script cannot weaken it. Run `pnpm run prepare` after installation to enable
   `.githooks/`; do not rely on an install rerun invoking lifecycle scripts.
-- The harness is locked: `tooling/harness/`, the hook settings, `.githooks/`, `.github/`
-  and the tool configs (`tsconfig.json`, `next.config.ts`, ESLint, Prettier, knip, Vitest,
-  Playwright, dependency-cruiser, jscpd) cannot be edited, by tool or by shell, until the
+- The harness is locked: `tooling/harness/`, the hook settings, `.githooks/`, `.github/`,
+  the tool configs (`tsconfig.json`, `next.config.ts`, ESLint, Prettier, knip, Vitest,
+  Playwright, dependency-cruiser, jscpd), `harness.config.ts`, its legacy list and the
+  paths in its `locked` list cannot be edited, by tool or by shell, until the
   user runs `pnpm harness:unlock` in their own terminal (valid four hours; `pnpm
 harness:lock` ends it). Running the unlock yourself is denied. When a harness rule is
   wrong, say so in the handoff instead of working around it.

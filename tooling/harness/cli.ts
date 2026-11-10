@@ -1,7 +1,10 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
-const INSTALL_COMMAND = /^\s*(?:cd\s+\S+\s*&&\s*)?(?:corepack\s+)?(?:pnpm|npm)\s+(?:install|i|ci)(?:\s|$)/;
+const INSTALL_COMMAND =
+  /^[ \t]*(?:cd[ \t]+[\w@./:=^~-]+[ \t]*&&[ \t]*)?(?:corepack[ \t]+)?(?:pnpm|npm)[ \t]+(?:install|i|ci)(?:[ \t]+--(?:frozen-lockfile|prefer-offline|offline|no-audit|no-fund|silent|ignore-scripts|loglevel=[a-z-]+|reporter=[a-z-]+))*[ \t]*$/;
 const INSTALL_HINT = "Harness dependencies are missing: run `pnpm install --frozen-lockfile` and `pnpm run prepare` before other tool calls.";
 
 function isMissingDependency(error: unknown): boolean {
@@ -20,6 +23,21 @@ function isInstallCommand(input: unknown): boolean {
   );
 }
 
+function gitRoot(cwd: string): string {
+  return execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+}
+
+function resolveRoot(cwd: string): string {
+  try {
+    return gitRoot(cwd);
+  } catch (error) {
+    const segments = cwd.split(path.sep);
+    const gitSegment = segments.lastIndexOf(".git");
+    if (gitSegment <= 0) throw error;
+    return gitRoot(segments.slice(0, gitSegment).join(path.sep) || path.sep);
+  }
+}
+
 const [command, mode, ...paths] = process.argv.slice(2);
 let preTool = false;
 let input: unknown;
@@ -29,12 +47,13 @@ try {
     input = JSON.parse(fs.readFileSync(0, "utf8"));
     preTool = typeof input === "object" && input !== null && "hook_event_name" in input && input.hook_event_name === "PreToolUse";
   }
-  const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd: process.cwd(), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  const root = resolveRoot(process.cwd());
+  if (command === "hook" || command === "check" || command === "audit") (await import("./config.ts")).loadConfig(root);
   if (command === "hook" && (mode === "claude" || mode === "codex")) {
-    const { parseEvent } = await import("./hooks/event.ts");
-    const { handleEvent } = await import("./hooks/handle.ts");
-    const { renderResponse } = await import("./hooks/respond.ts");
-    const { recordBlock } = await import("./telemetry.ts");
+    const { parseEvent } = await import("./core/hooks/event.ts");
+    const { handleEvent } = await import("./core/hooks/handle.ts");
+    const { renderResponse } = await import("./core/hooks/respond.ts");
+    const { recordBlock } = await import("./core/telemetry.ts");
     const event = parseEvent(mode, input, root);
     const outcome = await handleEvent(event, root);
     recordBlock(root, event, outcome);
@@ -45,20 +64,22 @@ try {
   } else if (command === "check" && (mode === "fast" || mode === "done" || mode === "ci")) {
     const result =
       mode === "ci"
-        ? await (await import("./gates/ci-gate.ts")).ciGate(root)
+        ? await (await import("./core/gates/ci-gate.ts")).ciGate(root)
         : mode === "fast"
-          ? await (await import("./gates/fast-gate.ts")).fastGate(root, paths)
-          : await (await import("./gates/done-gate.ts")).doneGate(root, paths);
+          ? await (await import("./core/gates/fast-gate.ts")).fastGate(root, paths)
+          : await (await import("./core/gates/done-gate.ts")).doneGate(root, paths);
     if (result.report) process.stdout.write(`${result.report}\n`);
     process.exitCode = result.passed ? 0 : 1;
   } else if (command === "audit" && mode === undefined) {
-    const { audit } = await import("./audit/audit.ts");
-    const { formatFindings } = await import("./audit/finding.ts");
-    const findings = audit(root);
-    if (findings.length > 0) process.stdout.write(`${formatFindings(findings)}\n`);
-    process.exitCode = findings.length === 0 ? 0 : 1;
+    const { audit } = await import("./core/audit/audit.ts");
+    const { formatFindings } = await import("./core/audit/finding.ts");
+    const { PRE_EXISTING_HEADING, splitLegacy } = await import("./core/classes.ts");
+    const { blocking, preExisting } = splitLegacy(root, audit(root));
+    if (blocking.length > 0) process.stdout.write(`${formatFindings(blocking)}\n`);
+    if (preExisting.length > 0) process.stdout.write(`${PRE_EXISTING_HEADING}\n${formatFindings(preExisting)}\n`);
+    process.exitCode = blocking.length === 0 ? 0 : 1;
   } else if (command === "blocks" && (mode === undefined || mode === "--false")) {
-    const { markFalseBlock, summarizeBlocks } = await import("./telemetry.ts");
+    const { markFalseBlock, summarizeBlocks } = await import("./core/telemetry.ts");
     if (mode === undefined) process.stdout.write(`${summarizeBlocks(root)}\n`);
     else {
       const [id, ...note] = paths;
@@ -66,8 +87,34 @@ try {
       if (!markFalseBlock(root, id, note.join(" "))) throw new Error(`No block ${id}; run \`pnpm harness:blocks\` to list them.`);
       process.stdout.write(`Marked ${id} as a false block.\n`);
     }
+  } else if (command === "legacy" && mode === "init" && paths.length === 0) {
+    const { initLegacy } = await import("./core/legacy.ts");
+    const { resolveHarness } = await import("./core/path-check.ts");
+    process.stdout.write(`${await initLegacy(root, resolveHarness(root))}\n`);
+  } else if (
+    command === "init" &&
+    [mode, ...paths].every((flag) => flag === undefined || flag === "--force" || flag === "--codex-user" || flag === "--starter")
+  ) {
+    const flags = [mode, ...paths].filter((flag) => flag !== undefined);
+    // The rest of init needs the harness's own dependencies, which a fresh subtree does not have yet.
+    const { bootstrapHarness } = await import("./core/init/bootstrap.ts");
+    const bootstrap = bootstrapHarness(root, flags);
+    if (!bootstrap.ready) process.stdout.write(`${bootstrap.report}\n`);
+    else {
+      const { initHarness } = await import("./core/init/init.ts");
+      const result = initHarness(root, { force: flags.includes("--force"), starter: flags.includes("--starter") });
+      process.stdout.write(`${result.report}\n`);
+      if (result.ok && flags.includes("--codex-user")) {
+        const { installCodexHooks } = await import("./core/init/codex-user.ts");
+        const user = installCodexHooks(root, os.homedir());
+        process.stdout.write(
+          `Codex user hooks: ${String(user.added)} added in ${user.file}. They run only inside linked git worktrees; review them once in Codex with /hooks.\n`,
+        );
+      }
+      process.exitCode = result.ok ? 0 : 1;
+    }
   } else if ((command === "lock" || command === "unlock") && mode === undefined) {
-    const { lock, unlock, UNLOCK_HOURS } = await import("./lock.ts");
+    const { lock, unlock, UNLOCK_HOURS } = await import("./core/lock.ts");
     if (command === "unlock") {
       unlock(root);
       process.stdout.write(`Harness unlocked for ${String(UNLOCK_HOURS)} hours in ${root}. Run \`pnpm harness:lock\` when the change is done.\n`);
@@ -76,7 +123,9 @@ try {
       process.stdout.write(`Harness locked in ${root}.\n`);
     }
   } else {
-    throw new Error("Usage: hook <claude|codex> | check <fast|done|ci> [paths…] | audit | blocks [--false <id> [note…]] | lock | unlock");
+    throw new Error(
+      "Usage: hook <claude|codex> | check <fast|done|ci> [paths…] | audit | blocks [--false <id> [note…]] | legacy init | init [--force] [--codex-user] [--starter] | lock | unlock",
+    );
   }
 } catch (error) {
   if (command === "hook" && isMissingDependency(error)) {

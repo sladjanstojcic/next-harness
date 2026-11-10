@@ -1,22 +1,16 @@
 import type { KnipConfig } from "knip";
+import { harnessKnipWorkspace } from "./tooling/harness/presets/knip.ts";
+
+const preset = harnessKnipWorkspace({ harness: "analyse" });
 
 export default {
-  next: true,
+  ...preset,
   entry: [
+    ...preset.entry,
     "scripts/*.ts",
     "e2e/**",
-    "tooling/harness/structure.ts",
-    "src/shared/lib/env.ts",
-    "src/shared/lib/user-error.ts",
-    "src/shared/lib/format.ts",
-    "src/shared/lib/define-action.ts",
-    "src/shared/lib/log.ts",
-  ],
-  ignore: ["src/shared/ui/**", "src/shared/lib/utils.ts"],
-  ignoreDependencies: [
-    "cn", // Used only by the vendored src/shared/lib/utils.ts helper.
-    "@base-ui/react", // Used by vendored shadcn primitives.
-    "class-variance-authority", // Used by vendored shadcn variants.
-    "lucide-react", // Used by vendored shadcn icons.
+    "tooling/harness/shapes/limits.ts",
+    "tooling/harness/shapes/next-modules.ts",
+    "tooling/harness/tools/eslint-config-runner.ts",
   ],
 } satisfies KnipConfig;

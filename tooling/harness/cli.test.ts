@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { sessionFile, stateDir } from "./state/state-file.ts";
+import { sessionFile, stateDir } from "./core/state/state-file.ts";
 import { makeRepo } from "./testing/temp-repo.ts";
 
 describe("hook CLI", () => {

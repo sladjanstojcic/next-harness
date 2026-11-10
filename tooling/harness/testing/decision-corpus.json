@@ -1,0 +1,2878 @@
+{
+  "paths": {
+    "src/utils/x.ts": {
+      "ok": false,
+      "rule": "src-shape",
+      "reason": "Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+    },
+    "src/modules/orders/helpers/x.ts": {
+      "ok": false,
+      "rule": "module-shape",
+      "reason": "Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+    },
+    "lib/x.ts": {
+      "ok": false,
+      "rule": "unknown-root",
+      "reason": "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+    },
+    "src/modules/orders/components/OrderRow.tsx": {
+      "ok": false,
+      "rule": "file-name",
+      "reason": "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+    },
+    "src/modules/orders/components/table/cells/x.tsx": {
+      "ok": false,
+      "rule": "nesting",
+      "reason": "Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+    },
+    "src/modules/orders/server/pricing/deep/x.ts": {
+      "ok": false,
+      "rule": "nesting",
+      "reason": "Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+    },
+    "src/modules/orders/server/utils/x.ts": {
+      "ok": false,
+      "rule": "generic-folder",
+      "reason": "Name the server/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+    },
+    "src/modules/orders/server/Helpers/x.ts": {
+      "ok": false,
+      "rule": "file-name",
+      "reason": "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+    },
+    "src/modules/orders/domain/helpers/total.ts": {
+      "ok": false,
+      "rule": "generic-folder",
+      "reason": "Name the domain/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+    },
+    "src/modules/orders/components/common/x.tsx": {
+      "ok": false,
+      "rule": "generic-folder",
+      "reason": "Name the components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+    },
+    "src/shared/components/misc/x.tsx": {
+      "ok": false,
+      "rule": "generic-folder",
+      "reason": "Name the src/shared/components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+    },
+    "src/app/orders/order-row.tsx": {
+      "ok": false,
+      "rule": "app-file",
+      "reason": "move it into a module's components/ and import it from the module's index.ts"
+    },
+    "src/shared/lib/x.js": {
+      "ok": false,
+      "rule": "js-file",
+      "reason": "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+    },
+    "src/.secret.ts": {
+      "ok": false,
+      "rule": "hidden-file",
+      "reason": "Keep visible source files in src/modules/ or src/shared/; only .gitkeep placeholders may be hidden under src/."
+    },
+    "src/shared/lib/x.mjs": {
+      "ok": false,
+      "rule": "js-file",
+      "reason": "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+    },
+    "src/shared/lib/x.cjs": {
+      "ok": false,
+      "rule": "js-file",
+      "reason": "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+    },
+    "src/shared/components/x.jsx": {
+      "ok": false,
+      "rule": "js-file",
+      "reason": "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+    },
+    "src/shared/ui/x.js": {
+      "ok": false,
+      "rule": "js-file",
+      "reason": "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+    },
+    "src/modules/orders/domain/.secret.ts": {
+      "ok": false,
+      "rule": "hidden-file",
+      "reason": "Keep visible source files in src/modules/ or src/shared/; only .gitkeep placeholders may be hidden under src/."
+    },
+    "src/modules/orders/other.ts": {
+      "ok": false,
+      "rule": "module-shape",
+      "reason": "Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+    },
+    "src/modules/orders/actions/create-order.ts": {
+      "ok": false,
+      "rule": "module-shape",
+      "reason": "Put Server Actions in actions/<kebab>-action.ts and their tests beside them as <kebab>-action.test.ts(x)."
+    },
+    "src/modules/orders/actions/foo.test.ts": {
+      "ok": false,
+      "rule": "module-shape",
+      "reason": "Put Server Actions in actions/<kebab>-action.ts and their tests beside them as <kebab>-action.test.ts(x)."
+    },
+    "src/modules/orders/actions/create-order-action.tsx": {
+      "ok": false,
+      "rule": "module-shape",
+      "reason": "Put Server Actions in actions/<kebab>-action.ts and their tests beside them as <kebab>-action.test.ts(x)."
+    },
+    "src/modules/orders/actions/sub/create-order-action.ts": {
+      "ok": false,
+      "rule": "nesting",
+      "reason": "Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+    },
+    "src/modules/orders/domain/pricing/rules/total.ts": {
+      "ok": false,
+      "rule": "nesting",
+      "reason": "Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+    },
+    "src/shared/utils/x.ts": {
+      "ok": false,
+      "rule": "shared-shape",
+      "reason": "Put shared code in src/shared/components/, lib/ or hooks/; generated primitives belong in src/shared/ui/."
+    },
+    "src/shared/lib/sub/x.ts": {
+      "ok": false,
+      "rule": "nesting",
+      "reason": "Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. Move feature code into src/modules/<module>/."
+    },
+    "src/shared/hooks/sub/use-x.ts": {
+      "ok": false,
+      "rule": "nesting",
+      "reason": "Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. Move feature code into src/modules/<module>/."
+    },
+    "src/shared/components/table/cells/x.tsx": {
+      "ok": false,
+      "rule": "nesting",
+      "reason": "Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. Move feature code into src/modules/<module>/."
+    },
+    "src/modules/Orders/index.ts": {
+      "ok": false,
+      "rule": "file-name",
+      "reason": "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+    },
+    "src/shared/components/BadFolder/x.tsx": {
+      "ok": false,
+      "rule": "file-name",
+      "reason": "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+    },
+    "tooling/harness/bad_name.ts": {
+      "ok": false,
+      "rule": "file-name",
+      "reason": "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+    },
+    "src/modules/orders/components/[id]/x.tsx": {
+      "ok": false,
+      "rule": "file-name",
+      "reason": "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+    },
+    "src/app/page.ts": { "ok": false, "rule": "app-file", "reason": "move it into a module's components/ and import it from the module's index.ts" },
+    "src/app/route.tsx": { "ok": false, "rule": "app-file", "reason": "move it into a module's components/ and import it from the module's index.ts" },
+    "src/app/orders/globals.css": { "ok": false, "rule": "app-file", "reason": "move it into a module's components/ and import it from the module's index.ts" },
+    "src/app/_private/page.tsx": {
+      "ok": false,
+      "rule": "file-name",
+      "reason": "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+    },
+    "postcss.config.ts": {
+      "ok": false,
+      "rule": "unknown-root",
+      "reason": "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+    },
+    "package.json/nested.ts": {
+      "ok": false,
+      "rule": "unknown-root",
+      "reason": "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+    },
+    "scripts/RenameProject.ts": {
+      "ok": false,
+      "rule": "file-name",
+      "reason": "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+    },
+    "e2e/SmokeTest.ts": {
+      "ok": false,
+      "rule": "file-name",
+      "reason": "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+    },
+    "vercel.json": {
+      "ok": false,
+      "rule": "unknown-root",
+      "reason": "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+    },
+    "Dockerfile": {
+      "ok": false,
+      "rule": "unknown-root",
+      "reason": "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+    },
+    ".vscode/settings.json": {
+      "ok": false,
+      "rule": "unknown-root",
+      "reason": "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+    },
+    ".github/check.js": {
+      "ok": false,
+      "rule": "js-file",
+      "reason": "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+    },
+    "src/modules/orders/components/table/order-row.tsx": { "ok": true },
+    "src/modules/orders/actions/create-order-action.ts": { "ok": true },
+    "src/modules/orders/server/get-orders.ts": { "ok": true },
+    "src/modules/orders/server/documents/get-invoice-pdf.ts": { "ok": true },
+    "src/modules/orders/server/documents/get-invoice-pdf.test.ts": { "ok": true },
+    "src/modules/orders/domain/pricing/total.ts": { "ok": true },
+    "src/modules/orders/domain/pricing/total.test.ts": { "ok": true },
+    "src/modules/.gitkeep": { "ok": true },
+    "src/instrumentation-client.ts": { "ok": true },
+    "README.md": { "ok": true },
+    ".gitignore": { "ok": true },
+    "next.config.ts": { "ok": true },
+    "src/modules/orders/domain/total.test.ts": { "ok": true },
+    "src/app/(shop)/orders/[id]/page.tsx": { "ok": true },
+    "src/app/global-error.tsx": { "ok": true },
+    "src/shared/ui/sidebar.tsx": { "ok": true },
+    "src/proxy.ts": { "ok": true },
+    "tooling/harness/cli.ts": { "ok": true },
+    ".github/workflows/check.yml": { "ok": true },
+    "src/modules/orders/index.test.ts": { "ok": true },
+    "src/modules/orders/actions/create-order-action.test.ts": { "ok": true },
+    "src/modules/orders/actions/create-order-action.test.tsx": { "ok": true },
+    "src/modules/orders/server.test.ts": { "ok": true },
+    "src/modules/orders/schemas.test.ts": { "ok": true },
+    "src/modules/orders/types.test.ts": { "ok": true },
+    "src/modules/orders/index.ts": { "ok": true },
+    "src/modules/orders/server.ts": { "ok": true },
+    "src/modules/orders/schemas.ts": { "ok": true },
+    "src/modules/orders/types.ts": { "ok": true },
+    "src/shared/components/table/table-header.tsx": { "ok": true },
+    "src/shared/lib/format.test.ts": { "ok": true },
+    "src/shared/hooks/use-mobile.ts": { "ok": true },
+    "src/shared/ui/deep/nested/button.tsx": { "ok": true },
+    "src/instrumentation.ts": { "ok": true },
+    "src/app/[...slug]/page.tsx": { "ok": true },
+    "src/app/[[...slug]]/page.tsx": { "ok": true },
+    "src/app/@modal/default.tsx": { "ok": true },
+    "src/app/@modal/(.)photo/[id]/page.tsx": { "ok": true },
+    "src/app/@modal/(..)photo/page.tsx": { "ok": true },
+    "src/app/@modal/(..)(..)x/page.tsx": { "ok": true },
+    "src/app/@modal/(...)photo/page.tsx": { "ok": true },
+    "src/app/layout.tsx": { "ok": true },
+    "src/app/loading.tsx": { "ok": true },
+    "src/app/error.tsx": { "ok": true },
+    "src/app/not-found.tsx": { "ok": true },
+    "src/app/template.tsx": { "ok": true },
+    "src/app/forbidden.tsx": { "ok": true },
+    "src/app/unauthorized.tsx": { "ok": true },
+    "src/app/global-not-found.tsx": { "ok": true },
+    "src/app/api/orders/route.ts": { "ok": true },
+    "src/app/globals.css": { "ok": true },
+    "src/app/favicon.ico": { "ok": true },
+    "src/app/icon.svg": { "ok": true },
+    "src/app/icon1.png": { "ok": true },
+    "src/app/apple-icon2.png": { "ok": true },
+    "src/app/icon.tsx": { "ok": true },
+    "src/app/apple-icon.ts": { "ok": true },
+    "src/app/opengraph-image.png": { "ok": true },
+    "src/app/twitter-image.tsx": { "ok": true },
+    "src/app/sitemap.ts": { "ok": true },
+    "src/app/sitemap.xml": { "ok": true },
+    "src/app/robots.ts": { "ok": true },
+    "src/app/robots.txt": { "ok": true },
+    "src/app/manifest.ts": { "ok": true },
+    "src/app/manifest.json": { "ok": true },
+    "src/app/manifest.webmanifest": { "ok": true },
+    "next-env.d.ts": { "ok": true },
+    "docs/README.md": { "ok": true },
+    ".env.example": { "ok": true },
+    ".githooks/pre-push": { "ok": true },
+    ".claude/settings.json": { "ok": true },
+    ".codex/hooks.json": { "ok": true },
+    ".dependency-cruiser.json": { "ok": true },
+    ".jscpd.json": { "ok": true },
+    "e2e/smoke.spec.ts": { "ok": true },
+    "scripts/rename.ts": { "ok": true },
+    "public/logo.svg": { "ok": true },
+    ".claude/skills/review/SKILL.md": { "ok": true },
+    ".codex/skills/review/SKILL.md": { "ok": true },
+    ".github/PULL_REQUEST_TEMPLATE.md": { "ok": true },
+    ".github/ISSUE_TEMPLATE/": { "ok": true },
+    ".github/ISSUE_TEMPLATE/Bug_Report.md": { "ok": true },
+    ".github/CODEOWNERS": { "ok": true },
+    "public/.well-known/security.txt": { "ok": true },
+    "public/fonts/Inter-Bold.woff2": { "ok": true },
+    "docs/ADR-0001.md": { "ok": true },
+    ".mcp.json": { "ok": true },
+    ".npmrc": { "ok": true },
+    ".nvmrc": { "ok": true },
+    ".node-version": { "ok": true },
+    ".editorconfig": { "ok": true },
+    ".gitattributes": { "ok": true },
+    "LICENSE": { "ok": true },
+    "CHANGELOG.md": { "ok": true },
+    ".env": {
+      "ok": false,
+      "rule": "unknown-root",
+      "reason": "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+    },
+    ".env.local": {
+      "ok": false,
+      "rule": "unknown-root",
+      "reason": "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+    },
+    "src/modules/a/.env.production": {
+      "ok": false,
+      "rule": "hidden-file",
+      "reason": "Keep visible source files in src/modules/ or src/shared/; only .gitkeep placeholders may be hidden under src/."
+    },
+    "pnpm-lock.yaml": { "ok": true },
+    "src/shared/ui/button.tsx": { "ok": true },
+    "src/shared/lib/utils.ts": { "ok": true },
+    "package.json": { "ok": true },
+    "src/shared/components/x.tsx": { "ok": true },
+    "src/modules/a/server/get-a.ts": { "ok": true },
+    ".next/x": {
+      "ok": false,
+      "rule": "unknown-root",
+      "reason": "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+    },
+    "/tmp/x": {
+      "ok": false,
+      "rule": "unknown-root",
+      "reason": "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+    },
+    "tooling/harness/structure.ts": { "ok": true },
+    "src/app/(group)/page.tsx": { "ok": true },
+    "src/app/(.)x/page.tsx": { "ok": true },
+    "src/app/x/(.)y/z.tsx": { "ok": false, "rule": "app-file", "reason": "move it into a module's components/ and import it from the module's index.ts" },
+    "src/app/x/[id]/OrderRow.tsx": {
+      "ok": false,
+      "rule": "file-name",
+      "reason": "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+    },
+    "src/app/x/[id]/[[...rest]]/page.tsx": { "ok": true },
+    "src/app/x/layout.ts": { "ok": false, "rule": "app-file", "reason": "move it into a module's components/ and import it from the module's index.ts" },
+    "src/app/x/route.ts": { "ok": true },
+    "src/app/default.tsx": { "ok": true },
+    "src/app/apple-icon.png": { "ok": true },
+    "src/app/opengraph-image.alt.txt": { "ok": true },
+    "src/app/sitemap.json": { "ok": false, "rule": "app-file", "reason": "move it into a module's components/ and import it from the module's index.ts" },
+    "src/app/.gitkeep": { "ok": false, "rule": "app-file", "reason": "move it into a module's components/ and import it from the module's index.ts" },
+    "src/.gitkeep": {
+      "ok": false,
+      "rule": "src-shape",
+      "reason": "Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+    },
+    "src/shared/.gitkeep": {
+      "ok": false,
+      "rule": "shared-shape",
+      "reason": "Put shared code in src/shared/components/, lib/ or hooks/; generated primitives belong in src/shared/ui/."
+    },
+    "src/modules/orders/.gitkeep": {
+      "ok": false,
+      "rule": "module-shape",
+      "reason": "Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+    },
+    "src/x.ts": {
+      "ok": false,
+      "rule": "src-shape",
+      "reason": "Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+    },
+    "src/middleware.ts": {
+      "ok": false,
+      "rule": "src-shape",
+      "reason": "Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+    },
+    "src/proxy.tsx": {
+      "ok": false,
+      "rule": "src-shape",
+      "reason": "Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+    },
+    "src": {
+      "ok": false,
+      "rule": "src-shape",
+      "reason": "Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+    },
+    "pnpm-workspace.yaml": { "ok": true },
+    "components.json": { "ok": true },
+    "eslint.config.ts": { "ok": true },
+    "prettier.config.ts": { "ok": true },
+    "knip.config.ts": { "ok": true },
+    "vitest.config.ts": { "ok": true },
+    "playwright.config.ts": { "ok": true },
+    "tsconfig.json": { "ok": true },
+    ".prettierignore": { "ok": true },
+    "CLAUDE.md": { "ok": true },
+    "AGENTS.md": { "ok": true },
+    "README.md/x": {
+      "ok": false,
+      "rule": "unknown-root",
+      "reason": "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+    },
+    "tooling": { "ok": true },
+    "tooling/harness/x.js": {
+      "ok": false,
+      "rule": "js-file",
+      "reason": "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+    },
+    "tooling/Harness/x.ts": {
+      "ok": false,
+      "rule": "file-name",
+      "reason": "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+    },
+    "tooling/harness/hooks/fixtures/claude/stop.json": { "ok": true },
+    "scripts/x.mjs": {
+      "ok": false,
+      "rule": "js-file",
+      "reason": "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+    },
+    "e2e/Bad/x.ts": {
+      "ok": false,
+      "rule": "file-name",
+      "reason": "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+    },
+    "docs/Bad_Name.md": { "ok": true },
+    "public/BadName.png": { "ok": true },
+    "src/modules/orders/server/x.js": {
+      "ok": false,
+      "rule": "js-file",
+      "reason": "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+    },
+    "src/modules/a-b/index.ts": { "ok": true },
+    "src/modules/a_b/index.ts": {
+      "ok": false,
+      "rule": "file-name",
+      "reason": "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+    },
+    "src/shared/ui/.hidden": {
+      "ok": false,
+      "rule": "hidden-file",
+      "reason": "Keep visible source files in src/modules/ or src/shared/; only .gitkeep placeholders may be hidden under src/."
+    },
+    "src/shared/lib/.env": {
+      "ok": false,
+      "rule": "hidden-file",
+      "reason": "Keep visible source files in src/modules/ or src/shared/; only .gitkeep placeholders may be hidden under src/."
+    },
+    "src/modules/orders/components/core/x.tsx": {
+      "ok": false,
+      "rule": "generic-folder",
+      "reason": "Name the components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+    },
+    "src/modules/orders/domain/lib/x.ts": {
+      "ok": false,
+      "rule": "generic-folder",
+      "reason": "Name the domain/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+    },
+    "src/shared/components/stuff/x.tsx": {
+      "ok": false,
+      "rule": "generic-folder",
+      "reason": "Name the src/shared/components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+    },
+    "src/modules/orders/actions/x-action.test.ts": { "ok": true },
+    "src/modules/orders/schemas.tsx": {
+      "ok": false,
+      "rule": "module-shape",
+      "reason": "Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+    },
+    "src/modules/orders/index.tsx": {
+      "ok": false,
+      "rule": "module-shape",
+      "reason": "Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+    },
+    "src/shared/hooks/use-x.tsx": { "ok": true },
+    "src/modules/orders/server/documents/deep/x.ts": {
+      "ok": false,
+      "rule": "nesting",
+      "reason": "Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+    }
+  },
+  "writes": {
+    "src/utils/x.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      }
+    },
+    "src/modules/orders/helpers/x.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      }
+    },
+    "lib/x.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      }
+    },
+    "src/modules/orders/components/OrderRow.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      }
+    },
+    "src/modules/orders/components/table/cells/x.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      }
+    },
+    "src/modules/orders/server/pricing/deep/x.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      }
+    },
+    "src/modules/orders/server/utils/x.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the server/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the server/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the server/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      }
+    },
+    "src/modules/orders/server/Helpers/x.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      }
+    },
+    "src/modules/orders/domain/helpers/total.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the domain/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the domain/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the domain/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      }
+    },
+    "src/modules/orders/components/common/x.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      }
+    },
+    "src/shared/components/misc/x.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the src/shared/components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the src/shared/components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the src/shared/components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      }
+    },
+    "src/app/orders/order-row.tsx": {
+      "write": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "edit": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "patch": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" }
+    },
+    "src/shared/lib/x.js": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      }
+    },
+    "src/.secret.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "hidden-file: Keep visible source files in src/modules/ or src/shared/; only .gitkeep placeholders may be hidden under src/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "hidden-file: Keep visible source files in src/modules/ or src/shared/; only .gitkeep placeholders may be hidden under src/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "hidden-file: Keep visible source files in src/modules/ or src/shared/; only .gitkeep placeholders may be hidden under src/."
+      }
+    },
+    "src/shared/lib/x.mjs": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      }
+    },
+    "src/shared/lib/x.cjs": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      }
+    },
+    "src/shared/components/x.jsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      }
+    },
+    "src/shared/ui/x.js": {
+      "write": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" },
+      "edit": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" },
+      "patch": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" }
+    },
+    "src/modules/orders/domain/.secret.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "hidden-file: Keep visible source files in src/modules/ or src/shared/; only .gitkeep placeholders may be hidden under src/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "hidden-file: Keep visible source files in src/modules/ or src/shared/; only .gitkeep placeholders may be hidden under src/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "hidden-file: Keep visible source files in src/modules/ or src/shared/; only .gitkeep placeholders may be hidden under src/."
+      }
+    },
+    "src/modules/orders/other.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      }
+    },
+    "src/modules/orders/actions/create-order.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "module-shape: Put Server Actions in actions/<kebab>-action.ts and their tests beside them as <kebab>-action.test.ts(x)."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "module-shape: Put Server Actions in actions/<kebab>-action.ts and their tests beside them as <kebab>-action.test.ts(x)."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "module-shape: Put Server Actions in actions/<kebab>-action.ts and their tests beside them as <kebab>-action.test.ts(x)."
+      }
+    },
+    "src/modules/orders/actions/foo.test.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "module-shape: Put Server Actions in actions/<kebab>-action.ts and their tests beside them as <kebab>-action.test.ts(x)."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "module-shape: Put Server Actions in actions/<kebab>-action.ts and their tests beside them as <kebab>-action.test.ts(x)."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "module-shape: Put Server Actions in actions/<kebab>-action.ts and their tests beside them as <kebab>-action.test.ts(x)."
+      }
+    },
+    "src/modules/orders/actions/create-order-action.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "module-shape: Put Server Actions in actions/<kebab>-action.ts and their tests beside them as <kebab>-action.test.ts(x)."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "module-shape: Put Server Actions in actions/<kebab>-action.ts and their tests beside them as <kebab>-action.test.ts(x)."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "module-shape: Put Server Actions in actions/<kebab>-action.ts and their tests beside them as <kebab>-action.test.ts(x)."
+      }
+    },
+    "src/modules/orders/actions/sub/create-order-action.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      }
+    },
+    "src/modules/orders/domain/pricing/rules/total.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      }
+    },
+    "src/shared/utils/x.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "shared-shape: Put shared code in src/shared/components/, lib/ or hooks/; generated primitives belong in src/shared/ui/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "shared-shape: Put shared code in src/shared/components/, lib/ or hooks/; generated primitives belong in src/shared/ui/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "shared-shape: Put shared code in src/shared/components/, lib/ or hooks/; generated primitives belong in src/shared/ui/."
+      }
+    },
+    "src/shared/lib/sub/x.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. Move feature code into src/modules/<module>/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. Move feature code into src/modules/<module>/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. Move feature code into src/modules/<module>/."
+      }
+    },
+    "src/shared/hooks/sub/use-x.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. Move feature code into src/modules/<module>/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. Move feature code into src/modules/<module>/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. Move feature code into src/modules/<module>/."
+      }
+    },
+    "src/shared/components/table/cells/x.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. Move feature code into src/modules/<module>/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. Move feature code into src/modules/<module>/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. Move feature code into src/modules/<module>/."
+      }
+    },
+    "src/modules/Orders/index.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      }
+    },
+    "src/shared/components/BadFolder/x.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      }
+    },
+    "tooling/harness/bad_name.ts": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/bad_name.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/bad_name.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/bad_name.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "src/modules/orders/components/[id]/x.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      }
+    },
+    "src/app/page.ts": {
+      "write": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "edit": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "patch": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" }
+    },
+    "src/app/route.tsx": {
+      "write": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "edit": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "patch": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" }
+    },
+    "src/app/orders/globals.css": {
+      "write": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "edit": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "patch": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" }
+    },
+    "src/app/_private/page.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      }
+    },
+    "postcss.config.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      }
+    },
+    "package.json/nested.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      }
+    },
+    "scripts/RenameProject.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      }
+    },
+    "e2e/SmokeTest.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      }
+    },
+    "vercel.json": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      }
+    },
+    "Dockerfile": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      }
+    },
+    ".vscode/settings.json": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      }
+    },
+    ".github/check.js": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": ".github/check.js is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": ".github/check.js is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": ".github/check.js is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "src/modules/orders/components/table/order-row.tsx": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/actions/create-order-action.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/server/get-orders.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/server/documents/get-invoice-pdf.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/server/documents/get-invoice-pdf.test.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/domain/pricing/total.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/domain/pricing/total.test.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/.gitkeep": { "write": null, "edit": null, "patch": null },
+    "src/instrumentation-client.ts": { "write": null, "edit": null, "patch": null },
+    "README.md": { "write": null, "edit": null, "patch": null },
+    ".gitignore": { "write": null, "edit": null, "patch": null },
+    "next.config.ts": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": "next.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": "next.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": "next.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "src/modules/orders/domain/total.test.ts": { "write": null, "edit": null, "patch": null },
+    "src/app/(shop)/orders/[id]/page.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/global-error.tsx": { "write": null, "edit": null, "patch": null },
+    "src/shared/ui/sidebar.tsx": {
+      "write": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" },
+      "edit": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" },
+      "patch": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" }
+    },
+    "src/proxy.ts": { "write": null, "edit": null, "patch": null },
+    "tooling/harness/cli.ts": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/cli.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/cli.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/cli.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    ".github/workflows/check.yml": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": ".github/workflows/check.yml is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": ".github/workflows/check.yml is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": ".github/workflows/check.yml is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "src/modules/orders/index.test.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/actions/create-order-action.test.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/actions/create-order-action.test.tsx": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/server.test.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/schemas.test.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/types.test.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/index.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/server.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/schemas.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/types.ts": { "write": null, "edit": null, "patch": null },
+    "src/shared/components/table/table-header.tsx": { "write": null, "edit": null, "patch": null },
+    "src/shared/lib/format.test.ts": { "write": null, "edit": null, "patch": null },
+    "src/shared/hooks/use-mobile.ts": { "write": null, "edit": null, "patch": null },
+    "src/shared/ui/deep/nested/button.tsx": {
+      "write": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" },
+      "edit": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" },
+      "patch": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" }
+    },
+    "src/instrumentation.ts": { "write": null, "edit": null, "patch": null },
+    "src/app/[...slug]/page.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/[[...slug]]/page.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/@modal/default.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/@modal/(.)photo/[id]/page.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/@modal/(..)photo/page.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/@modal/(..)(..)x/page.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/@modal/(...)photo/page.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/layout.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/loading.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/error.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/not-found.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/template.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/forbidden.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/unauthorized.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/global-not-found.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/api/orders/route.ts": { "write": null, "edit": null, "patch": null },
+    "src/app/globals.css": { "write": null, "edit": null, "patch": null },
+    "src/app/favicon.ico": { "write": null, "edit": null, "patch": null },
+    "src/app/icon.svg": { "write": null, "edit": null, "patch": null },
+    "src/app/icon1.png": { "write": null, "edit": null, "patch": null },
+    "src/app/apple-icon2.png": { "write": null, "edit": null, "patch": null },
+    "src/app/icon.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/apple-icon.ts": { "write": null, "edit": null, "patch": null },
+    "src/app/opengraph-image.png": { "write": null, "edit": null, "patch": null },
+    "src/app/twitter-image.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/sitemap.ts": { "write": null, "edit": null, "patch": null },
+    "src/app/sitemap.xml": { "write": null, "edit": null, "patch": null },
+    "src/app/robots.ts": { "write": null, "edit": null, "patch": null },
+    "src/app/robots.txt": { "write": null, "edit": null, "patch": null },
+    "src/app/manifest.ts": { "write": null, "edit": null, "patch": null },
+    "src/app/manifest.json": { "write": null, "edit": null, "patch": null },
+    "src/app/manifest.webmanifest": { "write": null, "edit": null, "patch": null },
+    "next-env.d.ts": { "write": null, "edit": null, "patch": null },
+    "docs/README.md": { "write": null, "edit": null, "patch": null },
+    ".env.example": { "write": null, "edit": null, "patch": null },
+    ".githooks/pre-push": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": ".githooks/pre-push is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": ".githooks/pre-push is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": ".githooks/pre-push is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    ".claude/settings.json": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": ".claude/settings.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": ".claude/settings.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": ".claude/settings.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    ".codex/hooks.json": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": ".codex/hooks.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": ".codex/hooks.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": ".codex/hooks.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    ".dependency-cruiser.json": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": ".dependency-cruiser.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": ".dependency-cruiser.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": ".dependency-cruiser.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    ".jscpd.json": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": ".jscpd.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": ".jscpd.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": ".jscpd.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "e2e/smoke.spec.ts": { "write": null, "edit": null, "patch": null },
+    "scripts/rename.ts": { "write": null, "edit": null, "patch": null },
+    "public/logo.svg": { "write": null, "edit": null, "patch": null },
+    ".claude/skills/review/SKILL.md": { "write": null, "edit": null, "patch": null },
+    ".codex/skills/review/SKILL.md": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": ".codex/skills/review/SKILL.md is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": ".codex/skills/review/SKILL.md is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": ".codex/skills/review/SKILL.md is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    ".github/PULL_REQUEST_TEMPLATE.md": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": ".github/PULL_REQUEST_TEMPLATE.md is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": ".github/PULL_REQUEST_TEMPLATE.md is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": ".github/PULL_REQUEST_TEMPLATE.md is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    ".github/ISSUE_TEMPLATE/": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": ".github/ISSUE_TEMPLATE is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": ".github/ISSUE_TEMPLATE is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": ".github/ISSUE_TEMPLATE is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    ".github/ISSUE_TEMPLATE/Bug_Report.md": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": ".github/ISSUE_TEMPLATE/Bug_Report.md is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": ".github/ISSUE_TEMPLATE/Bug_Report.md is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": ".github/ISSUE_TEMPLATE/Bug_Report.md is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    ".github/CODEOWNERS": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": ".github/CODEOWNERS is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": ".github/CODEOWNERS is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": ".github/CODEOWNERS is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "public/.well-known/security.txt": { "write": null, "edit": null, "patch": null },
+    "public/fonts/Inter-Bold.woff2": { "write": null, "edit": null, "patch": null },
+    "docs/ADR-0001.md": { "write": null, "edit": null, "patch": null },
+    ".mcp.json": { "write": null, "edit": null, "patch": null },
+    ".npmrc": { "write": null, "edit": null, "patch": null },
+    ".nvmrc": { "write": null, "edit": null, "patch": null },
+    ".node-version": { "write": null, "edit": null, "patch": null },
+    ".editorconfig": { "write": null, "edit": null, "patch": null },
+    ".gitattributes": { "write": null, "edit": null, "patch": null },
+    "LICENSE": { "write": null, "edit": null, "patch": null },
+    "CHANGELOG.md": { "write": null, "edit": null, "patch": null },
+    ".env": {
+      "write": { "guard": "env-file-write", "reason": ".env holds the user's secrets; agent-authored configuration belongs in .env.example." },
+      "edit": { "guard": "env-file-write", "reason": ".env holds the user's secrets; agent-authored configuration belongs in .env.example." },
+      "patch": { "guard": "env-file-write", "reason": ".env holds the user's secrets; agent-authored configuration belongs in .env.example." }
+    },
+    ".env.local": {
+      "write": { "guard": "env-file-write", "reason": ".env.local holds the user's secrets; agent-authored configuration belongs in .env.example." },
+      "edit": { "guard": "env-file-write", "reason": ".env.local holds the user's secrets; agent-authored configuration belongs in .env.example." },
+      "patch": { "guard": "env-file-write", "reason": ".env.local holds the user's secrets; agent-authored configuration belongs in .env.example." }
+    },
+    "src/modules/a/.env.production": {
+      "write": {
+        "guard": "env-file-write",
+        "reason": "src/modules/a/.env.production holds the user's secrets; agent-authored configuration belongs in .env.example."
+      },
+      "edit": {
+        "guard": "env-file-write",
+        "reason": "src/modules/a/.env.production holds the user's secrets; agent-authored configuration belongs in .env.example."
+      },
+      "patch": {
+        "guard": "env-file-write",
+        "reason": "src/modules/a/.env.production holds the user's secrets; agent-authored configuration belongs in .env.example."
+      }
+    },
+    "pnpm-lock.yaml": {
+      "write": { "guard": "lockfile-write", "reason": "Dependency edits belong in package.json; regenerate pnpm-lock.yaml with pnpm install." },
+      "edit": { "guard": "lockfile-write", "reason": "Dependency edits belong in package.json; regenerate pnpm-lock.yaml with pnpm install." },
+      "patch": { "guard": "lockfile-write", "reason": "Dependency edits belong in package.json; regenerate pnpm-lock.yaml with pnpm install." }
+    },
+    "src/shared/ui/button.tsx": {
+      "write": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" },
+      "edit": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" },
+      "patch": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" }
+    },
+    "src/shared/lib/utils.ts": {
+      "write": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" },
+      "edit": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" },
+      "patch": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" }
+    },
+    "package.json": { "write": null, "edit": null, "patch": null },
+    "src/shared/components/x.tsx": { "write": null, "edit": null, "patch": null },
+    "src/modules/a/server/get-a.ts": { "write": null, "edit": null, "patch": null },
+    ".next/x": { "write": null, "edit": null, "patch": null },
+    "/tmp/x": { "write": null, "edit": null, "patch": null },
+    "tooling/harness/structure.ts": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/structure.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/structure.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/structure.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "src/app/(group)/page.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/(.)x/page.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/x/(.)y/z.tsx": {
+      "write": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "edit": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "patch": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" }
+    },
+    "src/app/x/[id]/OrderRow.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      }
+    },
+    "src/app/x/[id]/[[...rest]]/page.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/x/layout.ts": {
+      "write": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "edit": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "patch": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" }
+    },
+    "src/app/x/route.ts": { "write": null, "edit": null, "patch": null },
+    "src/app/default.tsx": { "write": null, "edit": null, "patch": null },
+    "src/app/apple-icon.png": { "write": null, "edit": null, "patch": null },
+    "src/app/opengraph-image.alt.txt": { "write": null, "edit": null, "patch": null },
+    "src/app/sitemap.json": {
+      "write": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "edit": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "patch": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" }
+    },
+    "src/app/.gitkeep": {
+      "write": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "edit": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" },
+      "patch": { "guard": "structure-write", "reason": "app-file: move it into a module's components/ and import it from the module's index.ts" }
+    },
+    "src/.gitkeep": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      }
+    },
+    "src/shared/.gitkeep": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "shared-shape: Put shared code in src/shared/components/, lib/ or hooks/; generated primitives belong in src/shared/ui/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "shared-shape: Put shared code in src/shared/components/, lib/ or hooks/; generated primitives belong in src/shared/ui/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "shared-shape: Put shared code in src/shared/components/, lib/ or hooks/; generated primitives belong in src/shared/ui/."
+      }
+    },
+    "src/modules/orders/.gitkeep": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      }
+    },
+    "src/x.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      }
+    },
+    "src/middleware.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      }
+    },
+    "src/proxy.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      }
+    },
+    "src": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      }
+    },
+    "pnpm-workspace.yaml": { "write": null, "edit": null, "patch": null },
+    "components.json": { "write": null, "edit": null, "patch": null },
+    "eslint.config.ts": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": "eslint.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": "eslint.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": "eslint.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "prettier.config.ts": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": "prettier.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": "prettier.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": "prettier.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "knip.config.ts": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": "knip.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": "knip.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": "knip.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "vitest.config.ts": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": "vitest.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": "vitest.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": "vitest.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "playwright.config.ts": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": "playwright.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": "playwright.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": "playwright.config.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "tsconfig.json": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": "tsconfig.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": "tsconfig.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": "tsconfig.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    ".prettierignore": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": ".prettierignore is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": ".prettierignore is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": ".prettierignore is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "CLAUDE.md": { "write": null, "edit": null, "patch": null },
+    "AGENTS.md": { "write": null, "edit": null, "patch": null },
+    "README.md/x": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "unknown-root: Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/."
+      }
+    },
+    "tooling": { "write": null, "edit": null, "patch": null },
+    "tooling/harness/x.js": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/x.js is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/x.js is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/x.js is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "tooling/Harness/x.ts": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/x.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/x.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/x.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "tooling/harness/hooks/fixtures/claude/stop.json": {
+      "write": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/hooks/fixtures/claude/stop.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "edit": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/hooks/fixtures/claude/stop.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      },
+      "patch": {
+        "guard": "harness-lock",
+        "reason": "tooling/harness/hooks/fixtures/claude/stop.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+      }
+    },
+    "scripts/x.mjs": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      }
+    },
+    "e2e/Bad/x.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      }
+    },
+    "docs/Bad_Name.md": { "write": null, "edit": null, "patch": null },
+    "public/BadName.png": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/server/x.js": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "js-file: Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry."
+      }
+    },
+    "src/modules/a-b/index.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/a_b/index.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "file-name: Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/."
+      }
+    },
+    "src/shared/ui/.hidden": {
+      "write": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" },
+      "edit": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" },
+      "patch": { "guard": "vendored-write", "reason": "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" }
+    },
+    "src/shared/lib/.env": {
+      "write": { "guard": "env-file-write", "reason": "src/shared/lib/.env holds the user's secrets; agent-authored configuration belongs in .env.example." },
+      "edit": { "guard": "env-file-write", "reason": "src/shared/lib/.env holds the user's secrets; agent-authored configuration belongs in .env.example." },
+      "patch": { "guard": "env-file-write", "reason": "src/shared/lib/.env holds the user's secrets; agent-authored configuration belongs in .env.example." }
+    },
+    "src/modules/orders/components/core/x.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      }
+    },
+    "src/modules/orders/domain/lib/x.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the domain/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the domain/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the domain/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      }
+    },
+    "src/shared/components/stuff/x.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the src/shared/components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the src/shared/components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "generic-folder: Name the src/shared/components/ subfolder after its area (e.g. pricing/, documents/); code shared across modules belongs in src/shared/lib/."
+      }
+    },
+    "src/modules/orders/actions/x-action.test.ts": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/schemas.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      }
+    },
+    "src/modules/orders/index.tsx": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "module-shape: Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts."
+      }
+    },
+    "src/shared/hooks/use-x.tsx": { "write": null, "edit": null, "patch": null },
+    "src/modules/orders/server/documents/deep/x.ts": {
+      "write": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      },
+      "edit": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      },
+      "patch": {
+        "guard": "structure-write",
+        "reason": "nesting: Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth."
+      }
+    }
+  },
+  "commands": {
+    "prisma migrate reset": {
+      "guard": "destructive-prisma",
+      "reason": "Run destructive migrations by the user's hand; schema changes belong in reviewed migrations, while prisma generate and non-force db push pass."
+    },
+    "pnpm exec prisma migrate dev": {
+      "guard": "destructive-prisma",
+      "reason": "Run destructive migrations by the user's hand; schema changes belong in reviewed migrations, while prisma generate and non-force db push pass."
+    },
+    "prisma db execute": {
+      "guard": "destructive-prisma",
+      "reason": "Run destructive migrations by the user's hand; schema changes belong in reviewed migrations, while prisma generate and non-force db push pass."
+    },
+    "prisma db pull": {
+      "guard": "destructive-prisma",
+      "reason": "Run destructive migrations by the user's hand; schema changes belong in reviewed migrations, while prisma generate and non-force db push pass."
+    },
+    "prisma db push --force-reset": {
+      "guard": "destructive-prisma",
+      "reason": "Run destructive migrations by the user's hand; schema changes belong in reviewed migrations, while prisma generate and non-force db push pass."
+    },
+    "prisma db push --accept-data-loss": {
+      "guard": "destructive-prisma",
+      "reason": "Run destructive migrations by the user's hand; schema changes belong in reviewed migrations, while prisma generate and non-force db push pass."
+    },
+    "PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=1 prisma db push": {
+      "guard": "destructive-prisma",
+      "reason": "Run destructive migrations by the user's hand; schema changes belong in reviewed migrations, while prisma generate and non-force db push pass."
+    },
+    "supabase db reset --linked": {
+      "guard": "destructive-supabase",
+      "reason": "Reset only the local stack with supabase db reset; linked-project schema changes belong in reviewed migrations applied by the user."
+    },
+    "supabase db reset --project-ref abc": {
+      "guard": "destructive-supabase",
+      "reason": "Reset only the local stack with supabase db reset; linked-project schema changes belong in reviewed migrations applied by the user."
+    },
+    "git push --force": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
+    "git push --force-if-includes": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
+    "git push origin +main": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
+    "git -C somewhere push --force": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
+    "git -C \"path with spaces\" push --force-with-lease": {
+      "guard": "git-force-push",
+      "reason": "Push normally; history rewrites belong in the user's own Git workflow."
+    },
+    "git push -uf origin main": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
+    "git push -fu origin main": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
+    "find . -delete": {
+      "guard": "rm-outside-repo",
+      "reason": "Remove files inside the checkout only; removals outside the repository or in .git belong to the user."
+    },
+    "find . -exec rm -rf {} +": {
+      "guard": "rm-outside-repo",
+      "reason": "Remove files inside the checkout only; removals outside the repository or in .git belong to the user."
+    },
+    "git push -f": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
+    "git push --force-with-lease": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
+    "rm -rf ../x": {
+      "guard": "rm-outside-repo",
+      "reason": "Remove files inside the checkout only; removals outside the repository or in .git belong to the user."
+    },
+    "/bin/rm -rf ~/x": {
+      "guard": "rm-outside-repo",
+      "reason": "Remove files inside the checkout only; removals outside the repository or in .git belong to the user."
+    },
+    "find .. -delete": {
+      "guard": "rm-outside-repo",
+      "reason": "Remove files inside the checkout only; removals outside the repository or in .git belong to the user."
+    },
+    "find /tmp -exec rm {} \\;": {
+      "guard": "rm-outside-repo",
+      "reason": "Remove files inside the checkout only; removals outside the repository or in .git belong to the user."
+    },
+    "rm -rf .git": {
+      "guard": "rm-outside-repo",
+      "reason": "Remove files inside the checkout only; removals outside the repository or in .git belong to the user."
+    },
+    "rm -rf .": {
+      "guard": "rm-outside-repo",
+      "reason": "Remove files inside the checkout only; removals outside the repository or in .git belong to the user."
+    },
+    "rm -rf \"$HOME/x\"": {
+      "guard": "rm-outside-repo",
+      "reason": "Remove files inside the checkout only; removals outside the repository or in .git belong to the user."
+    },
+    "git status && rm -rf ../x": {
+      "guard": "rm-outside-repo",
+      "reason": "Remove files inside the checkout only; removals outside the repository or in .git belong to the user."
+    },
+    "pnpm harness:unlock": {
+      "guard": "harness-lock",
+      "reason": "Unlocking the harness is the user's step: ask them to run `pnpm harness:unlock` in their own terminal."
+    },
+    "node tooling/harness/cli.ts unlock": {
+      "guard": "harness-lock",
+      "reason": "Unlocking the harness is the user's step: ask them to run `pnpm harness:unlock` in their own terminal."
+    },
+    "pnpm harness:blocks --false 1a2b3c \"generated page\"": {
+      "guard": "harness-telemetry",
+      "reason": "Marking a false block is the user's judgement: name the wrong block in your handoff and let them run `pnpm harness:blocks --false <id>`."
+    },
+    "prisma generate": null,
+    "prisma db push": null,
+    "supabase db reset": null,
+    "supabase start": null,
+    "git push": null,
+    "git push origin main": null,
+    "git -C somewhere push -u origin main": null,
+    "find . -iname cache -delete": null,
+    "find . -path ./cache -delete": null,
+    "rm -rf src/x": null,
+    "find src -name x": null,
+    "find src -delete": null,
+    "find . -name x -delete": null,
+    "find src -exec rm {} \\;": null,
+    "pnpm dlx shadcn add button": null,
+    "cat .env.example": null,
+    "git diff": null,
+    "rm -rf ..cache": null,
+    "git push -f; supabase db reset --linked; prisma migrate reset; rm ..": {
+      "guard": "destructive-prisma",
+      "reason": "Run destructive migrations by the user's hand; schema changes belong in reviewed migrations, while prisma generate and non-force db push pass."
+    },
+    "git push -f; supabase db reset --linked; rm ..": {
+      "guard": "destructive-supabase",
+      "reason": "Reset only the local stack with supabase db reset; linked-project schema changes belong in reviewed migrations applied by the user."
+    },
+    "rm ..; git push -f": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
+    "pnpm harness:blocks": null,
+    "node tooling/harness/cli.ts blocks": null,
+    "node tooling/harness/cli.ts blocks --false 1a2b3c": {
+      "guard": "harness-telemetry",
+      "reason": "Marking a false block is the user's judgement: name the wrong block in your handoff and let them run `pnpm harness:blocks --false <id>`."
+    },
+    "pnpm install": null,
+    "supabase db push": {
+      "guard": "supabase-push",
+      "reason": "Applying schema changes to a linked project is the user's step; leave migrations committed and ask them to deploy."
+    },
+    "supabase link": {
+      "guard": "supabase-link",
+      "reason": "Applying schema changes to a linked project is the user's step; leave migrations committed and ask them to deploy."
+    },
+    "pnpm supabase:deploy": {
+      "guard": "supabase-deploy",
+      "reason": "Applying schema changes to a linked project is the user's step; leave migrations committed and ask them to deploy."
+    },
+    "rm -rf \"${HOME}/x\"": {
+      "guard": "rm-outside-repo",
+      "reason": "Remove files inside the checkout only; removals outside the repository or in .git belong to the user."
+    }
+  },
+  "events": {
+    "claude/post-tool.json": { "kind": "allow" },
+    "claude/pre-tool-bash.json": {
+      "kind": "deny",
+      "guard": "git-force-push",
+      "reason": "Push normally; history rewrites belong in the user's own Git workflow."
+    },
+    "claude/pre-tool-edit.json": {
+      "kind": "deny",
+      "guard": "env-file-write",
+      "reason": ".env.local holds the user's secrets; agent-authored configuration belongs in .env.example."
+    },
+    "claude/pre-tool-notebook-edit.json": { "kind": "allow" },
+    "claude/session-start.json": {
+      "kind": "allow",
+      "context": "# Code index\n\nReuse these public APIs before adding code. Module internals stay inside their module.\n\n## shared/lib\n\n- `utils.ts`: `cn`\n"
+    },
+    "claude/stop.json": { "kind": "allow" },
+    "claude/user-prompt-submit.json": { "kind": "allow" },
+    "codex/post-tool.json": { "kind": "allow" },
+    "codex/pre-tool-apply-patch.json": {
+      "kind": "deny",
+      "guard": "structure-write",
+      "reason": "src-shape: Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+    },
+    "codex/pre-tool-bash.json": {
+      "kind": "deny",
+      "guard": "destructive-prisma",
+      "reason": "Run destructive migrations by the user's hand; schema changes belong in reviewed migrations, while prisma generate and non-force db push pass."
+    },
+    "codex/session-start.json": {
+      "kind": "allow",
+      "context": "# Code index\n\nReuse these public APIs before adding code. Module internals stay inside their module.\n\n## shared/lib\n\n- `utils.ts`: `cn`\n"
+    },
+    "codex/stop.json": { "kind": "allow" },
+    "codex/user-prompt-submit.json": { "kind": "allow" },
+    "claude/post-bash": {
+      "pre": { "kind": "allow" },
+      "post": {
+        "kind": "block",
+        "reason": "src/utils/z.ts:1 src-shape — Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      }
+    }
+  },
+  "eventSteps": [],
+  "gates": {
+    "auditChanged": [
+      {
+        "rule": "src-shape",
+        "file": "src/utils/x.ts",
+        "message": "Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+      },
+      {
+        "rule": "folder-size",
+        "file": "scripts/jobs/job-0.ts",
+        "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+      },
+      {
+        "rule": "folder-size",
+        "file": "scripts/jobs/job-1.ts",
+        "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+      },
+      {
+        "rule": "folder-size",
+        "file": "scripts/jobs/job-10.ts",
+        "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+      },
+      {
+        "rule": "folder-size",
+        "file": "scripts/jobs/job-2.ts",
+        "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+      },
+      {
+        "rule": "folder-size",
+        "file": "scripts/jobs/job-3.ts",
+        "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+      },
+      {
+        "rule": "folder-size",
+        "file": "scripts/jobs/job-4.ts",
+        "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+      },
+      {
+        "rule": "folder-size",
+        "file": "scripts/jobs/job-5.ts",
+        "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+      },
+      {
+        "rule": "folder-size",
+        "file": "scripts/jobs/job-6.ts",
+        "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+      },
+      {
+        "rule": "folder-size",
+        "file": "scripts/jobs/job-7.ts",
+        "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+      },
+      {
+        "rule": "folder-size",
+        "file": "scripts/jobs/job-8.ts",
+        "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+      },
+      {
+        "rule": "folder-size",
+        "file": "scripts/jobs/job-9.ts",
+        "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+      },
+      {
+        "rule": "folder-size",
+        "file": "src/modules/orders/server/get-orders.ts",
+        "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+      },
+      {
+        "rule": "folder-size",
+        "file": "src/modules/orders/server/get-part-0.ts",
+        "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+      },
+      {
+        "rule": "folder-size",
+        "file": "src/modules/orders/server/get-part-1.ts",
+        "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+      },
+      {
+        "rule": "folder-size",
+        "file": "src/modules/orders/server/get-part-10.ts",
+        "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+      },
+      {
+        "rule": "folder-size",
+        "file": "src/modules/orders/server/get-part-2.ts",
+        "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+      },
+      {
+        "rule": "folder-size",
+        "file": "src/modules/orders/server/get-part-3.ts",
+        "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+      },
+      {
+        "rule": "folder-size",
+        "file": "src/modules/orders/server/get-part-4.ts",
+        "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+      },
+      {
+        "rule": "folder-size",
+        "file": "src/modules/orders/server/get-part-5.ts",
+        "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+      },
+      {
+        "rule": "folder-size",
+        "file": "src/modules/orders/server/get-part-6.ts",
+        "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+      },
+      {
+        "rule": "folder-size",
+        "file": "src/modules/orders/server/get-part-7.ts",
+        "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+      },
+      {
+        "rule": "folder-size",
+        "file": "src/modules/orders/server/get-part-8.ts",
+        "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+      },
+      {
+        "rule": "folder-size",
+        "file": "src/modules/orders/server/get-part-9.ts",
+        "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+      },
+      {
+        "rule": "duplicate-file-name",
+        "file": "src/modules/billing/server/get-orders.ts",
+        "message": "get-orders.ts also exists in src/modules/orders/server/get-orders.ts. Move reusable code to src/shared/lib/ or src/shared/components/, or use module-specific names in src/modules/."
+      },
+      {
+        "rule": "duplicate-file-name",
+        "file": "src/modules/orders/server/get-orders.ts",
+        "message": "get-orders.ts also exists in src/modules/billing/server/get-orders.ts. Move reusable code to src/shared/lib/ or src/shared/components/, or use module-specific names in src/modules/."
+      },
+      {
+        "rule": "thin-page",
+        "file": "src/app/orders/page.tsx",
+        "line": 1,
+        "message": "page.tsx has 61 lines (maximum 60); move UI into src/modules/<module>/components/ and import it through index.ts."
+      },
+      {
+        "file": "src/modules/orders/actions/create-order-action.ts",
+        "rule": "use-server-placement",
+        "line": 1,
+        "message": "Put \"use server\" first in src/modules/<module>/actions/<name>-action.ts and call defineAction from src/shared/lib/define-action.ts."
+      },
+      {
+        "rule": "env-access",
+        "file": "src/modules/orders/components/env-banner.tsx",
+        "line": 2,
+        "message": "Read and validate environment variables in src/shared/lib/env.ts; import its typed env value here."
+      },
+      {
+        "file": "src/modules/orders/components/row.tsx",
+        "rule": "client-imports-server",
+        "line": 3,
+        "message": "Import client-safe code through a module's index.ts or actions/<name>-action.ts; server.ts and server/ belong on the server."
+      },
+      {
+        "rule": "error-text",
+        "file": "src/modules/orders/components/view.tsx",
+        "line": 2,
+        "message": "Use UserError and user-facing error helpers from src/shared/lib/user-error.ts; keep raw error details in src/shared/lib/log.ts."
+      },
+      {
+        "rule": "test-determinism",
+        "file": "src/modules/orders/domain/total.test.ts",
+        "line": 1,
+        "message": "Date.now() needs a seed, frozen clock or mock in this colocated test file; keep test setup beside the code it covers."
+      },
+      {
+        "file": "src/modules/orders/index.ts",
+        "rule": "index-exports",
+        "line": 1,
+        "message": "Keep index.ts client-safe: expose queries through server.ts and import mutations directly from actions/<name>-action.ts."
+      },
+      {
+        "file": "src/modules/orders/server/get-orders.ts",
+        "rule": "server-only",
+        "line": 1,
+        "message": "Import \"server-only\" in module server.ts and server/ files; client-safe code belongs in components/ or index.ts."
+      },
+      {
+        "file": "src/shared/lib/x.ts",
+        "rule": "use-client-placement",
+        "line": 1,
+        "message": "Put \"use client\" in module components/, shared components/ui/hooks, or src/app error.tsx and global-error.tsx."
+      }
+    ],
+    "fastGate": {
+      "passed": false,
+      "findings": [
+        {
+          "rule": "src-shape",
+          "file": "src/utils/x.ts",
+          "message": "Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-0.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-1.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-10.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-2.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-3.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-4.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-5.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-6.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-7.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-8.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-9.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-orders.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-0.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-1.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-10.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-2.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-3.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-4.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-5.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-6.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-7.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-8.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-9.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "duplicate-file-name",
+          "file": "src/modules/billing/server/get-orders.ts",
+          "message": "get-orders.ts also exists in src/modules/orders/server/get-orders.ts. Move reusable code to src/shared/lib/ or src/shared/components/, or use module-specific names in src/modules/."
+        },
+        {
+          "rule": "duplicate-file-name",
+          "file": "src/modules/orders/server/get-orders.ts",
+          "message": "get-orders.ts also exists in src/modules/billing/server/get-orders.ts. Move reusable code to src/shared/lib/ or src/shared/components/, or use module-specific names in src/modules/."
+        },
+        {
+          "rule": "thin-page",
+          "file": "src/app/orders/page.tsx",
+          "line": 1,
+          "message": "page.tsx has 61 lines (maximum 60); move UI into src/modules/<module>/components/ and import it through index.ts."
+        },
+        {
+          "file": "src/modules/orders/actions/create-order-action.ts",
+          "rule": "use-server-placement",
+          "line": 1,
+          "message": "Put \"use server\" first in src/modules/<module>/actions/<name>-action.ts and call defineAction from src/shared/lib/define-action.ts."
+        },
+        {
+          "rule": "env-access",
+          "file": "src/modules/orders/components/env-banner.tsx",
+          "line": 2,
+          "message": "Read and validate environment variables in src/shared/lib/env.ts; import its typed env value here."
+        },
+        {
+          "file": "src/modules/orders/components/row.tsx",
+          "rule": "client-imports-server",
+          "line": 3,
+          "message": "Import client-safe code through a module's index.ts or actions/<name>-action.ts; server.ts and server/ belong on the server."
+        },
+        {
+          "rule": "error-text",
+          "file": "src/modules/orders/components/view.tsx",
+          "line": 2,
+          "message": "Use UserError and user-facing error helpers from src/shared/lib/user-error.ts; keep raw error details in src/shared/lib/log.ts."
+        },
+        {
+          "rule": "test-determinism",
+          "file": "src/modules/orders/domain/total.test.ts",
+          "line": 1,
+          "message": "Date.now() needs a seed, frozen clock or mock in this colocated test file; keep test setup beside the code it covers."
+        },
+        {
+          "file": "src/modules/orders/index.ts",
+          "rule": "index-exports",
+          "line": 1,
+          "message": "Keep index.ts client-safe: expose queries through server.ts and import mutations directly from actions/<name>-action.ts."
+        },
+        {
+          "file": "src/modules/orders/server/get-orders.ts",
+          "rule": "server-only",
+          "line": 1,
+          "message": "Import \"server-only\" in module server.ts and server/ files; client-safe code belongs in components/ or index.ts."
+        },
+        {
+          "file": "src/shared/lib/x.ts",
+          "rule": "use-client-placement",
+          "line": 1,
+          "message": "Put \"use client\" in module components/, shared components/ui/hooks, or src/app error.tsx and global-error.tsx."
+        }
+      ],
+      "preExisting": [],
+      "report": "src/utils/x.ts:1 src-shape — Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/.\nscripts/jobs/job-0.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-1.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-10.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-2.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-3.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-4.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-5.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-6.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-7.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-8.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-9.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nsrc/modules/orders/server/get-orders.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-0.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-1.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-10.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-2.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-3.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-4.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-5.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-6.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-7.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-8.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-9.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/billing/server/get-orders.ts:1 duplicate-file-name — get-orders.ts also exists in src/modules/orders/server/get-orders.ts. Move reusable code to src/shared/lib/ or src/shared/components/, or use module-specific names in src/modules/.\nsrc/modules/orders/server/get-orders.ts:1 duplicate-file-name — get-orders.ts also exists in src/modules/billing/server/get-orders.ts. Move reusable code to src/shared/lib/ or src/shared/components/, or use module-specific names in src/modules/.\nsrc/app/orders/page.tsx:1 thin-page — page.tsx has 61 lines (maximum 60); move UI into src/modules/<module>/components/ and import it through index.ts.\nsrc/modules/orders/actions/create-order-action.ts:1 use-server-placement — Put \"use server\" first in src/modules/<module>/actions/<name>-action.ts and call defineAction from src/shared/lib/define-action.ts.\nsrc/modules/orders/components/env-banner.tsx:2 env-access — Read and validate environment variables in src/shared/lib/env.ts; import its typed env value here.\nsrc/modules/orders/components/row.tsx:3 client-imports-server — Import client-safe code through a module's index.ts or actions/<name>-action.ts; server.ts and server/ belong on the server.\nsrc/modules/orders/components/view.tsx:2 error-text — Use UserError and user-facing error helpers from src/shared/lib/user-error.ts; keep raw error details in src/shared/lib/log.ts.\nsrc/modules/orders/domain/total.test.ts:1 test-determinism — Date.now() needs a seed, frozen clock or mock in this colocated test file; keep test setup beside the code it covers.\nsrc/modules/orders/index.ts:1 index-exports — Keep index.ts client-safe: expose queries through server.ts and import mutations directly from actions/<name>-action.ts.\nsrc/modules/orders/server/get-orders.ts:1 server-only — Import \"server-only\" in module server.ts and server/ files; client-safe code belongs in components/ or index.ts.\nsrc/shared/lib/x.ts:1 use-client-placement — Put \"use client\" in module components/, shared components/ui/hooks, or src/app error.tsx and global-error.tsx."
+    },
+    "fastSteps": [
+      {
+        "name": "prettier",
+        "command": [
+          "<root>/node_modules/.bin/prettier",
+          "--write",
+          "--ignore-unknown",
+          "--",
+          "scripts/jobs/job-0.ts",
+          "scripts/jobs/job-1.ts",
+          "scripts/jobs/job-10.ts",
+          "scripts/jobs/job-2.ts",
+          "scripts/jobs/job-3.ts",
+          "scripts/jobs/job-4.ts",
+          "scripts/jobs/job-5.ts",
+          "scripts/jobs/job-6.ts",
+          "scripts/jobs/job-7.ts",
+          "scripts/jobs/job-8.ts",
+          "scripts/jobs/job-9.ts",
+          "src/app/orders/page.tsx",
+          "src/modules/billing/domain/add.test.ts",
+          "src/modules/billing/domain/add.ts",
+          "src/modules/billing/server/get-orders.ts",
+          "src/modules/orders/actions/create-order-action.ts",
+          "src/modules/orders/components/big-list.tsx",
+          "src/modules/orders/components/env-banner.tsx",
+          "src/modules/orders/components/row.tsx",
+          "src/modules/orders/components/view.tsx",
+          "src/modules/orders/domain/sum.test.ts",
+          "src/modules/orders/domain/sum.ts",
+          "src/modules/orders/domain/tax.ts",
+          "src/modules/orders/domain/total.test.ts",
+          "src/modules/orders/domain/total.ts",
+          "src/modules/orders/index.ts",
+          "src/modules/orders/server/get-orders.ts",
+          "src/modules/orders/server/get-part-0.ts",
+          "src/modules/orders/server/get-part-1.ts",
+          "src/modules/orders/server/get-part-10.ts",
+          "src/modules/orders/server/get-part-2.ts",
+          "src/modules/orders/server/get-part-3.ts",
+          "src/modules/orders/server/get-part-4.ts",
+          "src/modules/orders/server/get-part-5.ts",
+          "src/modules/orders/server/get-part-6.ts",
+          "src/modules/orders/server/get-part-7.ts",
+          "src/modules/orders/server/get-part-8.ts",
+          "src/modules/orders/server/get-part-9.ts",
+          "src/shared/lib/x.ts",
+          "src/utils/x.ts",
+          "tsconfig.json"
+        ]
+      },
+      {
+        "name": "eslint",
+        "command": [
+          "/usr/bin/env",
+          "HARNESS_FAST_LINT=1",
+          "<root>/node_modules/.bin/eslint",
+          "--format",
+          "json",
+          "--no-warn-ignored",
+          "--",
+          "scripts/jobs/job-0.ts",
+          "scripts/jobs/job-1.ts",
+          "scripts/jobs/job-10.ts",
+          "scripts/jobs/job-2.ts",
+          "scripts/jobs/job-3.ts",
+          "scripts/jobs/job-4.ts",
+          "scripts/jobs/job-5.ts",
+          "scripts/jobs/job-6.ts",
+          "scripts/jobs/job-7.ts",
+          "scripts/jobs/job-8.ts",
+          "scripts/jobs/job-9.ts",
+          "src/app/orders/page.tsx",
+          "src/modules/billing/domain/add.test.ts",
+          "src/modules/billing/domain/add.ts",
+          "src/modules/billing/server/get-orders.ts",
+          "src/modules/orders/actions/create-order-action.ts",
+          "src/modules/orders/components/big-list.tsx",
+          "src/modules/orders/components/env-banner.tsx",
+          "src/modules/orders/components/row.tsx",
+          "src/modules/orders/components/view.tsx",
+          "src/modules/orders/domain/sum.test.ts",
+          "src/modules/orders/domain/sum.ts",
+          "src/modules/orders/domain/tax.ts",
+          "src/modules/orders/domain/total.test.ts",
+          "src/modules/orders/domain/total.ts",
+          "src/modules/orders/index.ts",
+          "src/modules/orders/server/get-orders.ts",
+          "src/modules/orders/server/get-part-0.ts",
+          "src/modules/orders/server/get-part-1.ts",
+          "src/modules/orders/server/get-part-10.ts",
+          "src/modules/orders/server/get-part-2.ts",
+          "src/modules/orders/server/get-part-3.ts",
+          "src/modules/orders/server/get-part-4.ts",
+          "src/modules/orders/server/get-part-5.ts",
+          "src/modules/orders/server/get-part-6.ts",
+          "src/modules/orders/server/get-part-7.ts",
+          "src/modules/orders/server/get-part-8.ts",
+          "src/modules/orders/server/get-part-9.ts",
+          "src/shared/lib/x.ts",
+          "src/utils/x.ts"
+        ]
+      }
+    ],
+    "doneGate": {
+      "passed": false,
+      "findings": [
+        {
+          "rule": "src-shape",
+          "file": "src/utils/x.ts",
+          "message": "Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-0.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-1.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-10.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-2.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-3.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-4.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-5.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-6.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-7.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-8.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "scripts/jobs/job-9.ts",
+          "message": "scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-orders.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-0.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-1.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-10.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-2.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-3.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-4.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-5.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-6.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-7.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-8.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "folder-size",
+          "file": "src/modules/orders/server/get-part-9.ts",
+          "message": "src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat."
+        },
+        {
+          "rule": "duplicate-file-name",
+          "file": "src/modules/billing/server/get-orders.ts",
+          "message": "get-orders.ts also exists in src/modules/orders/server/get-orders.ts. Move reusable code to src/shared/lib/ or src/shared/components/, or use module-specific names in src/modules/."
+        },
+        {
+          "rule": "duplicate-file-name",
+          "file": "src/modules/orders/server/get-orders.ts",
+          "message": "get-orders.ts also exists in src/modules/billing/server/get-orders.ts. Move reusable code to src/shared/lib/ or src/shared/components/, or use module-specific names in src/modules/."
+        },
+        {
+          "rule": "thin-page",
+          "file": "src/app/orders/page.tsx",
+          "line": 1,
+          "message": "page.tsx has 61 lines (maximum 60); move UI into src/modules/<module>/components/ and import it through index.ts."
+        },
+        {
+          "file": "src/modules/orders/actions/create-order-action.ts",
+          "rule": "use-server-placement",
+          "line": 1,
+          "message": "Put \"use server\" first in src/modules/<module>/actions/<name>-action.ts and call defineAction from src/shared/lib/define-action.ts."
+        },
+        {
+          "rule": "env-access",
+          "file": "src/modules/orders/components/env-banner.tsx",
+          "line": 2,
+          "message": "Read and validate environment variables in src/shared/lib/env.ts; import its typed env value here."
+        },
+        {
+          "file": "src/modules/orders/components/row.tsx",
+          "rule": "client-imports-server",
+          "line": 3,
+          "message": "Import client-safe code through a module's index.ts or actions/<name>-action.ts; server.ts and server/ belong on the server."
+        },
+        {
+          "rule": "error-text",
+          "file": "src/modules/orders/components/view.tsx",
+          "line": 2,
+          "message": "Use UserError and user-facing error helpers from src/shared/lib/user-error.ts; keep raw error details in src/shared/lib/log.ts."
+        },
+        {
+          "rule": "domain-test",
+          "file": "src/modules/orders/domain/tax.ts",
+          "line": 1,
+          "message": "Put the domain rule's test beside it at src/modules/orders/domain/tax.test.ts."
+        },
+        {
+          "rule": "test-determinism",
+          "file": "src/modules/orders/domain/total.test.ts",
+          "line": 1,
+          "message": "Date.now() needs a seed, frozen clock or mock in this colocated test file; keep test setup beside the code it covers."
+        },
+        {
+          "file": "src/modules/orders/index.ts",
+          "rule": "index-exports",
+          "line": 1,
+          "message": "Keep index.ts client-safe: expose queries through server.ts and import mutations directly from actions/<name>-action.ts."
+        },
+        {
+          "file": "src/modules/orders/server/get-orders.ts",
+          "rule": "server-only",
+          "line": 1,
+          "message": "Import \"server-only\" in module server.ts and server/ files; client-safe code belongs in components/ or index.ts."
+        },
+        {
+          "file": "src/shared/lib/x.ts",
+          "rule": "use-client-placement",
+          "line": 1,
+          "message": "Put \"use client\" in module components/, shared components/ui/hooks, or src/app error.tsx and global-error.tsx."
+        },
+        {
+          "rule": "duplicate-export",
+          "file": "src/modules/billing/domain/add.ts",
+          "line": 1,
+          "message": "add is src/modules/orders/domain/sum.ts#sum under another name. Reuse that export; put cross-module logic in src/shared/lib/ or src/shared/components/."
+        },
+        {
+          "rule": "duplicate-export",
+          "file": "src/modules/orders/domain/sum.ts",
+          "line": 1,
+          "message": "sum is src/modules/billing/domain/add.ts#add under another name. Reuse that export; put cross-module logic in src/shared/lib/ or src/shared/components/."
+        },
+        {
+          "rule": "harness-lock",
+          "file": "tsconfig.json",
+          "message": "tsconfig.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
+        }
+      ],
+      "preExisting": [
+        {
+          "rule": "src-shape",
+          "file": "src/utils/y.ts",
+          "message": "Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+        }
+      ],
+      "report": "src/utils/x.ts:1 src-shape — Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/.\nscripts/jobs/job-0.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-1.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-10.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-2.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-3.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-4.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-5.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-6.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-7.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-8.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nscripts/jobs/job-9.ts:1 folder-size — scripts/jobs/ has 11 source files (maximum 10). Move cohesive code into a focused subfolder under tooling/ or scripts/.\nsrc/modules/orders/server/get-orders.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-0.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-1.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-10.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-2.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-3.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-4.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-5.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-6.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-7.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-8.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/orders/server/get-part-9.ts:1 folder-size — src/modules/orders/server/ has 12 source files (maximum 10). Use one area subfolder in components/, server/ or domain/, or split feature code into a new src/modules/<module>/; keep actions/, lib/ and hooks/ flat.\nsrc/modules/billing/server/get-orders.ts:1 duplicate-file-name — get-orders.ts also exists in src/modules/orders/server/get-orders.ts. Move reusable code to src/shared/lib/ or src/shared/components/, or use module-specific names in src/modules/.\nsrc/modules/orders/server/get-orders.ts:1 duplicate-file-name — get-orders.ts also exists in src/modules/billing/server/get-orders.ts. Move reusable code to src/shared/lib/ or src/shared/components/, or use module-specific names in src/modules/.\nsrc/app/orders/page.tsx:1 thin-page — page.tsx has 61 lines (maximum 60); move UI into src/modules/<module>/components/ and import it through index.ts.\nsrc/modules/orders/actions/create-order-action.ts:1 use-server-placement — Put \"use server\" first in src/modules/<module>/actions/<name>-action.ts and call defineAction from src/shared/lib/define-action.ts.\nsrc/modules/orders/components/env-banner.tsx:2 env-access — Read and validate environment variables in src/shared/lib/env.ts; import its typed env value here.\nsrc/modules/orders/components/row.tsx:3 client-imports-server — Import client-safe code through a module's index.ts or actions/<name>-action.ts; server.ts and server/ belong on the server.\nsrc/modules/orders/components/view.tsx:2 error-text — Use UserError and user-facing error helpers from src/shared/lib/user-error.ts; keep raw error details in src/shared/lib/log.ts.\nsrc/modules/orders/domain/tax.ts:1 domain-test — Put the domain rule's test beside it at src/modules/orders/domain/tax.test.ts.\nsrc/modules/orders/domain/total.test.ts:1 test-determinism — Date.now() needs a seed, frozen clock or mock in this colocated test file; keep test setup beside the code it covers.\nsrc/modules/orders/index.ts:1 index-exports — Keep index.ts client-safe: expose queries through server.ts and import mutations directly from actions/<name>-action.ts.\nsrc/modules/orders/server/get-orders.ts:1 server-only — Import \"server-only\" in module server.ts and server/ files; client-safe code belongs in components/ or index.ts.\nsrc/shared/lib/x.ts:1 use-client-placement — Put \"use client\" in module components/, shared components/ui/hooks, or src/app error.tsx and global-error.tsx.\nsrc/modules/billing/domain/add.ts:1 duplicate-export — add is src/modules/orders/domain/sum.ts#sum under another name. Reuse that export; put cross-module logic in src/shared/lib/ or src/shared/components/.\nsrc/modules/orders/domain/sum.ts:1 duplicate-export — sum is src/modules/billing/domain/add.ts#add under another name. Reuse that export; put cross-module logic in src/shared/lib/ or src/shared/components/.\ntsconfig.json:1 harness-lock — tsconfig.json is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`.\n\nOutside this turn's files (not blocking):\nsrc/utils/y.ts:1 src-shape — Put routes in src/app/, feature code in src/modules/<module>/, and cross-cutting utilities in src/shared/lib/."
+    },
+    "doneSteps": [
+      { "name": "next", "command": ["<root>/node_modules/.bin/next", "typegen"] },
+      { "name": "tsc", "command": ["<root>/node_modules/.bin/tsc", "--noEmit", "--incremental", "--pretty", "false"] },
+      {
+        "name": "eslint",
+        "command": [
+          "<root>/node_modules/.bin/eslint",
+          "--format",
+          "json",
+          "--no-warn-ignored",
+          "--",
+          "scripts/jobs/job-0.ts",
+          "scripts/jobs/job-1.ts",
+          "scripts/jobs/job-10.ts",
+          "scripts/jobs/job-2.ts",
+          "scripts/jobs/job-3.ts",
+          "scripts/jobs/job-4.ts",
+          "scripts/jobs/job-5.ts",
+          "scripts/jobs/job-6.ts",
+          "scripts/jobs/job-7.ts",
+          "scripts/jobs/job-8.ts",
+          "scripts/jobs/job-9.ts",
+          "src/app/orders/page.tsx",
+          "src/modules/billing/domain/add.test.ts",
+          "src/modules/billing/domain/add.ts",
+          "src/modules/billing/server/get-orders.ts",
+          "src/modules/orders/actions/create-order-action.ts",
+          "src/modules/orders/components/big-list.tsx",
+          "src/modules/orders/components/env-banner.tsx",
+          "src/modules/orders/components/row.tsx",
+          "src/modules/orders/components/view.tsx",
+          "src/modules/orders/domain/sum.test.ts",
+          "src/modules/orders/domain/sum.ts",
+          "src/modules/orders/domain/tax.ts",
+          "src/modules/orders/domain/total.test.ts",
+          "src/modules/orders/domain/total.ts",
+          "src/modules/orders/index.ts",
+          "src/modules/orders/server/get-orders.ts",
+          "src/modules/orders/server/get-part-0.ts",
+          "src/modules/orders/server/get-part-1.ts",
+          "src/modules/orders/server/get-part-10.ts",
+          "src/modules/orders/server/get-part-2.ts",
+          "src/modules/orders/server/get-part-3.ts",
+          "src/modules/orders/server/get-part-4.ts",
+          "src/modules/orders/server/get-part-5.ts",
+          "src/modules/orders/server/get-part-6.ts",
+          "src/modules/orders/server/get-part-7.ts",
+          "src/modules/orders/server/get-part-8.ts",
+          "src/modules/orders/server/get-part-9.ts",
+          "src/shared/lib/x.ts",
+          "src/utils/x.ts"
+        ]
+      },
+      { "name": "depcruise", "command": ["<root>/node_modules/.bin/depcruise", "src", "--config", ".dependency-cruiser.json", "--output-type", "json"] },
+      { "name": "knip", "command": ["<root>/node_modules/.bin/knip", "--reporter", "json"] },
+      {
+        "name": "jscpd",
+        "command": [
+          "<root>/node_modules/.bin/jscpd",
+          "src",
+          "tooling",
+          "--config",
+          ".jscpd.json",
+          "--reporters",
+          "json",
+          "--output",
+          "<root>/.git/harness/jscpd-<tmp>",
+          "--absolute"
+        ]
+      },
+      {
+        "name": "vitest",
+        "command": [
+          "<root>/node_modules/.bin/vitest",
+          "related",
+          "--run",
+          "--passWithNoTests",
+          "scripts/jobs/job-0.ts",
+          "scripts/jobs/job-1.ts",
+          "scripts/jobs/job-10.ts",
+          "scripts/jobs/job-2.ts",
+          "scripts/jobs/job-3.ts",
+          "scripts/jobs/job-4.ts",
+          "scripts/jobs/job-5.ts",
+          "scripts/jobs/job-6.ts",
+          "scripts/jobs/job-7.ts",
+          "scripts/jobs/job-8.ts",
+          "scripts/jobs/job-9.ts",
+          "src/app/orders/page.tsx",
+          "src/modules/billing/domain/add.test.ts",
+          "src/modules/billing/domain/add.ts",
+          "src/modules/billing/server/get-orders.ts",
+          "src/modules/orders/actions/create-order-action.ts",
+          "src/modules/orders/components/big-list.tsx",
+          "src/modules/orders/components/env-banner.tsx",
+          "src/modules/orders/components/row.tsx",
+          "src/modules/orders/components/view.tsx",
+          "src/modules/orders/domain/sum.test.ts",
+          "src/modules/orders/domain/sum.ts",
+          "src/modules/orders/domain/tax.ts",
+          "src/modules/orders/domain/total.test.ts",
+          "src/modules/orders/domain/total.ts",
+          "src/modules/orders/index.ts",
+          "src/modules/orders/server/get-orders.ts",
+          "src/modules/orders/server/get-part-0.ts",
+          "src/modules/orders/server/get-part-1.ts",
+          "src/modules/orders/server/get-part-10.ts",
+          "src/modules/orders/server/get-part-2.ts",
+          "src/modules/orders/server/get-part-3.ts",
+          "src/modules/orders/server/get-part-4.ts",
+          "src/modules/orders/server/get-part-5.ts",
+          "src/modules/orders/server/get-part-6.ts",
+          "src/modules/orders/server/get-part-7.ts",
+          "src/modules/orders/server/get-part-8.ts",
+          "src/modules/orders/server/get-part-9.ts",
+          "src/shared/lib/x.ts",
+          "src/utils/x.ts",
+          "tsconfig.json"
+        ],
+        "timeoutMs": 600000
+      }
+    ]
+  }
+}
