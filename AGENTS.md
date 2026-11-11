@@ -174,7 +174,8 @@ export default defineHarness({
   one that fails validation names the field. Other hook events allow and print it.
 - Each workspace's tools run in its own folder, once per gate, and findings name
   git-root paths. A binary is looked up from the workspace folder up to the root. A
-  missing type checker, linter or formatter is `<tool>-failed`; a missing `vitest`
+  missing type checker, linter or formatter is `<tool>-failed` on the workspace's
+  `package.json`, with the install to run; a missing `vitest`
   skips the test step. `next build` and the browser smoke run only for a Next
   workspace at the root.
 - A workspace with `test: "<package script>"` runs that script through the project's

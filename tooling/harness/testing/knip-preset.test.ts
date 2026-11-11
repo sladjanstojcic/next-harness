@@ -87,4 +87,36 @@ describe("the knip preset", () => {
       ignoreBinaries: ["prettier"],
     });
   });
+
+  it("names any binary a script runs that a folder above installs, not only the harness's own tools", () => {
+    const scripts = { "generate:component": "turbo gen react-component", lint: "eslint . --max-warnings 0", local: "mine --fast && absent" };
+    const files = { "node_modules/.bin/turbo": "", "node_modules/.bin/eslint": "", "node_modules/.bin/mine": "", "packages/ui/node_modules/.bin/mine": "" };
+    const repo = makeRepo({ ...files, "packages/ui/package.json": JSON.stringify({ name: "@repo/ui", scripts, devDependencies: { eslint: "^10.9.1" } }) });
+    repo.write("packages/ui/node_modules/.bin/eslint", "");
+    // turbo comes from the root; eslint and mine are the workspace's own; absent is installed nowhere, so knip may report it.
+    expect(harnessKnipPackage(`${repo.root}/packages/ui`).ignoreBinaries).toEqual(["turbo"]);
+    repo.write("apps/web/package.json", JSON.stringify({ scripts: { dev: "turbo watch dev" } }));
+    expect(harnessKnipWorkspace({ harness: "analyse" }, `${repo.root}/apps/web`).ignoreBinaries).toEqual(["turbo"]);
+  });
+
+  it("does not call react and @types/react unused in a workspace with .tsx files: the automatic JSX runtime imports nothing", () => {
+    const manifest = { name: "@repo/ui", dependencies: { react: "19.3.0", zod: "4.6.7" }, devDependencies: { "@types/react": "19.2.2" } };
+    const repo = makeRepo({
+      "packages/ui/package.json": JSON.stringify(manifest),
+      "packages/ui/src/components/button.tsx": "export const Button = () => <button />;\n",
+    });
+    expect(harnessKnipPackage(`${repo.root}/packages/ui`).ignoreDependencies).toEqual(["react", "@types/react"]);
+    expect(harnessKnipWorkspace({ harness: "analyse" }, `${repo.root}/packages/ui`).ignoreDependencies).toEqual(["react", "@types/react"]);
+    const plain = makeRepo({
+      "packages/ui/package.json": JSON.stringify(manifest),
+      "packages/ui/src/lib/a.ts": "export const a = 1;\n",
+      "packages/ui/node_modules/x/a.tsx": "",
+    });
+    expect(harnessKnipPackage(`${plain.root}/packages/ui`).ignoreDependencies).toEqual([]);
+    repo.write(
+      "packages/ui/src/components/card.tsx",
+      'import type { ReactNode } from "react";\nexport const Card = ({ children }: { children: ReactNode }) => <div>{children}</div>;\n',
+    );
+    expect(harnessKnipPackage(`${repo.root}/packages/ui`).ignoreDependencies).toEqual([]);
+  });
 });

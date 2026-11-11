@@ -83,6 +83,8 @@ try {
           ? await (await import("./core/gates/fast-gate.ts")).fastGate(root, paths)
           : await (await import("./core/gates/done-gate.ts")).doneGate(root, paths);
     if (result.report) process.stdout.write(`${result.report}\n`);
+    if (mode !== "ci" && paths.length === 0)
+      process.stdout.write(`No files were given, so check ${mode} judged nothing; \`check ci\` judges the whole tree.\n`);
     process.exitCode = result.passed ? 0 : 1;
   } else if (command === "audit" && mode === undefined) {
     const { audit } = await import("./core/audit/audit.ts");
