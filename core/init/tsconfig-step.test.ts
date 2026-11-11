@@ -45,4 +45,17 @@ describe("the @/* alias in a next-modules workspace's tsconfig.json", () => {
     const result = step({ "packages/ui/tsconfig.json": "{}\n" }, { path: "packages/ui", shape: "package", tools: "eslint-prettier", next: false });
     expect(result.written.compilerOptions).toEqual({ allowImportingTsExtensions: true });
   });
+
+  it("is not written where a baseUrl other than the tsconfig's folder is in force: paths resolve against it", () => {
+    const absolute = step({ "tsconfig.json": '{ "compilerOptions": { "baseUrl": "src" } }\n' });
+    expect(absolute).toMatchObject({ status: "updated", todo: true });
+    expect(absolute.written.compilerOptions).toEqual({ baseUrl: "src", allowImportingTsExtensions: true });
+    expect(absolute.detail).toContain(
+      'its baseUrl is src, and paths resolve against it, so add this one by hand:\n    "compilerOptions": { "paths": { "@/*": ["./*"] } }',
+    );
+    const inherited = step({ "base.json": '{ "compilerOptions": { "baseUrl": "./lib" } }\n', "tsconfig.json": '{ "extends": "./base.json" }\n' });
+    expect(inherited.detail).toContain('"@/*": ["../src/*"]');
+    const same = step({ "tsconfig.json": '{ "compilerOptions": { "baseUrl": "." } }\n' });
+    expect(same.written.compilerOptions).toEqual({ baseUrl: ".", allowImportingTsExtensions: true, paths: { "@/*": ["./src/*"] } });
+  });
 });

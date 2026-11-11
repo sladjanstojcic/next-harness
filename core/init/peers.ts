@@ -3,7 +3,7 @@ import path from "node:path";
 import { z } from "zod";
 import { analysisOf, type HarnessConfig, type WorkspaceEntry } from "../../config.ts";
 import { managerCommands } from "./bootstrap.ts";
-import { bringsOwnBase } from "../../tools/eslint-preset.ts";
+import { broughtByBase, bringsOwnBase } from "../../tools/eslint-preset.ts";
 import { runsOwnTests } from "./tool-configs.ts";
 
 const HARNESS = path.resolve(import.meta.dirname, "../..");
@@ -77,8 +77,11 @@ function needs(root: string, config: HarnessConfig, workspace: WorkspaceEntry): 
  */
 export function peerInstall(root: string, config: HarnessConfig, workspace: WorkspaceEntry): string | undefined {
   const needed = needs(root, config, workspace);
+  // A second copy beside the one the project's own lint config runs could be a version its TypeScript refuses.
+  const brought = broughtByBase(path.join(root, workspace.path));
   const missing = Object.entries(PEERS).filter(
-    ([name, peer]) => (peer.when === undefined || needed.has(peer.when)) && !atLeast(reachableVersion(root, workspace, name) ?? "", peer.minimum),
+    ([name, peer]) =>
+      (peer.when === undefined || needed.has(peer.when)) && !brought.includes(name) && !atLeast(reachableVersion(root, workspace, name) ?? "", peer.minimum),
   );
   if (missing.length === 0) return undefined;
   return inWorkspace(workspace, `${managerCommands(root).addDev} ${missing.map(([name, peer]) => `${name}@${peer.version}`).join(" ")}`);

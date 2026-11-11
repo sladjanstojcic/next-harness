@@ -92,7 +92,10 @@ export async function runTool(root: string, step: ToolStep): Promise<Finding[]> 
     const findings = step.findings(result.stdout, result.code);
     return findings.length > 0 || result.code === 0 ? findings : failure();
   } catch (error) {
-    output = `Cannot parse ${step.name} output: ${error instanceof Error ? error.message : String(error)}\n${output}`;
+    // A tool that died before it printed its report says why on stderr: that line leads, not the parser's.
+    const lines = result.code === 0 ? [] : result.stderr.split(/\r?\n/).filter((line) => line.trim() !== "");
+    const cause = lines.find((line) => /^\s*\w*Error\b/.test(line)) ?? lines[0];
+    output = `${cause === undefined ? "" : `${cause.trim()}\n`}Cannot parse ${step.name} output: ${error instanceof Error ? error.message : String(error)}\n${output}`;
     return failure();
   }
 }
