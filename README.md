@@ -132,12 +132,12 @@ The harness is one folder, `tooling/harness/`, with the same hook wiring in ever
 between projects is one file at the repository root, `harness.config.ts`, which says which folder has
 which shape.
 
-| Your project                | How the harness arrives                | `harness.config.ts`                        | Linter and formatter                              |
-| --------------------------- | -------------------------------------- | ------------------------------------------ | ------------------------------------------------- |
-| New Next.js project         | clone this template                    | not needed                                 | ESLint and Prettier, ours                         |
-| Existing Next.js project    | `git subtree add`, then `init`         | not needed                                 | ESLint and Prettier, ours added                   |
-| Turborepo or other monorepo | `git subtree add`, config, then `init` | apps, shared packages, and a legacy list   | each workspace's own, ours added                  |
-| Makerkit project            | `git subtree add`, config, then `init` | the kit's folders, plus your `owned` paths | the kit's oxlint and oxfmt, ours as a second pass |
+| Your project                | How the harness arrives                | `harness.config.ts`                               | Linter and formatter                              |
+| --------------------------- | -------------------------------------- | ------------------------------------------------- | ------------------------------------------------- |
+| New Next.js project         | clone this template                    | not needed                                        | ESLint and Prettier, ours                         |
+| Existing Next.js project    | `git subtree add`, then `init`         | not needed                                        | ESLint and Prettier, ours added                   |
+| Turborepo or other monorepo | `git subtree add`, config, then `init` | apps, shared packages, and a legacy list          | each workspace's own, ours added                  |
+| Makerkit project            | `git subtree add`, config, then `init` | the kit's folders, plus a list of the kit's files | the kit's oxlint and oxfmt, ours as a second pass |
 
 All four need Node 24. The commands below are shown for pnpm; init prints each command in the project's
 own package manager, and npm and yarn use `workspaces` in `package.json` instead of `pnpm-workspace.yaml`.
@@ -179,8 +179,9 @@ Then do the printed steps in order. On a real `create-next-app` project there we
 
 1. Install the harness's tools with the printed `pnpm add -D` line. Init installs nothing itself.
 2. Install `zod` and `server-only`, which the starter files import.
-3. Add the two printed lines to each config the project already had. Your `eslint.config.mjs` stays where
-   it is and imports the harness's rules; see [your own ESLint config](#your-own-eslint-config).
+3. Change each config the project already had as init prints: an import at the top, and two lines in
+   place of its `export default`. Your `eslint.config.mjs` stays where it is and imports the harness's
+   rules; see [your own ESLint config](#your-own-eslint-config).
 4. `pnpm exec prettier --write .`, once, to format the app in the preset's style.
 5. `pnpm exec playwright install chromium`, for the smoke test.
 6. `git add -A && git commit -m "Add the harness"`.
@@ -638,8 +639,9 @@ Exact versions, no ranges; every config file is TypeScript.
 
 ## Known limitations
 
-- It was tried in agent sessions on three real projects: a `create-next-app` project, a Makerkit app and
-  a Turborepo with 710 legacy files. Of 29 blocks, 4 were false, and those four rules were fixed. That
+- It was tried on real projects of each kind: `create-next-app` with and without `src/`, a fresh
+  `create-turbo` project, an older Turborepo with 710 legacy files, and a Makerkit app. In the agent
+  sessions there, 61 denials or blocks were recorded and 4 were false; those four rules were fixed. That
   is a first measurement, not a track record; keep reading the block log, and say so rather than work
   around a wrong block. Every one of those sessions was Claude Code. The Codex hooks are covered by unit
   tests only.
