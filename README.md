@@ -725,10 +725,12 @@ Exact versions, no ranges; every config file is TypeScript.
   is a first measurement, not a track record; keep reading the block log, and say so rather than work
   around a wrong block. Every one of those sessions was Claude Code. The Codex hooks are covered by unit
   tests only.
-- The `electron-vite` shape was checked here against two fixtures, the official scaffold moved into the layout with a small feature, and the official
-  scaffold's, with the real ESLint, tsc, Vitest, dependency-cruiser, knip and jscpd. Electron and
-  electron-vite are not installed in this repository, so `electron-vite build` ran as a stub there, and
-  the scaffold's TypeScript 5.9 was stood in for by 6.0.
+- The `electron-vite` shape was also run on two real projects, an app already laid out this way and the
+  official electron-vite scaffold: init's six printed steps, then all ten gate steps passed, with the real
+  `electron-vite build`. The first needed no legacy list, the scaffold one of 11 files. In an agent session
+  there, nine forbidden attempts were all stopped and none was false. Nothing was opened in a window on
+  Windows or macOS, and packaging was not run. In this repository's own tests the build is a stub, since
+  Electron is not installed here.
 - `electron-security` does not follow a shorthand property (`{ sandbox }`), and it reports the same key
   in another library's options in `src/main/`. `ipc-channel` does not see a literal passed through a
   generic bridge such as `window.api.invoke("…")`.
