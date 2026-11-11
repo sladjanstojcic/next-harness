@@ -241,7 +241,8 @@ export default defineHarness({
   (`src/main/logging/log.ts`); the `electron-vite` shape takes no `next: true`.
 - Electron tools: the workspace's `tsconfig.json` names no files, so the tsc step runs
   `tsc --noEmit -p` for each project it refers to, and `tsconfig-strict` judges each of those. CI also
-  runs `electron-vite build`; there is no Next type generation and no browser smoke. Knip's entries are
+  runs `electron-vite build`; there is no Next type generation and no browser smoke. `init` lists `scripts/**/*.ts` and
+  `e2e/**/*.ts` in the `include` of the project that reads the workspace's top, so code beside `src/` is checked. Knip's entries are
   `electron.vite.config.ts`, `src/main/index.ts`, `src/preload/index.ts`, `src/renderer/index.html`
   and `src/renderer/src/main.tsx`. The code index lists the exports of `src/shared/`, each renderer
   module's `index.ts` and the renderer's `shared/lib/`. There are no starter files.

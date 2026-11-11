@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeRepo } from "../../testing/temp-repo.ts";
-import { tsconfigStep } from "./tsconfig-step.ts";
+import { tsconfigStep, tsconfigSteps } from "./tsconfig-step.ts";
 
 const APP = { path: "", shape: "next-modules", tools: "eslint-prettier", next: true } as const;
 const step = (files: Record<string, string>, workspace: Parameters<typeof tsconfigStep>[1] = APP) => {
@@ -57,5 +57,27 @@ describe("the @/* alias in a next-modules workspace's tsconfig.json", () => {
     expect(inherited.detail).toContain('"@/*": ["../src/*"]');
     const same = step({ "tsconfig.json": '{ "compilerOptions": { "baseUrl": "." } }\n' });
     expect(same.written.compilerOptions).toEqual({ baseUrl: ".", allowImportingTsExtensions: true, paths: { "@/*": ["./src/*"] } });
+  });
+});
+
+describe("a workspace type-checked project by project (electron-vite)", () => {
+  const DESK = { path: "", shape: "electron-vite", tools: "eslint-prettier", next: false } as const;
+  const files = {
+    "tsconfig.json": '{ "files": [], "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }] }\n',
+    "tsconfig.node.json": '{ "compilerOptions": { "composite": true, "strict": true }, "include": ["*.config.ts", "src/main/**/*.ts"] }\n',
+    "tsconfig.web.json": '{ "compilerOptions": { "composite": true, "strict": true }, "include": ["src/renderer/src/**/*.ts"] }\n',
+    "electron.vite.config.ts": "export default {};\n",
+  };
+
+  it("adds scripts/ and e2e/ to the project that reads the workspace's top, so their first file needs no locked edit", () => {
+    const repo = makeRepo(files);
+    const steps = tsconfigSteps(repo.root, DESK, false, ["eslint.config.ts"]);
+    expect(steps.map((step) => `${step.status} ${step.target}: ${step.detail}`)).toEqual([
+      "updated tsconfig.node.json: include scripts/**/*.ts, e2e/**/*.ts, exclude tooling/harness, harness.config.ts, eslint.config.ts",
+    ]);
+    for (const step of steps) step.apply?.();
+    expect(JSON.parse(repo.read("tsconfig.node.json"))).toMatchObject({ include: ["*.config.ts", "src/main/**/*.ts", "scripts/**/*.ts", "e2e/**/*.ts"] });
+    expect(JSON.parse(repo.read("tsconfig.web.json"))).toEqual({ compilerOptions: { composite: true, strict: true }, include: ["src/renderer/src/**/*.ts"] });
+    expect(tsconfigSteps(repo.root, DESK, false, ["eslint.config.ts"]).map((step) => step.status)).toEqual(["unchanged"]);
   });
 });

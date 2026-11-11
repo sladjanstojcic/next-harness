@@ -70,7 +70,7 @@ describe("Desk App, an electron-vite project in the shape's layout, adopted with
           "kept vitest.config.ts: your config stays as it is",
           "created knip.config.ts: harness preset",
           "created .dependency-cruiser.json: harness preset",
-          "updated tsconfig.node.json: exclude tooling/harness, harness.config.ts, eslint.config.mjs, knip.config.ts",
+          "updated tsconfig.node.json: include scripts/**/*.ts, e2e/**/*.ts, exclude tooling/harness, harness.config.ts, eslint.config.mjs, knip.config.ts",
           "updated .gitignore: *.tsbuildinfo",
         ].join("\n"),
       );
