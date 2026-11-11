@@ -30,7 +30,7 @@ const ESLINT: ToolConfig = {
   text: (workspace) => `import { harnessEslint } from "${presetImport(workspace.path, "eslint.ts")}";\n\nexport default ${presetCall(workspace)};\n`,
   placement: (own) => {
     const name = exportedName(own);
-    const second = name === undefined ? "the spread as the last element of the exported array" : `the second line in place of \`export default ${name}\``;
+    const second = name === undefined ? "the spread as the last element of the exported array" : `the other two lines in place of \`export default ${name}\``;
     return `the import at the top of the file, ${second}`;
   },
   lines: eslintPresetLines,

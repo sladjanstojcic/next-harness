@@ -35,15 +35,14 @@ export const APP_WITHOUT_SRC: Record<string, string> = Object.fromEntries(
 
 /**
  * A kept config with the lines init printed for it: the import first, then the spread as the last entry of the exported
- * array, or the printed `export default` in place of the config's own when it exports a variable.
+ * array, or the two printed lines in place of the config's own `export default` when it exports a variable.
  */
 export function withPresetLines(config: string, report: string): string {
-  const [importLine, second] = report
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.includes("harnessEslint"));
+  const lines = report.split("\n").map((line) => line.trim());
+  const at = lines.findIndex((line) => line.startsWith("import { harnessEslint }"));
+  const [importLine, second, third] = at === -1 ? [] : lines.slice(at, at + 3);
   if (importLine === undefined || second === undefined) throw new Error(`init printed no ESLint lines:\n${report}`);
-  if (second.startsWith("export default")) return `${importLine}\n${config.replace(/^export default [\w$]+;?[ \t]*$/m, second)}`;
+  if (second.startsWith("const ")) return `${importLine}\n${config.replace(/^export default [\w$]+;?[ \t]*$/m, `${second}\n${third ?? ""}`)}`;
   const end = config.lastIndexOf("]");
   return `${importLine}\n${config.slice(0, end)}  ${second}\n${config.slice(end)}`;
 }
