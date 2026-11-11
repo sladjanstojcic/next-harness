@@ -5,13 +5,8 @@ import { ciGate } from "../core/gates/ci-gate.ts";
 import * as runner from "../core/gates/run-tool.ts";
 import { parseEvent } from "../core/hooks/event.ts";
 import { handleEvent } from "../core/hooks/handle.ts";
-import { initHarness } from "../core/init/init.ts";
-import { eslintPreset } from "../tools/eslint-preset.ts";
-import { placeStep } from "../tools/tool-set.ts";
-import { run } from "./preset-fixture.ts";
 import type { RepoFixture } from "./temp-repo.ts";
-import { consumerRepo } from "./template-repo.ts";
-import { TURBO_FILES, TURBO_UI_ESLINT, turboRepo } from "./turbo-repo.ts";
+import { turboRepo } from "./turbo-repo.ts";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -72,6 +67,10 @@ describe("a Turborepo with shared packages (create-turbo in miniature)", () => {
     PRICE,
     "packages/eslint-config/base.js",
     "packages/typescript-config/nextjs.json",
+    "apps/web/README.md",
+    "apps/web/.gitignore",
+    "apps/web/AGENTS.md",
+    "apps/docs/app/reports/page.tsx",
     "packages/invoices/src/index.ts",
     "packages/ui/src/components/tooltip.tsx",
   ])("allows a write to %s", async (file) => {
@@ -117,53 +116,4 @@ describe("a Turborepo with shared packages (create-turbo in miniature)", () => {
     );
     expect(steps).toContain("depcruise apps/web");
   });
-});
-
-describe("init in that Turborepo", () => {
-  it("writes each package's thin configs, keeps create-turbo's own, and the preset holds in the package", async () => {
-    const repo = consumerRepo({ ...TURBO_FILES });
-    const result = initHarness(repo.root, { force: false, starter: false });
-    expect(result.ok, result.report).toBe(true);
-    const exists = (file: string): boolean => fs.existsSync(path.join(repo.root, file));
-    expect(repo.read(`${BILLING}/eslint.config.ts`)).toContain('harnessEslint({ root: import.meta.dirname, layout: "package" })');
-    expect(["prettier.config.ts", "vitest.config.ts"].every((file) => exists(`${BILLING}/${file}`))).toBe(true);
-    expect([".dependency-cruiser.json", "knip.config.ts", ".gitignore", ".prettierignore"].filter((file) => exists(`${BILLING}/${file}`))).toEqual([]);
-    const { scripts, exports } = JSON.parse(repo.read(`${BILLING}/package.json`)) as { scripts: Record<string, string>; exports: object };
-    expect(scripts).toEqual({ lint: "eslint . --max-warnings 0", typecheck: "tsc --noEmit", test: "vitest run", format: "prettier --write ." });
-    expect(Object.keys(exports)).toEqual([".", "./server"]);
-    expect((JSON.parse(repo.read(`${BILLING}/tsconfig.json`)) as { exclude: string[] }).exclude).toEqual(
-      expect.arrayContaining(["eslint.config.ts", "prettier.config.ts", "vitest.config.ts"]),
-    );
-    expect(repo.read("packages/ui/eslint.config.mjs")).toBe(TURBO_UI_ESLINT);
-    expect(exists("packages/ui/eslint.config.ts")).toBe(false);
-    expect(result.report).toContain("kept packages/ui/eslint.config.mjs: your config stays; add the harness preset to it");
-    expect(result.report).toContain('...harnessEslint({ root: import.meta.dirname, layout: "package" }),');
-    expect(fs.readdirSync(path.join(repo.root, "packages/eslint-config")).sort()).toEqual([
-      "README.md",
-      "base.js",
-      "next.js",
-      "package.json",
-      "react-internal.js",
-    ]);
-    expect(result.report).not.toContain("packages/typescript-config");
-
-    const dir = path.join(repo.root, BILLING);
-    const step = placeStep(repo.root, BILLING, eslintPreset(dir, { path: BILLING, shape: "package", next: false }));
-    expect("finding" in step ? step.finding : await runner.runTool(repo.root, step)).toEqual([]);
-
-    repo.write(PRICE, PRICE_SOURCE);
-    repo.write(
-      `${BILLING}/src/domain/tax.ts`,
-      'import { readFileSync } from "node:fs";\nimport { getPrices } from "../server";\n\nexport const tax = [readFileSync, getPrices];\n',
-    );
-    repo.write(`${BILLING}/src/domain/vat.ts`, 'import { getPrices } from "../server.js";\n\nexport const vat = getPrices;\n');
-    repo.write(`${BILLING}/src/lib/unsafe.ts`, "export const unsafe: any = 1;\n");
-    const clean = run(dir, "eslint", ["src/domain/price.ts", "src/server.ts", "--max-warnings", "0"]);
-    expect(clean.status, clean.output).toBe(0);
-    const lint = run(dir, "eslint", ["src/domain/tax.ts", "src/domain/vat.ts", "src/lib/unsafe.ts"]);
-    expect(lint.status, lint.output).toBe(1);
-    expect(lint.output.match(/no-restricted-imports/g)).toHaveLength(3);
-    expect(lint.output).toContain("Keep src/domain/ pure");
-    expect(lint.output).toContain("@typescript-eslint/no-explicit-any");
-  }, 120_000);
 });

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { workspaceOf } from "../../config.ts";
 import { TEST_FILE } from "../../shapes/next-modules.ts";
 import { ts } from "../../tools/typescript.ts";
 import { isVendoredIn, resolveHarness, sourceRootAt } from "../path-check.ts";
@@ -78,7 +79,12 @@ export function findDuplicateExports(root: string, files: string[]): Finding[] {
   for (const file of listFiles(root)) {
     if (!/\.tsx?$/.test(file) || isVendoredIn(harness, file) || TEST_FILE.test(file) || fixtureModule.test(file)) continue;
     const source = ts.createSourceFile(file, readFileSync(join(root, file), "utf8"), ts.ScriptTarget.Latest, true);
-    for (const exported of exportsOf(file, source)) byShape.set(exported.shape, [...(byShape.get(exported.shape) ?? []), exported]);
+    // Two workspaces are two programs: an export is a copy only of one in its own workspace.
+    const program = workspaceOf(harness.workspaces, file)?.entry.path ?? "";
+    for (const exported of exportsOf(file, source)) {
+      const key = `${program}\0${exported.shape}`;
+      byShape.set(key, [...(byShape.get(key) ?? []), exported]);
+    }
   }
   const findings: Finding[] = [];
   for (const copies of byShape.values()) {

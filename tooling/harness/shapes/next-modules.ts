@@ -23,6 +23,8 @@ export const MODULE_ENTRIES: readonly string[] = ["index.ts", "server.ts", "sche
 const ok: PathVerdict = { ok: true };
 const CONFIG_ENTRIES = ["package.json", "tsconfig.json", "next-env.d.ts", "next.config.ts", ...ALL_TOOL_CONFIG_NAMES];
 const DOT_ENTRIES = ["components.json", ".dependency-cruiser.json", ".jscpd.json", ".prettierignore", ".env.example"];
+/** An app below the repository root has its own; at the root the root layout already takes them. */
+const APP_ENTRIES = ["README.md", ".gitignore", "AGENTS.md", "CLAUDE.md"];
 const moduleFolders = ["components", "server", "actions", "domain"];
 const sharedFolders = ["components", "lib", "hooks"];
 
@@ -197,7 +199,7 @@ function nextModulesShape(root: SourceRoot): Shape {
     name: "next-modules",
     ...(root === "" ? { sourceRoot: root, topAdvice: ROOT_LAYOUT_ADVICE } : {}),
     ciAdvice: `Fix application code in ${root}modules/ or ${root}shared/; harness code belongs in tooling/harness/ and automation in scripts/.`,
-    topEntries: [...topFolders, ...(root === "" ? BESIDE_APP : []), ...CONFIG_ENTRIES, ...DOT_ENTRIES],
+    topEntries: [...topFolders, ...(root === "" ? BESIDE_APP : []), ...CONFIG_ENTRIES, ...DOT_ENTRIES, ...APP_ENTRIES],
     topFolders,
     kebabFolders: [...sources, "e2e"],
     checkHidden(path) {

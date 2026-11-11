@@ -421,7 +421,9 @@ project's `prettier --write .`, `oxfmt` or `oxlint --fix` then leaves the locked
 `vitest.config.ts`, `knip.config.ts` and `.dependency-cruiser.json` files over `tooling/harness/presets/`,
 the missing tool scripts, and `.prettierignore` entries (`pnpm-lock.yaml`, `src/shared/ui`, `.next`). It
 sets `allowImportingTsExtensions` in `tsconfig.json` and excludes `tooling/harness` and the thin configs
-from the project's type check. A root Next workspace also gets `playwright.config.ts`, which runs only
+from the project's type check. A next-modules workspace whose tsconfig, with the files it extends, maps
+no `@/*` gets `"@/*": ["./src/*"]` (or `["./*"]` without `src/`), since the starter files and the
+content rules use that alias. A root Next workspace also gets `playwright.config.ts`, which runs only
 `e2e/**/*.test.ts`; the CI browser step reports `playwright: skipped` until such a file exists. A `test`
 script that does not run Vitest gets no `vitest.config.ts`; init prints the `test: "test"` line for
 `harness.config.ts` instead. In a workspace without `src/`, the ESLint config passes
@@ -444,8 +446,17 @@ import { harnessEslint } from "../../tooling/harness/presets/eslint.ts";
 export default defineConfig([...nextVitals, ...nextTs, ...harnessEslint({ root: import.meta.dirname, base: false })]);
 ```
 
+A config that exports a variable has no array to add a spread to. Init then prints the line that
+replaces its `export default`, which works for an array and for a single config object:
+
+```js
+export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, base: false })];
+```
+
 `base: false` is what init prints for a config that already brings `eslint-config-next`,
-`@next/eslint-plugin-next` or `typescript-eslint`, as create-next-app's does. The preset then adds only
+`@next/eslint-plugin-next` or `typescript-eslint`, as create-next-app's does. A config that imports a
+package which depends on one of them counts too, as create-turbo's apps do through
+`@repo/eslint-config`; init reads that package's `package.json` from the workspace's `node_modules`. The preset then adds only
 the harness's rule blocks, since ESLint refuses a plugin defined twice. A project's own Prettier config
 is kept as it is, with its style.
 
@@ -611,9 +622,13 @@ Exact versions, no ranges; every config file is TypeScript.
 - A `package` workspace runs no depcruise, knip or jscpd. Import cycles, unused exports and duplicated
   code inside a package are therefore not checked, and domain purity there is a lint rule only. A
   package's server components may import `src/server/`; only files with `"use client"` are stopped. A
-  kept ESLint config that takes its base rules from another workspace package, as create-turbo's does
-  from `@repo/eslint-config`, is not recognised as bringing them: if ESLint then reports a plugin
-  defined twice, add `base: false` to the printed line.
+  kept ESLint config that takes its base rules from another package is recognised only after an
+  install, when that package sits in `node_modules`: if ESLint reports a plugin defined twice, add
+  `base: false` to the printed line.
+- In a monorepo the knip preset names a tool's config and script binary when the workspace's
+  `package.json` does not list the tool and a folder above installs it, as create-turbo does with
+  Prettier. Vitest must be listed in the workspace itself, as init's install line does, or knip calls
+  the test files unused.
 - Inside a workspace, denials name paths relative to that workspace: `src/shared/lib/`, not
   `apps/dashboard/src/shared/lib/`. A stray top-level file in a Makerkit app or feature package still gets the
   next-modules advice that application code belongs in `src/`.

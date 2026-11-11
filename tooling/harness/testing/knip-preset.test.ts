@@ -23,6 +23,22 @@ describe("the knip preset", () => {
     });
   });
 
+  it("names the configs and script binaries of a tool installed above the workspace, and nothing once the workspace lists the tool", () => {
+    const app = { scripts: { format: "prettier --write .", lint: "eslint .", test: "vitest run" }, devDependencies: { eslint: "9.39.5" } };
+    const files = { "node_modules/.bin/prettier": "", "node_modules/.bin/eslint": "", "apps/web/prettier.config.ts": "", "apps/web/eslint.config.js": "" };
+    const repo = makeRepo({ ...files, "apps/web/package.json": JSON.stringify(app) });
+    const dir = `${repo.root}/apps/web`;
+    expect(harnessKnipWorkspace({ harness: "analyse" }, dir)).toEqual({
+      next: true,
+      entry: [],
+      ignore: ["prettier.config.ts"],
+      ignoreDependencies: [],
+      ignoreBinaries: ["prettier"],
+    });
+    repo.write("apps/web/package.json", JSON.stringify({ ...app, devDependencies: { eslint: "9.39.5", prettier: "3.9.10" } }));
+    expect(harnessKnipWorkspace({ harness: "analyse" }, dir)).toEqual({ next: true, entry: [], ignore: [], ignoreDependencies: [] });
+  });
+
   it("leaves the harness to analysis in the harness's own repository; the preset's tools have no import there either", () => {
     const repo = makeRepo({ "package.json": PACKAGE });
     const analysed = { next: true, entry: [], ignore: [], ignoreDependencies: ["server-only", "@eslint/js"] };

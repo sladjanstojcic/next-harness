@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { sourcePaths, sourceRootOf, type WorkspaceEntry } from "../../config.ts";
 import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
-import { eslintPresetLines, presetCall, presetImport } from "../../tools/eslint-preset.ts";
+import { eslintPresetLines, exportedName, presetCall, presetImport } from "../../tools/eslint-preset.ts";
 import { isObject, readJson, writer, type Step } from "./files.ts";
 import { developsHarness, gitignoreStep, HARNESS_MODULES, IGNORED, prettierIgnored, ignoreEntriesStep } from "./ignore-files.ts";
 import { tsconfigStep } from "./tsconfig-step.ts";
@@ -16,10 +16,10 @@ interface ToolConfig {
   /** Text that shows a config already uses the preset. */
   marker: string;
   text(workspace: WorkspaceEntry): string;
-  /** Where the lines go, when the lines do not say it themselves. */
-  placement?: string;
-  /** The lines that add the preset to a project's own config, given its text; none when a kept config needs nothing. */
-  lines?(workspace: WorkspaceEntry, own: string): string[];
+  /** Where the lines go in a config with the given text, when the lines do not say it themselves. */
+  placement?(own: string): string;
+  /** The lines that add the preset to a project's own config, given its text and the workspace folder; none when a kept config needs nothing. */
+  lines?(workspace: WorkspaceEntry, own: string, dir: string): string[];
   /** A package.json key that also holds this tool's config. */
   packageKey?: string;
 }
@@ -28,8 +28,12 @@ const ESLINT: ToolConfig = {
   names: TOOL_CONFIG_NAMES.eslint,
   marker: "harnessEslint(",
   text: (workspace) => `import { harnessEslint } from "${presetImport(workspace.path, "eslint.ts")}";\n\nexport default ${presetCall(workspace)};\n`,
-  placement: "the import at the top of the file, the spread as the last element of the exported array",
-  lines: (workspace, own) => eslintPresetLines(workspace, own),
+  placement: (own) => {
+    const name = exportedName(own);
+    const second = name === undefined ? "the spread as the last element of the exported array" : `the second line in place of \`export default ${name}\``;
+    return `the import at the top of the file, ${second}`;
+  },
+  lines: eslintPresetLines,
 };
 
 /** A project's formatting style is its own: a kept Prettier config, in any form, needs nothing from the preset. */
@@ -112,11 +116,11 @@ function toolConfigStep(root: string, workspace: WorkspaceEntry, tool: ToolConfi
   }
   if (found.state === "preset") return { target: label(workspace, found.file), status: "unchanged", detail: "uses the harness preset" };
   if (tool.lines === undefined) return { target: label(workspace, found.file), status: "kept", detail: "your config stays as it is" };
-  const lines = tool.lines(workspace, found.text).map((line) => `\n    ${line}`);
+  const lines = tool.lines(workspace, found.text, path.join(root, workspace.path)).map((line) => `\n    ${line}`);
   return {
     target: label(workspace, found.file),
     status: "kept",
-    detail: `your config stays; add the harness preset to it${tool.placement === undefined ? "" : `, ${tool.placement}`}:${lines.join("")}`,
+    detail: `your config stays; add the harness preset to it${tool.placement === undefined ? "" : `, ${tool.placement(found.text)}`}:${lines.join("")}`,
     todo: true,
   };
 }

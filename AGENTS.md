@@ -151,6 +151,7 @@ export default defineHarness({
   update. Without a ref it lists every tracked file, once. The list is locked, and a
   missing or invalid list means every file is judged.
 - Upstream files count neither towards a folder's size nor as a duplicate file name.
+  Duplicate exports are compared inside one workspace: two apps are two programs.
 - A file that starts a new folder under a `/*` workspace is checked against that
   workspace's shape before the folder exists.
 - Harness rules (paths, names, sizes, content) judge owned files only. On legacy
@@ -233,7 +234,11 @@ export default defineHarness({
 - `init` writes the thin configs and prints one install line: only tools that are
   missing, at the template's version, or below the minimum. An installed tool at or
   above the minimum stays, also when newer. A project's own Prettier config is kept as
-  it is. In a workspace without `src/` the thin ESLint config passes `layout: "app-root"`,
+  it is. A kept ESLint config that exports a variable gets the line that replaces its
+  `export default`; `base: false` is printed when the config, or a package it imports,
+  brings typescript-eslint or the Next configs. A next-modules workspace whose tsconfig
+  chain maps no `@/*` gets that alias on its source root. In a workspace without `src/`
+  the thin ESLint config passes `layout: "app-root"`,
   `--starter` copies the helpers to `shared/lib/`, and the depcruise and jscpd scripts
   name the source paths that exist then, with `shared` when `--starter` creates it. A `test` script that does not run Vitest gets no `vitest.config.ts`; init
   prints the `test: "test"` line for `harness.config.ts` instead. The workspace's
