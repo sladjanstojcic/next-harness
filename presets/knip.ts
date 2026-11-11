@@ -51,17 +51,40 @@ function installedElsewhere(dir: string, packages: ReadonlySet<string>): { confi
   const manifest: unknown = fs.existsSync(path.join(dir, "package.json")) ? JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")) : {};
   const scripts = typeof manifest === "object" && manifest !== null && "scripts" in manifest ? manifest.scripts : undefined;
   const commands = typeof scripts === "object" && scripts !== null ? Object.values(scripts).filter((script) => typeof script === "string") : [];
-  const runs = (binary: string): boolean => commands.some((command) => command.split(/[\s;&|]+/).includes(binary));
   const configs = (tool: keyof typeof TOOL_CONFIG_NAMES): string[] => TOOL_CONFIG_NAMES[tool].filter((name) => fs.existsSync(path.join(dir, name)));
   return {
     configs: CONFIG_PACKAGES.filter(([, name]) => !packages.has(name)).flatMap(([tool]) => configs(tool)),
-    // A listed package can still lack the binary: TypeScript 6 under the name `typescript` brings `tsc6`, not `tsc`.
-    binaries: Object.keys(BINARY_PACKAGES).filter((binary) => {
+    // In a monorepo a script may run any binary a folder above installs (`turbo`, the root's Prettier): none is unlisted.
+    // The workspace's own copy is knip's to judge; a listed package can still lack the binary, as TypeScript 6 under
+    // the name `typescript` brings `tsc6`, not `tsc`.
+    binaries: [...new Set(commands.flatMap((command) => command.split(/[\s;&|]+/)))].filter((binary) => {
+      if (!/^[\w@][\w@.-]*$/.test(binary) || !installedAbove(dir, binary)) return false;
       const bins = path.join(dir, "node_modules/.bin");
-      const own = packages.has(BINARY_PACKAGES[binary] ?? "") && (!fs.existsSync(bins) || fs.existsSync(path.join(bins, binary)));
-      return !own && runs(binary) && installedAbove(dir, binary);
+      const listed = packages.has(BINARY_PACKAGES[binary] ?? "") && !fs.existsSync(bins);
+      return !listed && !fs.existsSync(path.join(bins, binary));
     }),
   };
+}
+
+const SKIPPED_FOLDERS = ["node_modules", ".next", "dist", "build", "out"];
+
+/** The workspace's source files, without dependencies and build output. */
+function sourceFiles(dir: string): string[] {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const file = path.join(dir, entry.name);
+    if (entry.isDirectory()) return entry.name.startsWith(".") || SKIPPED_FOLDERS.includes(entry.name) ? [] : sourceFiles(file);
+    return /\.tsx?$/.test(entry.name) ? [file] : [];
+  });
+}
+
+/**
+ * React and its types where every use is JSX: the automatic runtime needs them and no file imports them, so knip would
+ * call them unused. A workspace that imports React anywhere needs no entry, and knip would call one stale.
+ */
+function jsxRuntime(dir: string): string[] {
+  const files = sourceFiles(dir);
+  const importsReact = (file: string): boolean => /["']react(?:\/[^"']*)?["']/.test(fs.readFileSync(file, "utf8"));
+  return files.some((file) => file.endsWith(".tsx")) && !files.some(importsReact) ? ["react", "@types/react"] : [];
 }
 
 /** The preset's packages the workspace's own ESLint config does not import itself; knip would call an ignored used one a stale entry. */
@@ -97,20 +120,26 @@ function declared(dir: string): Set<string> {
   return new Set(groups.flatMap((group) => (typeof group === "object" && group !== null ? Object.keys(group) : [])));
 }
 
+/** What both presets read from the workspace's package.json and the folders above it: configs to ignore, and the dependency and binary lists. */
+function fromManifest(dir: string): { configs: string[]; lists: { ignoreDependencies: string[]; ignoreBinaries?: string[] } } {
+  const packages = declared(dir);
+  const { configs, binaries } = installedElsewhere(dir, packages);
+  const ignoreDependencies = [...IGNORE_DEPENDENCIES, ...presetOnly(dir), ...jsxRuntime(dir)].filter((name) => packages.has(name));
+  return { configs, lists: { ignoreDependencies, ...(binaries.length === 0 ? {} : { ignoreBinaries: binaries }) } };
+}
+
 /**
  * Knip for a next-modules workspace, run from its folder: Next entry points, the starter helpers as entries, vendored code
  * ignored. Only paths that exist and dependencies the workspace declares are listed, so knip has no stale entry to hint at.
  */
 export function harnessKnipWorkspace({ harness = "ignore" }: HarnessKnipOptions = {}, dir = process.cwd()): KnipWorkspace {
-  const packages = declared(dir);
   const exists = (pattern: string) => fs.existsSync(path.join(dir, pattern.replace(/\/\*\*$/, "")));
-  const { configs, binaries } = installedElsewhere(dir, packages);
+  const { configs, lists } = fromManifest(dir);
   return {
     next: true,
     entry: ENTRY.filter(exists),
     ignore: [...IGNORE.filter(exists), ...configs, ...(harness === "ignore" ? [`${HARNESS_PACKAGE}/**`] : [])],
-    ignoreDependencies: [...IGNORE_DEPENDENCIES, ...presetOnly(dir)].filter((name) => packages.has(name)),
-    ...(binaries.length === 0 ? {} : { ignoreBinaries: binaries }),
+    ...lists,
   };
 }
 
@@ -148,13 +177,11 @@ export function harnessKnipPackage(dir = process.cwd()): KnipPackage {
   const file = path.join(dir, "package.json");
   const manifest: unknown = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
   const exported = typeof manifest === "object" && manifest !== null && "exports" in manifest ? exportTargets(manifest.exports) : [];
-  const packages = declared(dir);
-  const { configs, binaries } = installedElsewhere(dir, packages);
+  const { configs, lists } = fromManifest(dir);
   return {
     entry: [...new Set(exported)].filter((target) => target.includes("*") || fs.existsSync(path.join(dir, target))),
     includeEntryExports: true,
     ignore: configs,
-    ignoreDependencies: [...IGNORE_DEPENDENCIES, ...presetOnly(dir)].filter((name) => packages.has(name)),
-    ...(binaries.length === 0 ? {} : { ignoreBinaries: binaries }),
+    ...lists,
   };
 }
