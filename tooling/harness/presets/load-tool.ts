@@ -19,7 +19,7 @@ function packageFolder(root: string, name: string): string | undefined {
  */
 export const TYPESCRIPT_API = "typescript@npm:@typescript/typescript6@^6.0.2";
 export const TYPESCRIPT_API_REASON =
-  "typescript-eslint needs TypeScript's JavaScript API, and TypeScript 7 has none: the alias installs TypeScript 6 under the name typescript, while `tsc` stays the project's own";
+  "typescript-eslint needs TypeScript's JavaScript API and TypeScript 7 has none, so the alias installs TypeScript 6 under the name typescript, while `tsc` stays the project's own";
 
 /** Whether the `typescript` a folder resolves is 7 or newer. */
 export function lacksTypescriptApi(root: string): boolean {
