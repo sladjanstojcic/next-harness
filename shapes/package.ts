@@ -8,7 +8,7 @@ const areaFolders = ["components", "server", "domain"];
 const flatFolders = ["hooks", "lib"];
 const topEntries = ["src", "package.json", "tsconfig.json", "README.md", "AGENTS.md", "CLAUDE.md", ...ALL_TOOL_CONFIG_NAMES, ".prettierignore", ".gitignore"];
 
-const ACTIONS_ADVICE = `Server Actions live in the app's module (apps/<app>/src/modules/<module>/actions/<name>-action.ts) and call this package's server.ts; a package holds no actions/ and no "use server" ${LAYOUT}`;
+const ACTIONS_ADVICE = `Server Actions live in an app's module (under apps/<app>/, in modules/<module>/actions/<name>-action.ts) and call this package's server.ts; a package holds no actions/ and no "use server" ${LAYOUT}`;
 
 /** A package is one module of the app, moved: the same folders without actions/, plus flat hooks/ and lib/. */
 const PACKAGE_LAYOUT: ModuleLayout = {
@@ -58,8 +58,7 @@ function checkPath(path: string): PathVerdict {
 }
 
 const content: ContentProfile = {
-  // No file may hold "use server": the pattern matches nothing, so every such directive is misplaced.
-  actionFile: /(?!)/,
+  noActions: true,
   actionBuilders: [],
   serverFile: /^src\/server(?:\.ts$|\/)/,
   clientFile: /^src\/(?:components|hooks)\//,

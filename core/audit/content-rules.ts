@@ -83,10 +83,12 @@ function auditDirectives({ file, path, profile }: ContentTarget, source: ts.Sour
   const add = (rule: string, key: ContentMessage, node?: ts.Node): void => {
     findings.push({ file, rule, line: node ? source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 : 1, message: message(profile, key) });
   };
-  if (profile.serverFile?.test(path) && !TEST_FILE.test(path) && !hasServerOnly) add("server-only", "serverOnly");
   const serverDirectives = directives.filter(({ text }) => text === "use server");
-  if (profile.actionFile) {
-    const isAction = profile.actionFile.test(path);
+  // In a shape without actions the misplaced directive is the whole story: asking for "server-only" beside it pulls the other way.
+  const standsAlone = profile.noActions === true && serverDirectives.length > 0;
+  if (profile.serverFile?.test(path) && !TEST_FILE.test(path) && !hasServerOnly && !standsAlone) add("server-only", "serverOnly");
+  if (profile.actionFile || profile.noActions) {
+    const isAction = profile.actionFile?.test(path) ?? false;
     const invalidServer = serverDirectives.find(({ node }) => !isAction || node !== source.statements[0]);
     if (invalidServer || (isAction && (!serverDirectives.some(({ node }) => node === source.statements[0]) || !hasBuilder))) {
       add("use-server-placement", "useServer", invalidServer?.node ?? serverDirectives[0]?.node);

@@ -10,6 +10,8 @@ export interface ToolStep {
   cwd?: string;
   timeoutMs?: number;
   findings(stdout: string, exitCode: number): Finding[];
+  /** One line for a failure the tool's own output explains at length, such as a missing config; undefined keeps that output. */
+  explain?(output: string): string | undefined;
 }
 
 interface Execution {
@@ -86,7 +88,9 @@ export async function runTool(root: string, step: ToolStep): Promise<Finding[]> 
   const result = await execute(root, step);
   let output = result.stdout + result.stderr;
   if (result.timedOut) output = `Tool timed out after ${step.timeoutMs ?? 120_000} ms.\n${output}`;
-  const failure = (): Finding[] => [{ rule: `${step.name}-failed`, file: "", message: output.split(/\r?\n/).slice(0, 40).join("\n") }];
+  const failure = (): Finding[] => [
+    { rule: `${step.name}-failed`, file: "", message: step.explain?.(output) ?? output.split(/\r?\n/).slice(0, 40).join("\n") },
+  ];
   if (result.code === null) return failure();
   try {
     const findings = step.findings(result.stdout, result.code);

@@ -116,7 +116,7 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
         reason: `add primitives with \`pnpm dlx shadcn add <name>\`; customise in ${sourceRootAt(harness, relative)}shared/components/`,
       };
     }
-    if (isLocked(relative, harness.config) && !unlocked(canonicalRoot)) return { guard: "harness-lock", reason: lockReason(relative) };
+    if (isLocked(relative, harness.config, canonicalRoot) && !unlocked(canonicalRoot)) return { guard: "harness-lock", reason: lockReason(relative) };
     if (writePaths.has(relative) && classify(relative, harness, legacy) === "owned") {
       const verdict = checkPath(relative, harness);
       if (!verdict.ok && !isIgnored(canonicalRoot, relative)) return { guard: "structure-write", reason: `${verdict.rule}: ${verdict.reason}` };

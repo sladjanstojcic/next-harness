@@ -87,6 +87,19 @@ function dependencyResult(root: string, workspace: WorkspaceEntry, stdout: strin
   return { findings, affected };
 }
 
+/** What each kind of knip issue is, in words; the entry's name follows. */
+const KNIP_KINDS: Readonly<Record<string, string>> = {
+  files: "unused file",
+  exports: "unused export",
+  types: "unused exported type",
+  dependencies: "unused dependency",
+  devDependencies: "unused devDependency",
+  binaries: "unlisted binary",
+  unlisted: "unlisted dependency",
+  unresolved: "unresolved import",
+};
+const knipEntry = z.object({ name: z.string(), line: z.number().optional() });
+
 function knipFindings(root: string, stdout: string): Finding[] {
   const value: unknown = JSON.parse(stdout);
   const unusedDependency = "Remove the unused dependency from package.json or use it in the application.";
@@ -100,11 +113,16 @@ function knipFindings(root: string, stdout: string): Finding[] {
     Object.entries(issues)
       .filter(([kind]) => kind !== "owners")
       .flatMap(([kind, entries]) =>
-        entries.map((entry): Finding => ({
-          rule: `knip-${kind}`,
-          file: relativePath(root, file),
-          message: `${kind}: ${JSON.stringify(entry)}. ${guidance[kind] ?? `Resolve the ${kind} issue in ${file}.`}`,
-        })),
+        entries.map((entry): Finding => {
+          const named = knipEntry.safeParse(entry);
+          const what = `${KNIP_KINDS[kind] ?? kind}${named.success ? ` ${named.data.name}` : `: ${JSON.stringify(entry)}`}`;
+          return {
+            rule: `knip-${kind}`,
+            file: relativePath(root, file),
+            ...(named.success && named.data.line !== undefined ? { line: named.data.line } : {}),
+            message: `${what}. ${guidance[kind] ?? `Resolve the ${kind} issue in ${file}.`}`,
+          };
+        }),
       ),
   );
 }

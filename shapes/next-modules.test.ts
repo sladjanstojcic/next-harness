@@ -110,7 +110,7 @@ describe("next-modules paths without src/", () => {
 
 describe("next-modules content without src/", () => {
   const FILES = {
-    "tsconfig.json": '{ "compilerOptions": { "paths": { "@/*": ["./*"] } } }\n',
+    "tsconfig.json": '{ "compilerOptions": { "strict": true, "paths": { "@/*": ["./*"] } } }\n',
     "next.config.ts": "export default { env: { A: process.env.A } };\n",
     "app/page.tsx": "export default function Page() {\n  return process.env.NAME;\n}\n",
     "shared/lib/env.ts": "export const env = process.env;\n",
