@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -40,12 +41,20 @@ export interface HarnessConfig {
   analysis?: AnalysisName[];
 }
 
+/** Where a next-modules workspace keeps app/, modules/ and shared/: under src/, or at its own top. */
+export type SourceRoot = "src/" | "";
+export const SOURCE_AREAS: readonly string[] = ["app", "modules", "shared"];
+/** Non-route files Next reads beside app/. */
+export const BESIDE_APP: readonly string[] = ["proxy.ts", "instrumentation.ts", "instrumentation-client.ts"];
+
 export interface WorkspaceEntry {
   path: string;
   shape: ShapeName;
   tools: ToolSetName;
   next: boolean;
   test?: string;
+  /** Present, and empty, for a next-modules workspace with app/ at its top; absent means src/. */
+  sourceRoot?: SourceRoot;
 }
 
 export const CONFIG_FILE = "harness.config.ts";
@@ -130,6 +139,35 @@ function directories(gitRoot: string, parent: string): string[] {
     .sort();
 }
 
+/**
+ * A next-modules workspace with app/ and no src/app/, as create-next-app without --src-dir and create-turbo write it, keeps
+ * its code at its top; an empty workspace and one with src/app/ use src/. A folder counts once git lists a file under it,
+ * tracked or untracked and not ignored: an empty folder from `mkdir` changes nothing, and every clone of a commit agrees.
+ */
+function detectSourceRoot(gitRoot: string, workspace: WorkspaceConfig, workspacePath: string): SourceRoot {
+  if (workspace.shape !== "next-modules" || gitRoot === "") return "src/";
+  const [app, srcApp] = ["app", "src/app"].map((folder) => `${path.posix.join(workspacePath, folder)}/`);
+  const listed = spawnSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", app ?? "", srcApp ?? ""], {
+    cwd: gitRoot,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  if (listed.status !== 0) return "src/";
+  const files = listed.stdout.split("\0");
+  const has = (folder = ""): boolean => files.some((file) => file.startsWith(folder));
+  return has(app) && !has(srcApp) ? "" : "src/";
+}
+
+export const sourceRootOf = (workspace: WorkspaceEntry | undefined): SourceRoot => workspace?.sourceRoot ?? "src/";
+
+/**
+ * What depcruise and jscpd read of a workspace's application code: src/, or the areas and the files beside app/ at its
+ * top. Only paths that exist, or are named in `soon` because the caller is about to create them: both tools fail on a missing one.
+ */
+export function sourcePaths(dir: string, root: SourceRoot, soon: readonly string[] = []): string[] {
+  return (root === "" ? [...SOURCE_AREAS, ...BESIDE_APP] : ["src"]).filter((entry) => soon.includes(entry) || fs.existsSync(path.join(dir, entry)));
+}
+
 export const toolsOf = (workspace: WorkspaceConfig): ToolSetName => workspace.tools ?? DEFAULT_TOOLS[workspace.shape];
 
 /** Whether a git-root-relative folder is one of the workspace's folders, without listing the disk. */
@@ -158,6 +196,7 @@ export function expandWorkspaces(gitRoot: string, config: HarnessConfig, files: 
       tools: toolsOf(workspace),
       next: workspace.next ?? false,
       ...(workspace.test === undefined ? {} : { test: workspace.test }),
+      ...(detectSourceRoot(gitRoot, workspace, workspacePath) === "" ? { sourceRoot: "" as const } : {}),
     }));
   });
 }

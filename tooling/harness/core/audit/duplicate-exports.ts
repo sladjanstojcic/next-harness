@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { TEST_FILE } from "../../shapes/next-modules.ts";
 import { ts } from "../../tools/typescript.ts";
-import { isVendoredIn, resolveHarness } from "../path-check.ts";
+import { isVendoredIn, resolveHarness, sourceRootAt } from "../path-check.ts";
 import { listFiles } from "./list-files.ts";
 import type { Finding } from "./finding.ts";
 
@@ -86,11 +86,12 @@ export function findDuplicateExports(root: string, files: string[]): Finding[] {
       if (!selected.has(copy.file)) continue;
       const original = copies.find((other) => other !== copy);
       if (!original) continue;
+      const root = sourceRootAt(harness, copy.file);
       findings.push({
         rule: "duplicate-export",
         file: copy.file,
         line: copy.line,
-        message: `${copy.name} is ${original.file}#${original.name} under another name. Reuse that export; put cross-module logic in src/shared/lib/ or src/shared/components/.`,
+        message: `${copy.name} is ${original.file}#${original.name} under another name. Reuse that export; put cross-module logic in ${root}shared/lib/ or ${root}shared/components/.`,
       });
     }
   }

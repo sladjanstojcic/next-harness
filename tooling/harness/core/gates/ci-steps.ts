@@ -1,6 +1,4 @@
-import fs from "node:fs";
-import path from "node:path";
-import { analysisOf } from "../../config.ts";
+import { analysisOf, sourcePaths, sourceRootOf, type WorkspaceEntry } from "../../config.ts";
 import { depcruise, jscpd, knip } from "../../tools/analysis.ts";
 import type { WorkspaceTools } from "../../tools/index.ts";
 import { testScript } from "../../tools/test-script.ts";
@@ -15,11 +13,11 @@ export interface SkippedStep {
 }
 
 /**
- * depcruise and jscpd read src/. A workspace of a configured repository that has none yet, as an adopted app keeps its own
- * layout, skips them until src/ appears; without harness.config.ts they run as before.
+ * depcruise and jscpd read the workspace's source folders: src/, or app/, modules/ and shared/ at its top. A workspace of a
+ * configured repository with neither src/ nor app/ yet skips them until one appears; without harness.config.ts they run as before.
  */
-export function lacksSources(harness: Harness, dir: string): boolean {
-  return harness.configured && !fs.existsSync(path.join(dir, "src"));
+export function lacksSources(harness: Harness, dir: string, workspace: WorkspaceEntry): boolean {
+  return harness.configured && sourcePaths(dir, sourceRootOf(workspace)).length === 0;
 }
 
 export const skippedLine = (name: string, workspacePath: string, reason: string): string =>
@@ -41,12 +39,14 @@ export function checkSteps({ tools, dir, workspace }: WorkspaceTools, perFile: b
 /** A workspace's depcruise, knip and jscpd steps, in that order; `output` is a folder for jscpd's per-file report. */
 export function analysisSteps(harness: Harness, { dir, workspace }: WorkspaceTools, perFile: boolean, output: string): (ToolStep | SkippedStep)[] {
   const analysis = new Set(analysisOf(harness.config, workspace));
-  const sourceless = lacksSources(harness, dir);
+  const sourceless = lacksSources(harness, dir, workspace);
   const sources = (name: string, step: () => ToolStep): ToolStep | SkippedStep => (sourceless ? { name, skipped: "no src/" } : step());
   return [
-    ...(analysis.has("depcruise") ? [sources("depcruise", () => (perFile ? depcruise.report(dir, new Set(), () => undefined) : depcruise.check(dir)))] : []),
+    ...(analysis.has("depcruise")
+      ? [sources("depcruise", () => (perFile ? depcruise.report(dir, workspace, new Set(), () => undefined) : depcruise.check(dir, workspace)))]
+      : []),
     ...(analysis.has("knip") ? [perFile ? knip.report(dir) : knip.check(dir)] : []),
-    ...(analysis.has("jscpd") ? [sources("jscpd", () => (perFile ? jscpd.report(dir, output, workspace.path) : jscpd.check(dir, workspace.path)))] : []),
+    ...(analysis.has("jscpd") ? [sources("jscpd", () => (perFile ? jscpd.report(dir, output, workspace) : jscpd.check(dir, workspace)))] : []),
   ];
 }
 

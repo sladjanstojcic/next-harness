@@ -179,10 +179,12 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
     hooksStep(root, ".codex/hooks.json", CODEX_HOOKS, force),
     codexConfigStep(root, force),
     prePushStep(root, force),
-    scriptsStep(root, "package.json", PACKAGE_SCRIPTS, { prepare: PREPARE, ...(atRoot === undefined ? {} : toolScripts(atRoot)) }, force),
+    scriptsStep(root, "package.json", PACKAGE_SCRIPTS, { prepare: PREPARE, ...(atRoot === undefined ? {} : toolScripts(atRoot, root, starter)) }, force),
     ...(atRoot === undefined ? [gitignoreStep(root, "", [HARNESS_MODULES])] : []),
     ...workspaces.flatMap((workspace) => [
-      ...(workspace.path === "" ? [] : [scriptsStep(root, `${workspace.path}/package.json`, {}, toolScripts(workspace), force)]),
+      ...(workspace.path === ""
+        ? []
+        : [scriptsStep(root, `${workspace.path}/package.json`, {}, toolScripts(workspace, path.join(root, workspace.path), starter), force)]),
       ...toolConfigSteps(root, workspace, force, starter),
     ]),
     ...rootIgnoreSteps(root, all),

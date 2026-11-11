@@ -157,8 +157,13 @@ pnpm dev
 
 ### An existing Next.js project
 
-For a single app at the repository root, such as `create-next-app` output with a `src/` folder. No config
-file is needed: the whole repository is one `next-modules` workspace.
+For a single app at the repository root, such as `create-next-app` output, with or without a `src/`
+folder. No config file is needed: the whole repository is one `next-modules` workspace.
+
+Without `--src-dir`, create-next-app puts `app/` at the root, and Next.js ignores `src/app/` while it
+exists. The harness then keeps the same shape one level up: routes in `app/`, features in
+`modules/<module>/`, shared code in `shared/`. It reads this from git: `app/` holds a file git lists and
+`src/app/` holds none. Nothing is configured, and an empty folder does not switch the layout.
 
 ```sh
 git subtree add --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
@@ -178,7 +183,8 @@ Then do the printed steps in order. On a real `create-next-app` project there we
 6. `git add -A && git commit -m "Add the harness"`.
 7. `pnpm run check`, the full gate.
 
-`--starter` copies the `src/shared/lib/` helpers that the content rules point at, and `e2e/smoke.test.ts`.
+`--starter` copies the `shared/lib/` helpers that the content rules point at, under `src/` or beside
+`app/`, and `e2e/smoke.test.ts`.
 Code that does not fit the shape yet shows up in step 7. Move it, or give the project a legacy list as
 the monorepo section below does.
 
@@ -200,7 +206,9 @@ export default defineHarness({
 });
 ```
 
-- `path: "apps/*"` makes every folder under `apps/` a workspace of that shape.
+- `path: "apps/*"` makes every folder under `apps/` a workspace of that shape. An app that create-turbo
+  wrote has `app/` at its top and no `src/`; it keeps that layout, with `modules/` and `shared/` beside
+  `app/`.
 - `{ path: "packages/*", shape: "package" }` puts the shared packages under the harness too; see below.
 - `test: "test"` runs the app's own `test` package script instead of Vitest. Leave it out for a Vitest app.
 - `legacy` names the file that lists old code. Leave it out for a monorepo with no old code.
@@ -416,8 +424,9 @@ sets `allowImportingTsExtensions` in `tsconfig.json` and excludes `tooling/harne
 from the project's type check. A root Next workspace also gets `playwright.config.ts`, which runs only
 `e2e/**/*.test.ts`; the CI browser step reports `playwright: skipped` until such a file exists. A `test`
 script that does not run Vitest gets no `vitest.config.ts`; init prints the `test: "test"` line for
-`harness.config.ts` instead. A next-modules workspace without `src/` skips depcruise and jscpd until
-`src/` exists.
+`harness.config.ts` instead. In a workspace without `src/`, the ESLint config passes
+`layout: "app-root"`, the ignore entry is `shared/ui`, and depcruise and jscpd read `app/`, `modules/`
+and `shared/`.
 
 **Tools.** Init prints one install line: only tools that are missing, or below the minimum the presets
 work with. An installed tool at or above the minimum stays, also when newer. The presets import no tool
@@ -589,6 +598,16 @@ Exact versions, no ranges; every config file is TypeScript.
   locked file edited and committed in the same command therefore passes. The migration check compares
   with the applied version (upstream, remote default branch, else the task's start) and catches that case, but CI does not check migrations, and
   `cli.ts check done` run by hand compares with HEAD.
+- Without `src/`, the `depcruise` and `jscpd` package scripts init writes name the source paths that
+  exist at that moment, and `shared` with `--starter`, because both tools fail on a missing path. Add
+  `modules` to them once it exists; the gates work out the paths themselves on every run. A new app
+  under `apps/*` is judged with `src/` until git lists a file under its `app/` folder.
+- The layout follows the files git lists under `app/` and `src/app/`. The Write tool cannot switch it,
+  but a shell command that moves or creates files there can (`git mv src/app app`). The full audit then
+  reports every file left in the other layout.
+- In a project with `src/`, a root-level `modules/` or `shared/` folder is possible only through
+  `root.entries` or the legacy list. dependency-cruiser then applies its rules to imports of it, Vitest
+  runs test files in it, and knip takes `shared/lib/` helpers there as entries.
 - A `package` workspace runs no depcruise, knip or jscpd. Import cycles, unused exports and duplicated
   code inside a package are therefore not checked, and domain purity there is a lint rule only. A
   package's server components may import `src/server/`; only files with `"use client"` are stopped. A

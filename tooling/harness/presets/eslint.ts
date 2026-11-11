@@ -2,7 +2,7 @@ import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import { harnessRuleBlocks, type PresetLayout } from "./eslint-rules.ts";
 import { call, defaultOf, isRecord, list, member, toolLoader } from "./load-tool.ts";
 
-const VENDORED = ["src/shared/ui/**", "src/shared/lib/utils.ts"];
+const VENDORED = ["shared/ui/**", "shared/lib/utils.ts"];
 
 /** The TypeScript tool configs at a workspace top; a consumer's tsconfig leaves them out, so they are linted without types. */
 const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
@@ -12,7 +12,7 @@ const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
 export interface HarnessEslintOptions {
   /** The workspace folder holding tsconfig.json, for typed rules; ESLint and its plugins load from there. */
   root: string;
-  /** "package" for a shared package (src/server/, src/domain/ at its top); an app's src/modules/ layout by default. */
+  /** "app-root" for an app without src/ (app/, modules/, shared/ at its top), "package" for a shared package; an app's src/ layout by default. */
   layout?: PresetLayout;
   /** Adds the Next.js core-web-vitals and TypeScript configs. */
   next?: boolean;
@@ -21,7 +21,7 @@ export interface HarnessEslintOptions {
    * any Next configs: the preset then adds only the harness's blocks, so no plugin is defined twice.
    */
   base?: boolean;
-  /** Generated files the rules skip; the next-modules vendored paths by default. */
+  /** Generated files the rules skip; the next-modules vendored paths of the layout by default. */
   vendored?: string[];
   /** A consumer leaves the vendored harness, which its tsconfig excludes, unlinted; the harness's own repository lints it. */
   harness?: "lint" | "ignore";
@@ -37,7 +37,8 @@ const isEntry = (value: unknown): value is EslintEntry => isRecord(value) && (va
 
 /** The harness's ESLint rules for a next-modules or package workspace; a project with its own config appends these after its entries. */
 export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
-  const { root, layout = "app", next = false, base = true, vendored = VENDORED, harness = "ignore" } = options;
+  const { root, layout = "app", next = false, base = true, harness = "ignore" } = options;
+  const vendored = options.vendored ?? VENDORED.map((glob) => (layout === "app-root" ? glob : `src/${glob}`));
   const tool = toolLoader(root);
   const eslint = tool("eslint/config");
   const tseslint = defaultOf(tool("typescript-eslint"));

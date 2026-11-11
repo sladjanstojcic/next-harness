@@ -4,7 +4,7 @@ import { ciGate } from "../core/gates/ci-gate.ts";
 import * as runner from "../core/gates/run-tool.ts";
 import { parseEvent } from "../core/hooks/event.ts";
 import { handleEvent } from "../core/hooks/handle.ts";
-import { PLINT_LEGACY, PLINT_LEGACY_FILES, PLINT_MIGRATION, plintRepo } from "./plint-repo.ts";
+import { PLINT_LEGACY, PLINT_LEGACY_FILES, PLINT_MIGRATION, plintRepo, plintRepoWithoutSrc } from "./plint-repo.ts";
 import type { RepoFixture } from "./temp-repo.ts";
 
 afterEach(() => vi.restoreAllMocks());
@@ -64,6 +64,29 @@ describe("plint-control-plane dry run (next-modules dashboard, root Supabase, le
     const stop = await hooks.stop();
     expect(stop.kind).toBe("block");
     expect(stop.findings?.map(({ file, rule }) => `${file} ${rule}`)).toEqual(["apps/dashboard/src/utils/format-money.ts src-shape"]);
+  });
+
+  it("without src/: old files at the dashboard's top are pre-existing, a new route goes in app/ and new feature code in modules/", async () => {
+    const repo = plintRepoWithoutSrc();
+    vi.spyOn(runner, "runTool").mockResolvedValue([]);
+    const ci = await ciGate(repo.root);
+    expect(ci.findings).toEqual([]);
+    expect(ci.preExisting.map(({ file, rule }) => `${file} ${rule}`).sort()).toEqual([
+      "apps/dashboard/components/UsageChart.tsx unknown-root",
+      "apps/dashboard/utils/format-date.ts unknown-root",
+    ]);
+    const hooks = session(repo);
+    await hooks.prompt();
+    for (const file of ["apps/dashboard/app/reports/page.tsx", "apps/dashboard/modules/usage/domain/quota.ts", "apps/dashboard/shared/lib/format.ts"])
+      expect(await hooks.before("Write", { file_path: file, content: "" }), file).toEqual({ kind: "allow" });
+    for (const file of ["apps/dashboard/utils/format-money.ts", "apps/dashboard/src/app/reports/page.tsx"]) {
+      const denied = await hooks.before("Write", { file_path: file, content: "" });
+      expect(denied, file).toMatchObject({ kind: "deny", guard: "structure-write" });
+      expect(denied.kind === "deny" ? denied.reason : "").toContain("routes belong in app/, feature code in modules/<module>/");
+    }
+    const edit = () => repo.write("apps/dashboard/utils/format-date.ts", "export const formatDate = (value: Date) => value.toISOString().slice(0, 10);\n");
+    expect(await hooks.shell("sed -i '' 's/x/y/' apps/dashboard/utils/format-date.ts", edit)).toEqual({ kind: "allow" });
+    expect(await hooks.stop()).toEqual({ kind: "allow" });
   });
 
   it("refuses to grow the legacy list", async () => {

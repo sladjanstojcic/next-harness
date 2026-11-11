@@ -13,7 +13,7 @@ export interface HarnessVitestOptions {
   passWithNoTests?: boolean;
 }
 
-/** Vitest for a next-modules workspace, run from its folder: unit tests in src/ and scripts/, never the harness's own. */
+/** Vitest for a workspace, run from its folder: unit tests in src/, or in app/, modules/ and shared/ without it, and in scripts/; never the harness's own. */
 export function harnessVitest({ passWithNoTests = true }: HarnessVitestOptions = {}) {
   return {
     resolve: {
@@ -22,7 +22,7 @@ export function harnessVitest({ passWithNoTests = true }: HarnessVitestOptions =
     test: {
       // Use the package's server entry in tests without changing React's resolution conditions.
       alias: { "server-only": serverOnlyEntry() },
-      include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.ts"],
+      include: ["src/**/*.test.{ts,tsx}", "{app,modules,shared}/**/*.test.{ts,tsx}", "scripts/**/*.test.ts"],
       environment: "node",
       passWithNoTests,
       // Most tests spawn git, Node or the real tools; the 5 s default fails them on a loaded machine.

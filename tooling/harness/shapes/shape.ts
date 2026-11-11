@@ -12,6 +12,8 @@ export interface Shape {
   /** Top-level file names the shape accepts beyond topEntries, such as README-<topic>.md. */
   topEntryPattern?: RegExp;
   topFolders: readonly string[];
+  /** Where the shape keeps application code: absent means src/, "" the workspace top. Messages outside the shape name paths with it. */
+  sourceRoot?: string;
   /** The reason for an entry the workspace top does not take, and for a JavaScript file, in this shape's words; the core's own otherwise. */
   topAdvice?: string;
   jsAdvice?: string;
@@ -73,8 +75,10 @@ export function testsFolderDenial(path: string, layout: string): PathVerdict | u
   return deny("file-name", `Put tests beside the file they test as <name>.test.ts, not in __tests__/, in owned code ${layout}.`);
 }
 
-export function nameDenial(): PathVerdict {
-  return deny("file-name", "Use kebab-case names in src/, tooling/, scripts/ or e2e/; Next route segments belong only in src/app/.");
+/** `root` is the workspace's source root: "src/", or "" when app/, modules/ and shared/ sit at its top. */
+export function nameDenial(root = "src/"): PathVerdict {
+  const sources = root === "" ? "app/, modules/, shared/" : root;
+  return deny("file-name", `Use kebab-case names in ${sources}, tooling/, scripts/ or e2e/; Next route segments belong only in ${root}app/.`);
 }
 
 export function matchesEntry(entries: readonly string[], file: string): boolean {

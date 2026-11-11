@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { WorkspaceEntry } from "../../config.ts";
+import { sourcePaths, sourceRootOf, type WorkspaceEntry } from "../../config.ts";
 import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { eslintPresetLines, presetCall, presetImport } from "../../tools/eslint-preset.ts";
 import { isObject, readJson, writer, type Step } from "./files.ts";
-import { developsHarness, gitignoreStep, HARNESS_MODULES, IGNORED, PRETTIER_IGNORED, ignoreEntriesStep } from "./ignore-files.ts";
+import { developsHarness, gitignoreStep, HARNESS_MODULES, IGNORED, prettierIgnored, ignoreEntriesStep } from "./ignore-files.ts";
 import { tsconfigStep } from "./tsconfig-step.ts";
 
 const HARNESS = path.resolve(import.meta.dirname, "../..");
@@ -167,12 +167,18 @@ function dependencyCruiserStep(root: string, workspace: WorkspaceEntry, force: b
   return { target, status: "updated", detail: "replaced by the harness preset", apply };
 }
 
-/** Scripts a workspace gets when it has none of that name; the root's harness scripts come from the wiring. */
-export function toolScripts(workspace: WorkspaceEntry): Record<string, string> {
+/**
+ * Scripts a workspace gets when it has none of that name; the root's harness scripts come from the wiring. Without src/
+ * the analysis scripts name the source paths that exist in `dir` today, since both tools fail on a missing one, and
+ * shared/ when this run's starter files are about to create it.
+ */
+export function toolScripts(workspace: WorkspaceEntry, dir = "", starter = false): Record<string, string> {
+  const soon = starter && workspace.shape === "next-modules" ? ["shared"] : [];
+  const sources = sourceRootOf(workspace) === "" ? sourcePaths(dir, "", soon).join(" ") : "src";
   const analysis = {
-    depcruise: "depcruise src --config .dependency-cruiser.json",
+    depcruise: `depcruise ${sources} --config .dependency-cruiser.json`,
     knip: "knip",
-    jscpd: `jscpd src --config ${presetImport(workspace.path, "jscpd.json")}`,
+    jscpd: `jscpd ${sources} --config ${presetImport(workspace.path, "jscpd.json")}`,
   };
   return {
     lint: "eslint . --max-warnings 0",
@@ -210,8 +216,8 @@ export function toolConfigSteps(root: string, workspace: WorkspaceEntry, force: 
     ...(app ? [dependencyCruiserStep(root, workspace, force)] : []),
     tsconfigStep(root, workspace, force, developsHarness(root) ? [] : presetConfigs(root, workspace)),
     ...(app ? [gitignoreStep(root, workspace.path, workspace.path === "" ? [...IGNORED, HARNESS_MODULES] : IGNORED)] : []),
-    ...(workspace.path === "" || !app ? [] : [ignoreEntriesStep(root, label(workspace, ".prettierignore"), PRETTIER_IGNORED)]),
-    ...(starter && workspace.shape === "next-modules" ? starterSteps(root, workspace, "next-modules", "src/shared/lib") : []),
+    ...(workspace.path === "" || !app ? [] : [ignoreEntriesStep(root, label(workspace, ".prettierignore"), prettierIgnored(workspace))]),
+    ...(starter && workspace.shape === "next-modules" ? starterSteps(root, workspace, "next-modules", `${sourceRootOf(workspace)}shared/lib`) : []),
     ...(starter && browser ? starterSteps(root, workspace, "e2e", "e2e") : []),
   ];
 }

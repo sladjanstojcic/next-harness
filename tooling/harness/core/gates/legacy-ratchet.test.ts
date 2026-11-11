@@ -135,38 +135,45 @@ describe("CI with a legacy list: tool findings are judged file by file", () => {
 });
 
 describe("a configured next-modules workspace without src/", () => {
-  const sourceless = () => {
+  const analysed = (run: { mock: { calls: [string, runner.ToolStep][] } }): string[] =>
+    run.mock.calls.filter(([, step]) => step.name === "depcruise" || step.name === "jscpd").map(([, step]) => `${step.name} ${step.command[1] ?? ""}`);
+  const withoutSrc = (app: boolean) => {
     const repo = plintRepo();
     fs.rmSync(path.join(repo.root, "apps/dashboard/src"), { recursive: true });
-    repo.write("apps/dashboard/app/page.tsx", "export default function Page() { return null; }\n");
-    repo.write("tooling/harness-legacy.json", `${JSON.stringify({ version: 1, files: ["apps/dashboard/app/page.tsx"] })}\n`);
+    if (app) repo.write("apps/dashboard/app/page.tsx", "export default function Page() { return null; }\n");
+    repo.write("tooling/harness-legacy.json", `${JSON.stringify({ version: 1, files: [] })}\n`);
     repo.git("add", "-A");
     repo.git("commit", "-qm", "an app without src/");
     return repo;
   };
 
-  it("skips depcruise and jscpd in CI and Done, and says so", async () => {
-    const repo = sourceless();
+  it("runs depcruise and jscpd on app/ at the workspace top, in CI and Done", async () => {
+    const repo = withoutSrc(true);
+    const run = vi.spyOn(runner, "runTool").mockResolvedValue([]);
+    const ci = await ciGate(repo.root);
+    expect(ci.report).toContain("depcruise (apps/dashboard): passed\nknip (apps/dashboard): passed\njscpd (apps/dashboard): passed");
+    expect(ci.passed).toBe(true);
+    expect(analysed(run)).toEqual(["depcruise app", "jscpd app"]);
+    run.mockClear();
+    repo.write("apps/dashboard/app/page.tsx", "export default function Page() { return <main />; }\n");
+    const done = await doneGate(repo.root, ["apps/dashboard/app/page.tsx"]);
+    expect(done.report).not.toContain("skipped");
+    expect(analysed(run)).toEqual(["depcruise app", "jscpd app"]);
+  });
+
+  it("skips them while the workspace has neither src/ nor app/, and without harness.config.ts never", async () => {
+    const repo = withoutSrc(false);
     const run = vi.spyOn(runner, "runTool").mockResolvedValue([]);
     const ci = await ciGate(repo.root);
     expect(ci.report).toContain("depcruise (apps/dashboard): skipped (no src/)\nknip (apps/dashboard): passed\njscpd (apps/dashboard): skipped (no src/)");
-    expect(ci.passed).toBe(true);
-    repo.write("apps/dashboard/app/page.tsx", "export default function Page() { return <main />; }\n");
-    const done = await doneGate(repo.root, ["apps/dashboard/app/page.tsx"]);
-    expect(done.report).toContain("depcruise (apps/dashboard): skipped (no src/)\njscpd (apps/dashboard): skipped (no src/)");
-    expect(run.mock.calls.map(([, step]) => step.name).filter((name) => name === "depcruise" || name === "jscpd")).toEqual([]);
-  });
-
-  it("runs them again once src/ appears, and without harness.config.ts always", async () => {
-    const repo = sourceless();
+    expect(analysed(run)).toEqual([]);
     repo.write(NEW_FILE, "export function Usage() { return null; }\n");
-    const run = vi.spyOn(runner, "runTool").mockResolvedValue([]);
     await ciGate(repo.root);
-    expect(run.mock.calls.map(([, step]) => step.name).filter((name) => name === "depcruise" || name === "jscpd")).toEqual(["depcruise", "jscpd"]);
+    expect(analysed(run)).toEqual(["depcruise src", "jscpd src"]);
     run.mockClear();
     const plain = await ciGate(makeRepo({ "app/page.tsx": "" }).root);
     expect(plain.report).not.toContain("skipped (no src/)");
-    expect(run.mock.calls.map(([, step]) => step.name)).toContain("depcruise");
+    expect(analysed(run)).toEqual(["depcruise app", "jscpd app"]);
   });
 });
 

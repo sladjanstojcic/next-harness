@@ -43,6 +43,18 @@ rules inside a workspace, and `shapes/limits.ts` its size limits.
 The pre-write guard and the audit read both; change that source of truth when a
 rule must change.
 
+- A project without `src/` keeps the same shape one level up: `app/`, `modules/<module>/`
+  and `shared/{ui,components,lib,hooks}/` at the workspace top, with `proxy.ts` and
+  `instrumentation*.ts` beside `app/`. That layout applies when the workspace has `app/`
+  and no `src/app/`, as create-next-app without `--src-dir` and create-turbo write it;
+  every other workspace, an empty one too, uses `src/`. It is read from git, not
+  configured: a folder counts once git lists a file under it, tracked or untracked and
+  not ignored, so an empty folder from `mkdir` changes nothing and every clone agrees.
+  Without `src/`, `src` is not an approved entry, and with it the three folders at the
+  top stay denied, so the Write tool cannot switch the layout; a shell command that
+  moves or creates files under `app/` or `src/app/` can, and the full audit then reports
+  the files left in the other layout. Rules, limits and messages
+  are the same and name the layout's own paths; `@/` maps to the workspace top.
 - Use kebab-case file and folder names in `src/`, `tooling/`, `scripts/` and `e2e/`.
   Next route segments are exceptions. Names in docs, public assets and tool config
   folders follow their tools' conventions, including SKILL.md and CODEOWNERS.
@@ -167,8 +179,9 @@ export default defineHarness({
 - A workspace with `test: "<package script>"` runs that script through the project's
   package manager instead of Vitest, in CI and in Done. Done runs the whole script, not
   only related tests; a non-zero exit is `test-failed` with the end of the output.
-- With a config file, a next-modules workspace without `src/` skips depcruise and jscpd
-  (`skipped (no src/)`); they run once `src/` exists.
+- depcruise and jscpd read `src/`, or `app/`, `modules/`, `shared/`, `proxy.ts` and
+  `instrumentation*.ts` in a next-modules workspace without `src/`. With a config file, a workspace that has neither `src/` nor
+  `app/` yet skips them (`skipped (no src/)`).
 
 ### Shapes, tool sets and the other config fields
 
@@ -220,7 +233,9 @@ export default defineHarness({
 - `init` writes the thin configs and prints one install line: only tools that are
   missing, at the template's version, or below the minimum. An installed tool at or
   above the minimum stays, also when newer. A project's own Prettier config is kept as
-  it is. A `test` script that does not run Vitest gets no `vitest.config.ts`; init
+  it is. In a workspace without `src/` the thin ESLint config passes `layout: "app-root"`,
+  `--starter` copies the helpers to `shared/lib/`, and the depcruise and jscpd scripts
+  name the source paths that exist then, with `shared` when `--starter` creates it. A `test` script that does not run Vitest gets no `vitest.config.ts`; init
   prints the `test: "test"` line for `harness.config.ts` instead. The workspace's
   `tsconfig.json` excludes every tool config that imports a preset, so the project's
   type check never enters `tooling/harness/`; ESLint lints those files without types.

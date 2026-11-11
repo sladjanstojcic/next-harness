@@ -3,7 +3,7 @@ import { workspaceOf } from "../../config.ts";
 import { MAX_FOLDER_FILES } from "../../shapes/limits.ts";
 import { TEST_FILE } from "../../shapes/next-modules.ts";
 import { classify, readLegacy } from "../classes.ts";
-import { checkPath, isVendoredIn, resolveHarness, type Harness } from "../path-check.ts";
+import { checkPath, isVendoredIn, resolveHarness, sourceRootAt, type Harness } from "../path-check.ts";
 import { ROOT_FOLDER_GUIDANCE, ROOT_KEBAB_FOLDERS } from "../root-layout.ts";
 import type { Finding } from "./finding.ts";
 import { listFiles } from "./list-files.ts";
@@ -52,6 +52,7 @@ function duplicateFindings(harness: Harness, inventory: string[], selected: Set<
   const findings: Finding[] = [];
   for (const [key, members] of names) {
     const name = posix.basename(key);
+    const root = sourceRootAt(harness, members[0]?.file ?? "");
     for (const member of members) {
       if (!selected.has(member.file)) continue;
       const others = members.filter((other) => other.scope !== member.scope);
@@ -59,7 +60,7 @@ function duplicateFindings(harness: Harness, inventory: string[], selected: Set<
       findings.push({
         rule: "duplicate-file-name",
         file: member.file,
-        message: `${name} also exists in ${others.map((other) => other.file).join(", ")}. Move reusable code to src/shared/lib/ or src/shared/components/, or use module-specific names in src/modules/.`,
+        message: `${name} also exists in ${others.map((other) => other.file).join(", ")}. Move reusable code to ${root}shared/lib/ or ${root}shared/components/, or use module-specific names in ${root}modules/.`,
       });
     }
   }
