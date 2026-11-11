@@ -64,7 +64,7 @@ describe("init in an existing app", () => {
     expect(report).toContain('kept apps/dashboard/package.json: its "test" script does not run Vitest; no Vitest config is written (see the next steps)');
     expect(nextSteps(report)).toContainEqual(
       expect.stringContaining(
-        'Run this workspace\'s own tests in the gates instead of Vitest: add test: "test" to the "apps/dashboard" workspace in harness.config.ts',
+        'Run this workspace\'s own tests in the gates instead of Vitest, by adding this to the "apps/dashboard" workspace in harness.config.ts: test: "test"',
       ),
     );
     expect(installLine(report)).not.toMatch(/vitest@|@types\/node@/);

@@ -113,10 +113,9 @@ function preparesHooks(root: string): boolean {
 /** The config line that makes the gates run a workspace's own test script; the config file is the user's to edit. */
 function ownTestsItem(harness: Harness, workspace: WorkspaceEntry): string {
   const where = workspace.path === "" ? "." : workspace.path;
-  const create = harness.configured
-    ? ""
-    : ` (no ${CONFIG_FILE} yet: export default defineHarness({ workspaces: [{ path: ".", shape: "next-modules", next: true, test: "test" }] }))`;
-  return `Run this workspace's own tests in the gates instead of Vitest: add test: "test" to the "${where}" workspace in ${CONFIG_FILE}${create}`;
+  const lead = "Run this workspace's own tests in the gates instead of Vitest";
+  if (harness.configured) return `${lead}, by adding this to the "${where}" workspace in ${CONFIG_FILE}: test: "test"`;
+  return `${lead}, by creating ${CONFIG_FILE} with: export default defineHarness({ workspaces: [{ path: ".", shape: "next-modules", next: true, test: "test" }] })`;
 }
 
 /** One numbered list of what the user runs after init, in the order that works: tools before the files that need them. */
@@ -138,8 +137,9 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
   const items = [
     ...workspaces.flatMap((workspace) => {
       const command = peerInstall(root, harness.config, workspace);
-      const why = needsTypescriptApi(root, workspace) ? ` (${TYPESCRIPT_API_REASON})` : "";
-      return command === undefined ? [] : [`Install the harness's tools (init does not install): ${command}${why}`];
+      // A step ends with its command, so a copied line is one the shell takes: the reason goes before the colon.
+      const why = needsTypescriptApi(root, workspace) ? `; ${TYPESCRIPT_API_REASON}` : "";
+      return command === undefined ? [] : [`Install the harness's tools (init does not install${why}): ${command}`];
     }),
     ...(starter ? workspaces.filter((workspace) => workspace.shape === "next-modules") : [])
       .flatMap((workspace) => starterInstall(root, workspace) ?? [])
@@ -147,7 +147,7 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
     ...(todo.length === 0 ? [] : [`Make the change each kept file above asks for: ${todo.join(", ")}`]),
     ...(starter && fs.existsSync(path.join(root, "turbo.json")) && workspaces.some((workspace) => workspace.shape === "next-modules")
       ? [
-          'Declare NODE_ENV in "globalEnv" of turbo.json: the starter shared/lib/env.ts reads it, and Turborepo\'s lint rule reports a variable turbo.json does not list',
+          'Declare NODE_ENV in "globalEnv" of turbo.json, because the starter shared/lib/env.ts reads it and Turborepo\'s lint rule reports a variable turbo.json does not list',
         ]
       : []),
     ...ownTests.map((workspace) => ownTestsItem(harness, workspace)),

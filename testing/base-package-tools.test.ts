@@ -127,13 +127,17 @@ describe("tools the project's own lint config already brings", () => {
     expect(peerInstall(repo.root, loadConfig(repo.root), workspace)).toMatch(/ "typescript@npm:@typescript\/typescript6@\^6\.0\.2"$/);
     repo.git("config", "--unset", "core.hooksPath");
     const { report } = initHarness(repo.root, { force: false, starter: false });
-    expect(report).toContain(
-      '"typescript@npm:@typescript/typescript6@^6.0.2" (typescript-eslint needs TypeScript\'s JavaScript API, and TypeScript 7 has none',
+    const step = report.split("\n").find((line) => line.includes("Install the harness's tools")) ?? "";
+    // A copied step must be a command to its end: the reason sits before the colon, and holds no colon of its own.
+    const [lead, command] = [step.slice(0, step.indexOf(": ")), step.slice(step.indexOf(": ") + 2)];
+    expect(lead).toContain(
+      "(init does not install; typescript-eslint needs TypeScript's JavaScript API and TypeScript 7 has none, so the alias installs TypeScript 6",
     );
+    expect(command).toMatch(/^cd apps\/web && pnpm add -D [^()]+ "typescript@npm:@typescript\/typescript6@\^6\.0\.2"$/);
     install(repo.root, APP, "harness-fixture-tool", 'throw new Error("does not support TS 7.0.");\n');
     const failure = (): unknown => toolLoader(repo.dir, BASE)("harness-fixture-tool");
     expect(failure).toThrow(
-      'TypeScript 7 has none: the alias installs TypeScript 6 under the name typescript, while `tsc` stays the project\'s own. Add "typescript@npm:@typescript/typescript6@^6.0.2" to that workspace. does not support TS 7.0.',
+      'TypeScript 7 has none, so the alias installs TypeScript 6 under the name typescript, while `tsc` stays the project\'s own. Add "typescript@npm:@typescript/typescript6@^6.0.2" to that workspace. does not support TS 7.0.',
     );
     expect(() => toolLoader(repo.dir, BASE)("harness-fixture-absent")).toThrow("install it in that workspace");
     typescript(APP, "6.0.2");

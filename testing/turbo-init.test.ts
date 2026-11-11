@@ -48,7 +48,11 @@ describe("init --starter in a create-turbo project, then its printed steps", () 
     );
     expect(report).toContain(`the second line in place of \`export default config\`:\n    ${PRESET}\n    ${UI_LINE}`);
     expect(report).not.toMatch(/pnpm add -D [^\n]*(?:eslint-config-next|@eslint\/js)/);
-    expect(report).toContain('Declare NODE_ENV in "globalEnv" of turbo.json: the starter shared/lib/env.ts reads it');
+    expect(report).toContain('Declare NODE_ENV in "globalEnv" of turbo.json, because the starter shared/lib/env.ts reads it');
+    // Every step that gives a command ends with it: nothing a copied line would hand to the shell as prose.
+    const steps = report.split("\n").filter((line) => /^ {2}\d+\. /.test(line) && /: (?:\(?cd |pnpm |node |git )/.test(line));
+    expect(steps.length).toBeGreaterThan(3);
+    for (const step of steps) expect(step.slice(step.indexOf(": ") + 2), step).not.toMatch(/[a-z"] \((?!cd )/);
     expect(report).toContain('updated apps/web/tsconfig.json: compilerOptions.allowImportingTsExtensions: true, compilerOptions.paths "@/*": ["./*"]');
     expect(report).not.toContain("updated packages/ui/tsconfig.json: compilerOptions.allowImportingTsExtensions: true, compilerOptions.paths");
   });
