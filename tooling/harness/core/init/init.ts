@@ -9,7 +9,8 @@ import { resolveHarness, type Harness } from "../path-check.ts";
 import { ALL_TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { bin } from "../../tools/tool-set.ts";
 import { gitignoreStep, HARNESS_MODULES, rootIgnoreSteps } from "./ignore-files.ts";
-import { peerInstall, starterInstall } from "./peers.ts";
+import { TYPESCRIPT_API_REASON } from "../../presets/load-tool.ts";
+import { needsTypescriptApi, peerInstall, starterInstall } from "./peers.ts";
 import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
 import { CONFIG_FILE, isConfigOnly, type WorkspaceEntry } from "../../config.ts";
 import { ciSteps, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH, PREPARE } from "./wiring.ts";
@@ -135,13 +136,20 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
   const { legacy } = harness.config;
   const ownTests = workspaces.filter((workspace) => workspace.test === undefined && runsOwnTests(root, workspace) !== undefined);
   const items = [
-    ...workspaces
-      .flatMap((workspace) => peerInstall(root, harness.config, workspace) ?? [])
-      .map((command) => `Install the harness's tools (init does not install): ${command}`),
+    ...workspaces.flatMap((workspace) => {
+      const command = peerInstall(root, harness.config, workspace);
+      const why = needsTypescriptApi(root, workspace) ? ` (${TYPESCRIPT_API_REASON})` : "";
+      return command === undefined ? [] : [`Install the harness's tools (init does not install): ${command}${why}`];
+    }),
     ...(starter ? workspaces.filter((workspace) => workspace.shape === "next-modules") : [])
       .flatMap((workspace) => starterInstall(root, workspace) ?? [])
       .map((command) => `Install the runtime packages the starter files import: ${command}`),
     ...(todo.length === 0 ? [] : [`Make the change each kept file above asks for: ${todo.join(", ")}`]),
+    ...(starter && fs.existsSync(path.join(root, "turbo.json")) && workspaces.some((workspace) => workspace.shape === "next-modules")
+      ? [
+          'Declare NODE_ENV in "globalEnv" of turbo.json: the starter shared/lib/env.ts reads it, and Turborepo\'s lint rule reports a variable turbo.json does not list',
+        ]
+      : []),
     ...ownTests.map((workspace) => ownTestsItem(harness, workspace)),
     ...(preparesHooks(root) ? [] : [`Add to the root package.json "prepare" script, so a fresh clone gets the pre-push hook: ${PREPARE}`]),
     ...(format.length === 0 ? [] : [`Format the app's own files once in the preset's style: ${format.join("; ")}`]),

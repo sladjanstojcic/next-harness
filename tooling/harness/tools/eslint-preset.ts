@@ -89,13 +89,16 @@ export function presetImport(workspacePath: string, file: string): string {
 }
 
 /**
- * A config that brings the Next configs, Next's plugin or typescript-eslint itself takes only the harness's blocks; ESLint
- * refuses a plugin defined twice. Comments do not count.
+ * Two things a project's own config can already bring, each read from its text and from the packages it imports.
+ * The TypeScript base (parser and plugin): the preset then adds only its own blocks, since ESLint refuses a plugin
+ * defined twice. The Next rules: the preset then adds its base without the Next configs, for the same reason.
+ * create-turbo's config package brings Next's plugin and no typescript-eslint, so it needs the base and not `next`.
  */
-const OWN_BASE = /eslint-config-next|@next\/eslint-plugin-next|typescript-eslint/;
+const TYPESCRIPT_BASE = ["typescript-eslint", "eslint-config-next"];
+const NEXT_RULES = ["@next/eslint-plugin-next", "eslint-config-next"];
 const COMMENTS = /\/\*[\s\S]*?\*\/|(^|\s)\/\/.*$/gm;
 
-const BASE_PACKAGES = ["eslint-config-next", "@next/eslint-plugin-next", "typescript-eslint"];
+const BASE_PACKAGES = [...new Set([...TYPESCRIPT_BASE, ...NEXT_RULES])];
 
 /**
  * What a package the workspace can import brings, read from the nearest node_modules up the tree; nothing when it is not
@@ -127,21 +130,27 @@ function importedPackages(config: string): string[] {
   );
 }
 
+/** Whether the config's text names one of the packages. Comments do not count. */
+const names = (packages: readonly string[], code: string): boolean => packages.some((name) => code.includes(name));
+
 /**
- * The package a config imports that brings a base package, with everything it brings: create-turbo's configs take their
- * base from the workspace package `@repo/eslint-config`. None for a config that names a base package itself, as
+ * The package a config imports that brings a base package, with everything it brings: create-turbo's configs take theirs
+ * from the workspace package `@repo/eslint-config`. None for a config that names a base package itself, as
  * create-next-app's does. `dir` is the workspace folder the imports resolve from.
  */
 function baseProvider(ownConfig: string, dir: string | undefined): { name: string; dependencies: string[] } | undefined {
   const code = ownConfig.replace(COMMENTS, "$1");
-  if (dir === undefined || OWN_BASE.test(code)) return undefined;
+  if (dir === undefined || names(BASE_PACKAGES, code)) return undefined;
   return importedPackages(code)
     .map((name) => ({ name, dependencies: dependenciesOf(dir, name) }))
     .find(({ dependencies }) => dependencies.some((dependency) => BASE_PACKAGES.includes(dependency)));
 }
 
-/** Whether the config names a base package itself or imports one that brings it. */
-const bringsBase = (ownConfig: string, dir?: string): boolean => OWN_BASE.test(ownConfig.replace(COMMENTS, "$1")) || baseProvider(ownConfig, dir) !== undefined;
+/** Whether the config names one of the packages itself or imports a package that brings one. */
+function brings(packages: readonly string[], ownConfig: string, dir?: string): boolean {
+  if (names(packages, ownConfig.replace(COMMENTS, "$1"))) return true;
+  return baseProvider(ownConfig, dir)?.dependencies.some((dependency) => packages.includes(dependency)) === true;
+}
 
 /** The name a config exports by default, when it exports a variable rather than an array or a call. */
 export const exportedName = (ownConfig: string): string | undefined =>
@@ -150,7 +159,8 @@ export const exportedName = (ownConfig: string): string | undefined =>
 /** The preset call for a workspace; a project's own config that brings the base configs takes only the harness's blocks. */
 export function presetCall(workspace: PresetWorkspace, ownConfig = "", dir?: string): string {
   const layout = layoutOf(workspace) === "app" ? "" : `, layout: "${layoutOf(workspace)}"`;
-  const base = bringsBase(ownConfig, dir) ? ", base: false" : workspace.next ? ", next: true" : "";
+  const next = workspace.next && !brings(NEXT_RULES, ownConfig, dir) ? ", next: true" : "";
+  const base = brings(TYPESCRIPT_BASE, ownConfig, dir) ? ", base: false" : next;
   const provider = baseProvider(ownConfig, dir);
   const toolsFrom = provider === undefined ? "" : `, toolsFrom: "${provider.name}"`;
   return `harnessEslint({ root: import.meta.dirname${layout}${base}${toolsFrom} })`;
@@ -175,7 +185,10 @@ function eslintConfigText(dir: string): string {
 }
 
 /** Whether the workspace's own ESLint config brings the base configs, so the preset's base packages are not needed there. */
-export const bringsOwnBase = (dir: string): boolean => bringsBase(eslintConfigText(dir), dir);
+export const bringsOwnBase = (dir: string): boolean => brings(TYPESCRIPT_BASE, eslintConfigText(dir), dir);
+
+/** Whether the workspace's own ESLint config brings the Next rules, so the preset adds its base without them. */
+export const bringsOwnNext = (dir: string): boolean => brings(NEXT_RULES, eslintConfigText(dir), dir);
 
 /** The tools the package behind the workspace's own ESLint config already brings; the preset loads them from there. */
 export const broughtByBase = (dir: string): string[] => baseProvider(eslintConfigText(dir), dir)?.dependencies ?? [];

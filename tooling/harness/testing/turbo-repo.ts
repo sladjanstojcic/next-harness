@@ -120,20 +120,31 @@ const BASE_TSCONFIG = {
 };
 const NEXT_TSCONFIG = { module: "ESNext", moduleResolution: "Bundler", allowJs: true, jsx: "preserve", noEmit: true };
 const LIBRARY_TSCONFIG = json({ extends: "@repo/typescript-config/react-library.json", include: ["src"], exclude: ["node_modules", "dist"] });
-/** The real package lists these as devDependencies; next.js builds its array from base.js, which brings typescript-eslint. */
+/**
+ * The real package brings no typescript-eslint: its base parses with @babel/eslint-parser, and next.js adds Next's
+ * plugin and react-hooks. The miniature keeps that dependency list and leaves the parser and plugins out of the code,
+ * since this repository's node_modules holds none of them.
+ */
 const ESLINT_CONFIG_PACKAGE = {
   name: "@repo/eslint-config",
   version: "0.0.0",
   type: "module",
   private: true,
   exports: { "./base": "./base.js", "./next-js": "./next.js", "./react-internal": "./react-internal.js" },
-  devDependencies: { "@eslint/js": "^9.39.1", "@next/eslint-plugin-next": "^16.2.0", "eslint-config-prettier": "^10.1.1", "typescript-eslint": "^8.50.0" },
+  devDependencies: {
+    "@babel/eslint-parser": "^7.28.0",
+    "@eslint/js": "10.0.1",
+    "@next/eslint-plugin-next": "^16.2.0",
+    eslint: "10.9.1",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "eslint-plugin-turbo": "^2.7.1",
+  },
 };
 const BASE_ESLINT = `import js from "@eslint/js";
 import eslintConfigPrettier from "eslint-config-prettier";
-import tseslint from "typescript-eslint";
 
-export const config = [js.configs.recommended, eslintConfigPrettier, ...tseslint.configs.recommended, { ignores: ["dist/**"] }];
+export const config = [js.configs.recommended, eslintConfigPrettier, { ignores: ["dist/**"] }];
 `;
 
 /**

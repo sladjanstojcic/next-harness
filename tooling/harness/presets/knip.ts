@@ -55,7 +55,12 @@ function installedElsewhere(dir: string, packages: ReadonlySet<string>): { confi
   const configs = (tool: keyof typeof TOOL_CONFIG_NAMES): string[] => TOOL_CONFIG_NAMES[tool].filter((name) => fs.existsSync(path.join(dir, name)));
   return {
     configs: CONFIG_PACKAGES.filter(([, name]) => !packages.has(name)).flatMap(([tool]) => configs(tool)),
-    binaries: Object.keys(BINARY_PACKAGES).filter((binary) => !packages.has(BINARY_PACKAGES[binary] ?? "") && runs(binary) && installedAbove(dir, binary)),
+    // A listed package can still lack the binary: TypeScript 6 under the name `typescript` brings `tsc6`, not `tsc`.
+    binaries: Object.keys(BINARY_PACKAGES).filter((binary) => {
+      const bins = path.join(dir, "node_modules/.bin");
+      const own = packages.has(BINARY_PACKAGES[binary] ?? "") && (!fs.existsSync(bins) || fs.existsSync(path.join(bins, binary)));
+      return !own && runs(binary) && installedAbove(dir, binary);
+    }),
   };
 }
 

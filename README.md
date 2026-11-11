@@ -451,19 +451,33 @@ A config that exports a variable has no array to add a spread to. Init then prin
 replaces its `export default`, which works for an array and for a single config object:
 
 ```js
-export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, base: false })];
+export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, toolsFrom: "@repo/eslint-config" })];
 ```
 
-`base: false` is what init prints for a config that already brings `eslint-config-next`,
-`@next/eslint-plugin-next` or `typescript-eslint`, as create-next-app's does. A config that imports a
-package which depends on one of them counts too, as create-turbo's apps do through
-`@repo/eslint-config`; init reads that package's `package.json` from the workspace's `node_modules`,
-and counts its devDependencies only when it is a workspace package.
-For such a config init also prints `toolsFrom: "@repo/eslint-config"`. A tool the workspace does not
-install itself, such as `typescript-eslint`, is then loaded from that package, and init does not ask to
-install it: a second copy at the template's version could refuse the project's TypeScript. A copy the
-workspace does install still wins. The preset then adds only
-the harness's rule blocks, since ESLint refuses a plugin defined twice. A project's own Prettier config
+Init reads two things from a kept config, from its text and from the packages it imports:
+
+- **The TypeScript base.** A config that brings `typescript-eslint` or `eslint-config-next`, as
+  create-next-app's does, gets `base: false`: the preset adds only the harness's rule blocks, since
+  ESLint refuses a plugin defined twice.
+- **The Next rules.** A config that brings `@next/eslint-plugin-next` or `eslint-config-next` gets the
+  preset's base without `next: true`.
+
+An imported package counts through its `package.json` in the workspace's `node_modules`; its
+devDependencies count only when it is a workspace package. create-turbo's `@repo/eslint-config` brings
+Next's plugin and no `typescript-eslint`, so its apps get the full base without `next`. For such a
+package init also prints `toolsFrom: "@repo/eslint-config"`: a tool the workspace does not install
+itself, such as `@eslint/js`, is loaded from that package, and init does not ask to install it. A copy
+the workspace does install still wins.
+
+**TypeScript 7.** It ships no JavaScript API, which `typescript-eslint` needs. Where a workspace
+resolves TypeScript 7 or newer, init's install line adds
+`"typescript@npm:@typescript/typescript6@^6.0.2"`: TypeScript 6 under the name `typescript`. That
+package's binary is `tsc6`, so `tsc` stays the project's own.
+
+**Turborepo.** With `--starter` and a `turbo.json` at the root, init prints one more step: declare
+`NODE_ENV` in `globalEnv`, because the starter `env.ts` reads it. Init does not edit `turbo.json`.
+
+A project's own Prettier config
 is kept as it is, with its style.
 
 ### The preset check

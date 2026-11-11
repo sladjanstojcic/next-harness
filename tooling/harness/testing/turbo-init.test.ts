@@ -7,7 +7,7 @@ import { runTool } from "../core/gates/run-tool.ts";
 import { initHarness } from "../core/init/init.ts";
 import { initLegacy } from "../core/legacy.ts";
 import { resolveHarness } from "../core/path-check.ts";
-import { bringsOwnBase, eslintPreset, eslintPresetLines } from "../tools/eslint-preset.ts";
+import { bringsOwnBase, bringsOwnNext, eslintPreset, eslintPresetLines } from "../tools/eslint-preset.ts";
 import { placeStep } from "../tools/tool-set.ts";
 import { run } from "./preset-fixture.ts";
 import { consumerRepo } from "./template-repo.ts";
@@ -25,9 +25,8 @@ const APP_TOOLS = {
 };
 const PRESET = 'import { harnessEslint } from "../../tooling/harness/presets/eslint.ts";';
 const APP_LINE =
-  'export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "app-root", base: false, toolsFrom: "@repo/eslint-config" })];';
-const UI_LINE =
-  'export default [...[config].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "package", base: false, toolsFrom: "@repo/eslint-config" })];';
+  'export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "app-root", toolsFrom: "@repo/eslint-config" })];';
+const UI_LINE = 'export default [...[config].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "package", toolsFrom: "@repo/eslint-config" })];';
 
 /** create-turbo's project before any legacy list, with the workspace packages linked as an install leaves them. */
 function project() {
@@ -40,8 +39,8 @@ describe("init --starter in a create-turbo project, then its printed steps", () 
   it("prints lines a config that exports a name can take, with base: false read through the workspace package", () => {
     const repo = project();
     const dir = path.join(repo.root, APP.path);
-    expect(bringsOwnBase(dir)).toBe(true);
-    expect(bringsOwnBase(path.join(repo.root, UI.path))).toBe(true);
+    // The config package brings Next's plugin and no typescript-eslint: the base is the preset's, without `next`.
+    expect([bringsOwnBase(dir), bringsOwnNext(dir)]).toEqual([false, true]);
     expect(eslintPresetLines(APP, repo.read("apps/web/eslint.config.js"), dir)).toEqual([PRESET, APP_LINE]);
     const { report } = initHarness(repo.root, { force: false, starter: true });
     expect(report).toContain(
@@ -49,6 +48,7 @@ describe("init --starter in a create-turbo project, then its printed steps", () 
     );
     expect(report).toContain(`the second line in place of \`export default config\`:\n    ${PRESET}\n    ${UI_LINE}`);
     expect(report).not.toMatch(/pnpm add -D [^\n]*(?:eslint-config-next|@eslint\/js)/);
+    expect(report).toContain('Declare NODE_ENV in "globalEnv" of turbo.json: the starter shared/lib/env.ts reads it');
     expect(report).toContain('updated apps/web/tsconfig.json: compilerOptions.allowImportingTsExtensions: true, compilerOptions.paths "@/*": ["./*"]');
     expect(report).not.toContain("updated packages/ui/tsconfig.json: compilerOptions.allowImportingTsExtensions: true, compilerOptions.paths");
   });

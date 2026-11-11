@@ -3,7 +3,8 @@ import path from "node:path";
 import { z } from "zod";
 import { analysisOf, type HarnessConfig, type WorkspaceEntry } from "../../config.ts";
 import { managerCommands } from "./bootstrap.ts";
-import { broughtByBase, bringsOwnBase } from "../../tools/eslint-preset.ts";
+import { lacksTypescriptApi, TYPESCRIPT_API } from "../../presets/load-tool.ts";
+import { broughtByBase, bringsOwnBase, bringsOwnNext } from "../../tools/eslint-preset.ts";
 import { runsOwnTests } from "./tool-configs.ts";
 
 const HARNESS = path.resolve(import.meta.dirname, "../..");
@@ -61,14 +62,18 @@ export function atLeast(version: string, minimum: string): boolean {
 /** What the workspace uses of the harness's tools: a tool tied to a part the workspace does not use is not asked for. */
 function needs(root: string, config: HarnessConfig, workspace: WorkspaceEntry): ReadonlySet<Need> {
   const needed = new Set<Need>(analysisOf(config, workspace));
-  if (!bringsOwnBase(path.join(root, workspace.path))) {
+  const dir = path.join(root, workspace.path);
+  if (!bringsOwnBase(dir)) {
     needed.add("eslint-config");
-    if (workspace.next) needed.add("eslint-config-next");
+    if (workspace.next && !bringsOwnNext(dir)) needed.add("eslint-config-next");
   }
   if (runsOwnTests(root, workspace) === undefined) needed.add("vitest");
   if (workspace.path === "" && workspace.next) needed.add("browser");
   return needed;
 }
+
+/** Whether the `typescript` the workspace resolves is 7 or newer, which the lint preset's typescript-eslint cannot use. */
+export const needsTypescriptApi = (root: string, workspace: WorkspaceEntry): boolean => lacksTypescriptApi(path.join(root, workspace.path));
 
 /**
  * The install line for the tools the workspace needs and no folder up to the git root provides at the harness's minimum
@@ -83,8 +88,9 @@ export function peerInstall(root: string, config: HarnessConfig, workspace: Work
     ([name, peer]) =>
       (peer.when === undefined || needed.has(peer.when)) && !brought.includes(name) && !atLeast(reachableVersion(root, workspace, name) ?? "", peer.minimum),
   );
-  if (missing.length === 0) return undefined;
-  return inWorkspace(workspace, `${managerCommands(root).addDev} ${missing.map(([name, peer]) => `${name}@${peer.version}`).join(" ")}`);
+  const packages = [...missing.map(([name, peer]) => `${name}@${peer.version}`), ...(needsTypescriptApi(root, workspace) ? [`"${TYPESCRIPT_API}"`] : [])];
+  if (packages.length === 0) return undefined;
+  return inWorkspace(workspace, `${managerCommands(root).addDev} ${packages.join(" ")}`);
 }
 
 /** The install line for the runtime packages the starter files import and the workspace's package.json does not declare. */
