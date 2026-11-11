@@ -11,12 +11,14 @@ const R = "src/renderer/src";
 /**
  * What the generator wrote that the shape and the harness's rules do not take: the editor folder, the two components in
  * the old layout, the main and preload scripts (an open sandbox, a literal channel, console output, @ts-ignore, the
- * toolkit's preload helper), a non-null assertion, and the two projects whose base turns noImplicitAny off.
+ * toolkit's preload helper), a non-null assertion, the two projects whose base turns noImplicitAny off, and the build
+ * config, whose empty preload section leaves packages outside the preload bundle.
  */
 const LEGACY_FILES = [
   ".vscode/extensions.json",
   ".vscode/launch.json",
   ".vscode/settings.json",
+  "electron.vite.config.ts",
   "src/main/index.ts",
   "src/preload/index.d.ts",
   "src/preload/index.ts",
@@ -44,6 +46,10 @@ describe("the official electron-vite scaffold (react-ts), adopted with a legacy 
       ].join("\n"),
     );
     expect(repo.report).toContain("legacy init");
+    expect(repo.report).toContain(
+      "(init does not edit electron.vite.config.ts), by adding this to its preload section, and removing externalizeDepsPlugin() from that section's plugins when it is there: build: { externalizeDeps: false }",
+    );
+    expect(repo.read("electron.vite.config.ts")).toBe(SCAFFOLD["electron.vite.config.ts"]);
     expect(repo.read("tsconfig.web.json")).toBe(SCAFFOLD["tsconfig.web.json"]);
     // Files init wrote are in the project's own style, which its ESLint config holds Prettier to.
     expect(repo.read("knip.config.ts")).toContain("import { harnessKnipElectron } from './tooling/harness/presets/knip.ts'");
@@ -61,6 +67,7 @@ describe("the official electron-vite scaffold (react-ts), adopted with a legacy 
         ".vscode/extensions.json:1 unknown-root",
         ".vscode/launch.json:1 unknown-root",
         ".vscode/settings.json:1 unknown-root",
+        "electron.vite.config.ts:7 preload-bundle",
         "src/main/index.ts:16 electron-security",
         "src/main/index.ts:53 ipc-channel",
         `${R}/App.tsx:1 file-name`,
@@ -80,7 +87,7 @@ describe("the official electron-vite scaffold (react-ts), adopted with a legacy 
     expect(result.passed).toBe(true);
     expect(result.report).toContain("Pre-existing in legacy files (not blocking):");
     // The generator's own lint and type debt, and the toolkit helper its preload script imports, are old debt too.
-    for (const line of ["eslint: 11 findings in 4 files", "tsc: 1 finding in 1 file", "audit: 11 findings in 8 files", "depcruise: 2 findings in 2 files"]) {
+    for (const line of ["eslint: 11 findings in 4 files", "tsc: 1 finding in 1 file", "audit: 12 findings in 9 files", "depcruise: 2 findings in 2 files"]) {
       expect(result.report).toContain(line);
     }
     expect(result.report).toContain("A preload script is the bridge and nothing more: it imports electron and the contract in src/shared/ (Electron layout).");

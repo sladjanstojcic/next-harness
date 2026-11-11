@@ -7,6 +7,7 @@ import { findDuplicateExports } from "./duplicate-exports.ts";
 import type { Finding } from "./finding.ts";
 import { listFiles, trackedDependencyFolders } from "./list-files.ts";
 import { auditPaths } from "./path-rules.ts";
+import { auditPreloadBundles } from "./preload-bundle.ts";
 import { auditTsconfigs } from "./tsconfig-rules.ts";
 
 /** Vendored files are exempt and upstream files are not the harness's to judge; legacy files are audited and reported as pre-existing. */
@@ -37,6 +38,7 @@ export function audit(root: string): Finding[] {
     ...auditContent(root, selected),
     ...findDuplicateExports(root, selected),
     ...auditTsconfigs(root),
+    ...auditPreloadBundles(root),
   ];
 }
 
