@@ -39,6 +39,15 @@ describe("the knip preset", () => {
     expect(harnessKnipWorkspace({ harness: "analyse" }, dir)).toEqual({ next: true, entry: [], ignore: [], ignoreDependencies: [] });
   });
 
+  it("names tsc where the workspace lists typescript as the TypeScript 6 alias, whose binary is tsc6", () => {
+    const app = { scripts: { "check-types": "next typegen && tsc --noEmit" }, devDependencies: { typescript: "npm:@typescript/typescript6@^6.0.2" } };
+    const repo = makeRepo({ "node_modules/.bin/tsc": "", "apps/web/node_modules/.bin/tsc6": "", "apps/web/package.json": JSON.stringify(app) });
+    const dir = `${repo.root}/apps/web`;
+    expect(harnessKnipWorkspace({ harness: "analyse" }, dir).ignoreBinaries).toEqual(["tsc"]);
+    repo.write("apps/web/node_modules/.bin/tsc", "");
+    expect(harnessKnipWorkspace({ harness: "analyse" }, dir).ignoreBinaries).toBeUndefined();
+  });
+
   it("leaves the harness to analysis in the harness's own repository; the preset's tools have no import there either", () => {
     const repo = makeRepo({ "package.json": PACKAGE });
     const analysed = { next: true, entry: [], ignore: [], ignoreDependencies: ["server-only", "@eslint/js"] };

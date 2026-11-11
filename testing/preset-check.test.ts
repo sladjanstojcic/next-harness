@@ -105,7 +105,7 @@ describe("the preset presence check", () => {
   it("prints base: false for a config that brings Next's or typescript-eslint's plugins, comments aside", () => {
     const spread = (config: string) => eslintPresetLines(ROOT_APP, config)[1];
     expect(spread(CNA_ESLINT)).toContain("base: false");
-    expect(spread('import next from "@next/eslint-plugin-next";\nexport default [];\n')).toContain("base: false");
+    expect(spread('import next from "@next/eslint-plugin-next";\nexport default [];\n')).toBe("...harnessEslint({ root: import.meta.dirname }),");
     expect(spread("// like eslint-config-next\n/* or typescript-eslint */\nexport default [];\n")).toContain("next: true");
     expect(spread('const url = "https://x";\nexport default [];\n')).toContain("next: true");
   });

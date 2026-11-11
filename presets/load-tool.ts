@@ -13,6 +13,23 @@ function packageFolder(root: string, name: string): string | undefined {
   }
 }
 
+/**
+ * TypeScript 7 ships no JavaScript API, which typescript-eslint needs. TypeScript 6 installed under the name `typescript`
+ * gives it one; that package's binary is `tsc6`, so `tsc` stays the project's own.
+ */
+export const TYPESCRIPT_API = "typescript@npm:@typescript/typescript6@^6.0.2";
+export const TYPESCRIPT_API_REASON =
+  "typescript-eslint needs TypeScript's JavaScript API, and TypeScript 7 has none: the alias installs TypeScript 6 under the name typescript, while `tsc` stays the project's own";
+
+/** Whether the `typescript` a folder resolves is 7 or newer. */
+export function lacksTypescriptApi(root: string): boolean {
+  const folder = packageFolder(root, "typescript");
+  if (folder === undefined) return false;
+  const manifest: unknown = JSON.parse(fs.readFileSync(path.join(folder, "package.json"), "utf8"));
+  const version = isRecord(manifest) && typeof manifest.version === "string" ? manifest.version : "";
+  return Number(version.split(".")[0]) >= 7;
+}
+
 const isMissing = (error: unknown): boolean => error instanceof Error && "code" in error && error.code === "MODULE_NOT_FOUND";
 
 /**
@@ -37,7 +54,9 @@ export function toolLoader(root: string, from?: string): (request: string) => un
     }
     const reason = first instanceof Error ? first.message : String(first);
     const where = from === undefined ? root : `${root} or from ${from}`;
-    throw new Error(`The harness preset cannot load ${request} from ${where}; install it in that workspace. ${reason}`, { cause: first });
+    const advice =
+      !isMissing(first) && lacksTypescriptApi(root) ? `${TYPESCRIPT_API_REASON}. Add "${TYPESCRIPT_API}" to that workspace` : "install it in that workspace";
+    throw new Error(`The harness preset cannot load ${request} from ${where}; ${advice}. ${reason}`, { cause: first });
   };
 }
 

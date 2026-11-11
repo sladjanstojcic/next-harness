@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { expandWorkspaces, loadConfig } from "../config.ts";
+import { initHarness } from "../core/init/init.ts";
 import { peerInstall } from "../core/init/peers.ts";
 import { toolLoader } from "../presets/load-tool.ts";
 import { eslintPresetLines } from "../tools/eslint-preset.ts";
@@ -11,7 +12,9 @@ const APP = "apps/web";
 const BASE = "@repo/eslint-config";
 const CONFIG = 'export default { workspaces: [{ path: "apps/*", shape: "next-modules", next: true }], root: { entries: ["apps", "packages"] } };\n';
 const OWN_ESLINT = `import { nextJsConfig } from "${BASE}/next-js";\n\nexport default nextJsConfig;\n`;
-const BROUGHT = { "@eslint/js": "^10.0.0", "eslint-config-prettier": "^10.1.1", "typescript-eslint": "^9.0.0" };
+/** create-turbo's config package: Next's plugin and the base tools, and no typescript-eslint. */
+const BROUGHT = { "@eslint/js": "10.0.1", "@next/eslint-plugin-next": "^16.2.0", "eslint-config-prettier": "^10.1.1" };
+const APP_LINE = `export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "app-root", toolsFrom: "${BASE}" })];`;
 
 /** A copy of a tool that says where it was loaded from, or fails to load as a version that refuses the project's TypeScript does. */
 function install(root: string, folder: string, name: string, source: string): void {
@@ -64,13 +67,13 @@ describe("tools the project's own lint config already brings", () => {
     const repo = project();
     const [workspace] = expandWorkspaces(repo.root, loadConfig(repo.root));
     if (workspace === undefined) throw new Error("no workspace");
-    expect(eslintPresetLines(workspace, OWN_ESLINT, repo.dir)[1]).toBe(
-      `export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "app-root", base: false, toolsFrom: "${BASE}" })];`,
-    );
+    // The base package brings Next's plugin, so no `next`; it brings no typescript-eslint, so the preset's base stays.
+    expect(eslintPresetLines(workspace, OWN_ESLINT, repo.dir)[1]).toBe(APP_LINE);
     const line = peerInstall(repo.root, loadConfig(repo.root), workspace) ?? "";
     expect(line).toContain(`cd ${APP} && pnpm add -D `);
-    expect(line).toContain(" prettier@");
-    for (const name of Object.keys(BROUGHT)) expect(line, name).not.toContain(` ${name}@`);
+    for (const name of ["prettier", "typescript-eslint", "jiti"]) expect(line, name).toContain(` ${name}@`);
+    for (const name of ["@eslint/js", "eslint-config-prettier", "eslint-config-next"]) expect(line, name).not.toContain(` ${name}@`);
+    expect(line).not.toContain("typescript6");
 
     const plain = project("export default [];\n");
     const [alone] = expandWorkspaces(plain.root, loadConfig(plain.root));
@@ -109,5 +112,32 @@ describe("tools the project's own lint config already brings", () => {
     if (workspace === undefined) throw new Error("no workspace");
     expect(eslintPresetLines(workspace, own, repo.dir)[1]).toBe('...harnessEslint({ root: import.meta.dirname, layout: "app-root", base: false }),');
     expect(peerInstall(repo.root, loadConfig(repo.root), workspace)).toContain(" typescript-eslint@");
+  });
+
+  it("asks for TypeScript 6 under the name typescript where the workspace resolves TypeScript 7, and says why", () => {
+    const repo = project();
+    const [workspace] = expandWorkspaces(repo.root, loadConfig(repo.root));
+    if (workspace === undefined) throw new Error("no workspace");
+    const typescript = (folder: string, version: string): void => {
+      const dir = path.join(repo.root, folder, "node_modules/typescript");
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "typescript", version }));
+    };
+    typescript("", "7.0.2");
+    expect(peerInstall(repo.root, loadConfig(repo.root), workspace)).toMatch(/ "typescript@npm:@typescript\/typescript6@\^6\.0\.2"$/);
+    repo.git("config", "--unset", "core.hooksPath");
+    const { report } = initHarness(repo.root, { force: false, starter: false });
+    expect(report).toContain(
+      '"typescript@npm:@typescript/typescript6@^6.0.2" (typescript-eslint needs TypeScript\'s JavaScript API, and TypeScript 7 has none',
+    );
+    install(repo.root, APP, "harness-fixture-tool", 'throw new Error("does not support TS 7.0.");\n');
+    const failure = (): unknown => toolLoader(repo.dir, BASE)("harness-fixture-tool");
+    expect(failure).toThrow(
+      'TypeScript 7 has none: the alias installs TypeScript 6 under the name typescript, while `tsc` stays the project\'s own. Add "typescript@npm:@typescript/typescript6@^6.0.2" to that workspace. does not support TS 7.0.',
+    );
+    expect(() => toolLoader(repo.dir, BASE)("harness-fixture-absent")).toThrow("install it in that workspace");
+    typescript(APP, "6.0.2");
+    expect(peerInstall(repo.root, loadConfig(repo.root), workspace)).not.toContain("typescript6");
+    expect(failure).toThrow("install it in that workspace");
   });
 });

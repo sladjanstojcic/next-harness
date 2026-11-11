@@ -128,6 +128,7 @@ describe("init --starter in that project", () => {
     const exists = (file: string): boolean => fs.existsSync(path.join(repo.root, file));
     expect(STARTER_HELPERS.filter((file) => !exists(`shared/lib/${file}`))).toEqual([]);
     expect(exists("src")).toBe(false);
+    expect(repo.report).not.toContain("turbo.json");
     expect(repo.read("eslint.config.ts")).toContain('harnessEslint({ root: import.meta.dirname, layout: "app-root", next: true })');
     expect(repo.read(".prettierignore")).toContain("shared/ui\n");
     expect(repo.read(".prettierignore")).not.toContain("src/");
