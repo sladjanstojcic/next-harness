@@ -201,8 +201,11 @@ export default defineHarness({
   package's `server.ts` and passes values in. Its top level takes configuration only
   (`package.json`, `tsconfig.json`, tool configs, `.json`, `.md`) and no folder but `src/`.
   A relative import from `src/` stays inside `src/`, and `domain/` takes `.ts` only.
-  Denials say "(package layout)". ESLint, Prettier, tsc and Vitest run in the package
-  folder; depcruise, knip and jscpd do not. A package without `src/` is config-only: no
+  Denials say "(package layout)". ESLint, Prettier, tsc, Vitest, depcruise, knip and
+  jscpd run in the package folder. depcruise there forbids cycles, impure `domain/`,
+  imports of `src/server/` internals from outside it, and `src/index.ts` reaching server
+  code; knip reports an export of `src/index.ts` or `src/server.ts` that no workspace
+  imports. A package without `src/` is config-only: no
   tool runs there and init writes nothing into it. JavaScript is denied everywhere in a
   package but for the tool config names; JavaScript that predates the harness, such as
   create-turbo's `packages/eslint-config/*.js`, goes on the legacy list or is converted.
@@ -212,7 +215,8 @@ export default defineHarness({
   `.env.development`, `.env.production` and `.env.test`. Without it every `.env*`
   but `.env.example` is denied.
 - `analysis` lists which of `depcruise`, `knip` and `jscpd` run in Done and CI, in each
-  next-modules workspace's folder: all three unless listed, never in the other shapes.
+  next-modules and package workspace's folder: all three unless listed, never in the
+  Makerkit and supabase shapes.
 - An applied migration under a supabase workspace's `migrations/` cannot be edited,
   deleted or moved, by tool or by shell; add a new one with
   `supabase migration new <name>`. Applied means the branch's upstream or the remote
@@ -282,11 +286,12 @@ export default defineHarness({
   paths in its `locked` list cannot be edited, by tool or by shell, until the
   user runs `pnpm harness:unlock` in their own terminal (valid four hours; `pnpm
 harness:lock` ends it). Running the unlock yourself is denied. One exception: in a
-  workspace folder with no file at HEAD, a new package or app, the workspace's own tool
+  workspace folder that no commit has ever held a file in, a new package or app, the workspace's own tool
   configs and `tsconfig.json` may be created and changed, by tool, by shell and by plain
   `node tooling/harness/cli.ts init`; they are locked from the commit that adds the
   workspace. The audit holds every next-modules and package `tsconfig.json` to
-  `strict: true` with `noImplicitAny` and `strictNullChecks` left on (`tsconfig-strict`). When a harness rule is
+  `strict: true` with `noImplicitAny` and `strictNullChecks` left on, no `noCheck`, and
+  sources to check (`tsconfig-strict`). When a harness rule is
   wrong, say so in the handoff instead of working around it.
 - Every denial and block is logged under `.git/harness/blocks.jsonl`. `pnpm harness:blocks`
   lists them per rule with a false-block count; marking one false is the user's judgement

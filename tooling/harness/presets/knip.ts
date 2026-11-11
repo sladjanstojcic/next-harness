@@ -123,3 +123,38 @@ export function harnessKnip(dir = process.cwd()): KnipWorkspace | KnipWorkspaces
     workspaces: { ".": { ...workspace, ignore: workspace.ignore.filter((glob) => !glob.startsWith(HARNESS_PACKAGE)) } },
   };
 }
+
+/** The Knip settings for a package: no Next plugin, and the exports of its entry files are judged too. */
+interface KnipPackage {
+  entry: string[];
+  includeEntryExports: true;
+  ignore: string[];
+  ignoreDependencies: string[];
+  ignoreBinaries?: string[];
+}
+
+/** The files a package.json `exports` value points at: a string, or the string leaves of its conditions; patterns are knip's to expand. */
+function exportTargets(value: unknown): string[] {
+  if (typeof value === "string") return [value.replace(/^\.\//, "")];
+  return typeof value === "object" && value !== null ? Object.values(value).flatMap(exportTargets) : [];
+}
+
+/**
+ * Knip for a `package` workspace, run from its folder: the entries are the files its package.json `exports` point at,
+ * and their exports are reported as well, since a package's public API is where unused code hides. Knip sees this
+ * package only; the gate takes out the exports another workspace imports.
+ */
+export function harnessKnipPackage(dir = process.cwd()): KnipPackage {
+  const file = path.join(dir, "package.json");
+  const manifest: unknown = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
+  const exported = typeof manifest === "object" && manifest !== null && "exports" in manifest ? exportTargets(manifest.exports) : [];
+  const packages = declared(dir);
+  const { configs, binaries } = installedElsewhere(dir, packages);
+  return {
+    entry: [...new Set(exported)].filter((target) => target.includes("*") || fs.existsSync(path.join(dir, target))),
+    includeEntryExports: true,
+    ignore: configs,
+    ignoreDependencies: [...IGNORE_DEPENDENCIES, ...presetOnly(dir)].filter((name) => packages.has(name)),
+    ...(binaries.length === 0 ? {} : { ignoreBinaries: binaries }),
+  };
+}

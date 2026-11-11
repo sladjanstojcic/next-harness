@@ -94,12 +94,12 @@ describe("a Turborepo with shared packages (create-turbo in miniature)", () => {
     expect(stop.kind).toBe("block");
     expect(stop.findings?.map(({ file, rule }) => `${file} ${rule}`)).toEqual([`${PRICE} domain-test`]);
     expect(stop.findings?.[0]?.message).toContain(`${BILLING}/src/domain/price.test.ts ${LAYOUT}`);
-    expect(steps).toEqual([`tsc ${BILLING}`, `eslint ${BILLING}`, `vitest ${BILLING}`]);
+    expect(steps).toEqual(["tsc", "eslint", "depcruise", "knip", "jscpd", "vitest"].map((name) => `${name} ${BILLING}`));
     expect(await hooks.write(`${BILLING}/src/domain/price.test.ts`, PRICE_TEST)).toEqual({ kind: "allow" });
     expect(await hooks.stop()).toEqual({ kind: "allow" });
   });
 
-  it("runs no tool in a config-only package and no analysis in any package", async () => {
+  it("runs no tool in a config-only package, and the analysis tools in a package with src/", async () => {
     const repo = turboRepo();
     const steps = recordSteps(repo);
     const hooks = session(repo);
@@ -112,7 +112,7 @@ describe("a Turborepo with shared packages (create-turbo in miniature)", () => {
     const inPackages = steps.filter((step) => step.includes(" packages/"));
     expect(inPackages.filter((step) => !step.endsWith(BILLING) && !step.endsWith("packages/ui"))).toEqual([]);
     expect(inPackages.filter((step) => step.endsWith(BILLING))).toEqual(
-      ["prettier", "eslint", "eslint-preset", "tsc", "vitest"].map((name) => `${name} ${BILLING}`),
+      ["prettier", "eslint", "eslint-preset", "tsc", "depcruise", "knip", "jscpd", "vitest"].map((name) => `${name} ${BILLING}`),
     );
     expect(steps).toContain("depcruise apps/web");
   });

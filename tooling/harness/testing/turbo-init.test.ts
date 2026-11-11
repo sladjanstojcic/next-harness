@@ -10,43 +10,24 @@ import { resolveHarness } from "../core/path-check.ts";
 import { bringsOwnBase, bringsOwnNext, eslintPreset, eslintPresetLines } from "../tools/eslint-preset.ts";
 import { placeStep } from "../tools/tool-set.ts";
 import { run } from "./preset-fixture.ts";
-import { consumerRepo } from "./template-repo.ts";
-import { linkWorkspacePackages, TURBO_APPS, TURBO_FILES, TURBO_LEGACY, TURBO_LEGACY_FILES } from "./turbo-repo.ts";
+import { adoptedTurbo, TURBO_APP_LINE, TURBO_PRESET, TURBO_UI_LINE, turboProject } from "./turbo-adopted.ts";
+import { TURBO_LEGACY, TURBO_LEGACY_FILES } from "./turbo-repo.ts";
 
 const APP = { path: "apps/web", shape: "next-modules", next: true, sourceRoot: "" } as const;
 const UI = { path: "packages/ui", shape: "package", next: false } as const;
-const APP_TOOLS = {
-  "dependency-cruiser": "18.7.2",
-  "eslint-config-prettier": "10.1.8",
-  jscpd: "5.4.2",
-  knip: "6.44.1",
-  "typescript-eslint": "8.72.1",
-  vitest: "5.1.0",
-};
-const PRESET = 'import { harnessEslint } from "../../tooling/harness/presets/eslint.ts";';
-const APP_LINE =
-  'export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "app-root", toolsFrom: "@repo/eslint-config" })];';
-const UI_LINE = 'export default [...[config].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "package", toolsFrom: "@repo/eslint-config" })];';
-
-/** create-turbo's project before any legacy list, with the workspace packages linked as an install leaves them. */
-function project() {
-  const repo = consumerRepo(Object.fromEntries(Object.entries(TURBO_FILES).filter(([file]) => file !== TURBO_LEGACY)));
-  linkWorkspacePackages(repo.root);
-  return repo;
-}
 
 describe("init --starter in a create-turbo project, then its printed steps", () => {
   it("prints lines a config that exports a name can take, with base: false read through the workspace package", () => {
-    const repo = project();
+    const repo = turboProject();
     const dir = path.join(repo.root, APP.path);
     // The config package brings Next's plugin and no typescript-eslint: the base is the preset's, without `next`.
     expect([bringsOwnBase(dir), bringsOwnNext(dir)]).toEqual([false, true]);
-    expect(eslintPresetLines(APP, repo.read("apps/web/eslint.config.js"), dir)).toEqual([PRESET, APP_LINE]);
+    expect(eslintPresetLines(APP, repo.read("apps/web/eslint.config.js"), dir)).toEqual([TURBO_PRESET, TURBO_APP_LINE]);
     const { report } = initHarness(repo.root, { force: false, starter: true });
     expect(report).toContain(
-      `kept apps/web/eslint.config.js: your config stays; add the harness preset to it, the import at the top of the file, the second line in place of \`export default nextJsConfig\`:\n    ${PRESET}\n    ${APP_LINE}`,
+      `kept apps/web/eslint.config.js: your config stays; add the harness preset to it, the import at the top of the file, the second line in place of \`export default nextJsConfig\`:\n    ${TURBO_PRESET}\n    ${TURBO_APP_LINE}`,
     );
-    expect(report).toContain(`the second line in place of \`export default config\`:\n    ${PRESET}\n    ${UI_LINE}`);
+    expect(report).toContain(`the second line in place of \`export default config\`:\n    ${TURBO_PRESET}\n    ${TURBO_UI_LINE}`);
     expect(report).not.toMatch(/pnpm add -D [^\n]*(?:eslint-config-next|@eslint\/js)/);
     expect(report).toContain('Declare NODE_ENV in "globalEnv" of turbo.json, because the starter shared/lib/env.ts reads it');
     // Every step that gives a command ends with it: nothing a copied line would hand to the shell as prose.
@@ -58,25 +39,7 @@ describe("init --starter in a create-turbo project, then its printed steps", () 
   });
 
   it("leaves a project whose tools pass on every file init wrote: legacy init lists only what create-turbo wrote", async () => {
-    const repo = project();
-    const { report, ok } = initHarness(repo.root, { force: false, starter: true });
-    expect(ok, report).toBe(true);
-    const workspaces = [...TURBO_APPS, "packages/ui", "packages/billing"];
-    // The printed steps: the harness's tools and the starter files' runtime packages in each app (Prettier stays at the
-    // root, as create-turbo installs it), the two lines in each kept ESLint config, one format run.
-    for (const app of TURBO_APPS) {
-      const manifest = JSON.parse(repo.read(`${app}/package.json`)) as { dependencies: object; devDependencies: object };
-      const dependencies = { ...manifest.dependencies, zod: "4.6.7", "server-only": "0.0.1" };
-      const devDependencies = { ...manifest.devDependencies, ...APP_TOOLS };
-      repo.write(`${app}/package.json`, `${JSON.stringify({ ...manifest, dependencies, devDependencies }, null, 2)}\n`);
-      const own = repo.read(`${app}/eslint.config.js`);
-      repo.write(`${app}/eslint.config.js`, `${PRESET}\n${own.replace("export default nextJsConfig;", APP_LINE)}`);
-    }
-    repo.write("packages/ui/eslint.config.mjs", `${PRESET}\n${repo.read("packages/ui/eslint.config.mjs").replace("export default config;", UI_LINE)}`);
-    for (const workspace of workspaces) {
-      const format = run(path.join(repo.root, workspace), "prettier", ["--write", "."]);
-      expect(format.status, format.output).toBe(0);
-    }
+    const repo = adoptedTurbo();
 
     for (const workspace of [APP, UI]) {
       const dir = path.join(repo.root, workspace.path);

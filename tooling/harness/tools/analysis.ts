@@ -3,6 +3,7 @@ import path from "node:path";
 import { z } from "zod";
 import { sourcePaths, sourceRootOf, type WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
+import { ALL_NAMES } from "../core/package-usage.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
 import { presetImport } from "./eslint-preset.ts";
 import { bin, CHECK_TIMEOUT_MS, relativePath } from "./tool-set.ts";
@@ -100,7 +101,14 @@ const KNIP_KINDS: Readonly<Record<string, string>> = {
 };
 const knipEntry = z.object({ name: z.string(), line: z.number().optional() });
 
-function knipFindings(root: string, stdout: string): Finding[] {
+/** Entry file to the names another workspace imports from it; see core/package-usage.ts. */
+type UsedElsewhere = ReadonlyMap<string, ReadonlySet<string>>;
+
+function knipFindings(root: string, stdout: string, usedElsewhere?: () => UsedElsewhere): Finding[] {
+  // Knip names an unused public export in the file that defines it, not in the entry that re-exports it, so a name
+  // another workspace imports from any entry counts wherever the package exports it.
+  const used = new Set([...(usedElsewhere?.() ?? new Map<string, ReadonlySet<string>>()).values()].flatMap((names) => [...names]));
+  const isUsed = (kind: string, name: string): boolean => (kind === "exports" || kind === "types") && (used.has(name) || used.has(ALL_NAMES));
   const value: unknown = JSON.parse(stdout);
   const unusedDependency = "Remove the unused dependency from package.json or use it in the application.";
   const guidance: Record<string, string> = {
@@ -113,15 +121,17 @@ function knipFindings(root: string, stdout: string): Finding[] {
     Object.entries(issues)
       .filter(([kind]) => kind !== "owners")
       .flatMap(([kind, entries]) =>
-        entries.map((entry): Finding => {
+        entries.flatMap((entry): Finding[] => {
           const named = knipEntry.safeParse(entry);
+          if (named.success && isUsed(kind, named.data.name)) return [];
           const what = `${KNIP_KINDS[kind] ?? kind}${named.success ? ` ${named.data.name}` : `: ${JSON.stringify(entry)}`}`;
-          return {
+          const finding: Finding = {
             rule: `knip-${kind}`,
             file: relativePath(root, file),
             ...(named.success && named.data.line !== undefined ? { line: named.data.line } : {}),
             message: `${what}. ${guidance[kind] ?? `Resolve the ${kind} issue in ${file}.`}`,
           };
+          return [finding];
         }),
       ),
   );
@@ -174,6 +184,15 @@ export const depcruise = {
 
 export const knip = {
   report: (dir: string): ToolStep => ({ name: "knip", command: [bin(dir, "knip"), "--reporter", "json"], findings: (stdout) => knipFindings(dir, stdout) }),
+  /**
+   * A package: knip reports every unused export of its entry files, and the gate takes out those another workspace
+   * imports. The exit code then says nothing, so knip is asked not to set one; a crash still fails the parser.
+   */
+  package: (dir: string, usedElsewhere: () => UsedElsewhere): ToolStep => ({
+    name: "knip",
+    command: [bin(dir, "knip"), "--reporter", "json", "--no-exit-code"],
+    findings: (stdout) => knipFindings(dir, stdout, usedElsewhere),
+  }),
   check: (dir: string): ToolStep => check(dir, "knip", "knip", []),
 };
 

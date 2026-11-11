@@ -3,6 +3,7 @@ import { depcruise, jscpd, knip } from "../../tools/analysis.ts";
 import type { WorkspaceTools } from "../../tools/index.ts";
 import { testScript } from "../../tools/test-script.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
+import { importedFromPackage } from "../package-usage.ts";
 import type { Harness } from "../path-check.ts";
 import type { ToolStep } from "./run-tool.ts";
 
@@ -36,8 +37,15 @@ export function checkSteps({ tools, dir, workspace }: WorkspaceTools, perFile: b
   };
 }
 
+/** Knip for one workspace: a package is judged with what the rest of the repository imports from it, always by its report. */
+export function knipStep(root: string, { dir, workspace }: WorkspaceTools, perFile: boolean): ToolStep {
+  if (workspace.shape === "package") return knip.package(dir, () => importedFromPackage(root, workspace.path));
+  return perFile ? knip.report(dir) : knip.check(dir);
+}
+
 /** A workspace's depcruise, knip and jscpd steps, in that order; `output` is a folder for jscpd's per-file report. */
-export function analysisSteps(harness: Harness, { dir, workspace }: WorkspaceTools, perFile: boolean, output: string): (ToolStep | SkippedStep)[] {
+export function analysisSteps(root: string, harness: Harness, group: WorkspaceTools, perFile: boolean, output: string): (ToolStep | SkippedStep)[] {
+  const { dir, workspace } = group;
   const analysis = new Set(analysisOf(harness.config, workspace));
   const sourceless = lacksSources(harness, dir, workspace);
   const sources = (name: string, step: () => ToolStep): ToolStep | SkippedStep => (sourceless ? { name, skipped: "no src/" } : step());
@@ -45,7 +53,7 @@ export function analysisSteps(harness: Harness, { dir, workspace }: WorkspaceToo
     ...(analysis.has("depcruise")
       ? [sources("depcruise", () => (perFile ? depcruise.report(dir, workspace, new Set(), () => undefined) : depcruise.check(dir, workspace)))]
       : []),
-    ...(analysis.has("knip") ? [perFile ? knip.report(dir) : knip.check(dir)] : []),
+    ...(analysis.has("knip") ? [knipStep(root, group, perFile)] : []),
     ...(analysis.has("jscpd") ? [sources("jscpd", () => (perFile ? jscpd.report(dir, output, workspace) : jscpd.check(dir, workspace)))] : []),
   ];
 }

@@ -29,15 +29,18 @@ export const UNLOCK_COMMAND = /\bharness:unlock\b|cli\.ts\s+unlock\b|harness\/un
 export const INIT_FORCE_COMMAND = /(?:\bharness:init\b|cli\.ts\s+init\b)[^;&|]*\s--force\b/;
 const unlockState = z.object({ until: z.number() });
 
-/** A workspace folder with no file at HEAD: a new package or app, whose tool configs its author creates. */
+/**
+ * A workspace folder no commit reachable from HEAD has ever held a file in: a new package or app, whose tool configs its
+ * author creates. History, not the tree at HEAD, so that removing an existing workspace in a commit does not reopen it.
+ */
 function isNewWorkspace(root: string, folder: string): boolean {
-  const listed = spawnSync("git", ["ls-tree", "--name-only", "HEAD", "--", `${folder}/`], { cwd: root, encoding: "utf8" });
-  return listed.status === 0 && listed.stdout.trim() === "";
+  const touched = spawnSync("git", ["log", "-1", "--format=%H", "HEAD", "--", `${folder}/`], { cwd: root, encoding: "utf8" });
+  return touched.status === 0 && touched.stdout.trim() === "";
 }
 
 /**
- * `root` lets a new workspace through: its tool configs are open until the workspace has a file at HEAD, and locked
- * from that commit on. Without `root` a workspace's tool configs are always locked.
+ * `root` lets a new workspace through: its tool configs are open until a commit holds a file of the workspace, and
+ * locked from that commit on. Without `root` a workspace's tool configs are always locked.
  */
 export function isLocked(file: string, config?: HarnessConfig, root?: string): boolean {
   const entries = [

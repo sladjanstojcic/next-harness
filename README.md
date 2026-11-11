@@ -273,6 +273,10 @@ packages/<name>/
   `src/`. `root.jsExceptions` cannot name them, since it covers the repository root only. Name such a
   file in `locked` when agents should not edit it.
 - `src/domain/` takes `.ts` files only.
+- depcruise, knip and jscpd run in each package with `src/`, as in an app. dependency-cruiser uses a
+  package preset: no cycles, a pure `src/domain/`, `src/server/` internals reached only through
+  `src/server.ts`, and `src/index.ts` never reaching server code. Knip takes the files the package's
+  `exports` point at as entries and reports one of their exports that no workspace imports.
 - ESLint, Prettier, tsc and Vitest run in each package's folder. Init writes
   `harnessEslint({ root: import.meta.dirname, layout: "package" })` there, or prints that line for a
   config the package already has, as create-turbo's `packages/ui/eslint.config.mjs`. With that layout the
@@ -500,12 +504,14 @@ too), the tool configs init writes in each eslint-prettier workspace, plus the l
 paths that config names. Edits by tool are denied, edits
 by shell are reported and block Done, and the unlock command is denied to agents.
 
-A new workspace is the exception, so that an agent can add a package or an app without you. While its
-folder has no file at HEAD, its own tool configs and `tsconfig.json` may be created and changed, also by
+A new workspace is the exception, so that an agent can add a package or an app without you. While no
+commit has ever held a file in its folder, its own tool configs and `tsconfig.json` may be created and changed, also by
 running `node tooling/harness/cli.ts init`. From the commit that adds the workspace they are locked like
 the rest. Two checks keep such a workspace honest: the preset check for its ESLint config, and the audit
 rule `tsconfig-strict`, which holds every next-modules and package `tsconfig.json` to `strict: true`
-with `noImplicitAny` and `strictNullChecks` left on, read with the files it extends.
+with `noImplicitAny` and `strictNullChecks` left on and no `noCheck`, read with the files it extends.
+A `tsconfig.json` that names no files to check (`"files": []` and no `include`) is reported too, since
+the harness's `tsc` step reads that file.
 
 ```sh
 pnpm harness:unlock   # you, in your own terminal: four hours to change the harness with the agent
@@ -651,10 +657,12 @@ Exact versions, no ranges; every config file is TypeScript.
   own; the ESLint preset check and `strict` are what is enforced.
 - `tsconfig-strict` is skipped for a tsconfig whose `extends` cannot be resolved, as before an install;
   `tsc` reports that case itself.
-- A `package` workspace runs no depcruise, knip or jscpd. Import cycles, unused exports and duplicated
-  code inside a package are therefore not checked, and domain purity there is a lint rule only. A
-  package's server components may import `src/server/`; only files with `"use client"` are stopped. A
-  kept ESLint config that takes its base rules from another package is recognised only after an
+- In a `package` workspace knip runs inside the package and reports every unused export of its entry
+  files; the gate then takes out the names another workspace imports from the package. It matches by
+  name, so an unused internal export that shares its name with a used public one is not reported, and
+  `pnpm knip` run by hand in the package also lists public exports that other workspaces do use. A
+  package's server components may import `src/server/` only through `src/server.ts`.
+- A kept ESLint config that takes its base rules from another package is recognised only after an
   install, when that package sits in `node_modules`: if ESLint reports a plugin defined twice, add
   `base: false` to the printed line.
 - In a monorepo the knip preset names a tool's config and script binary when the workspace's

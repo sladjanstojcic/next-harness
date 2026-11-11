@@ -215,7 +215,7 @@ export function workspaceOf<T extends WorkspaceEntry>(entries: readonly T[], fil
 export const isConfigOnly = (gitRoot: string, workspace: WorkspaceEntry): boolean =>
   workspace.shape === "package" && !fs.existsSync(path.join(gitRoot, workspace.path, "src"));
 
-/** depcruise, knip and jscpd run in next-modules workspaces only; the package, Makerkit and supabase shapes do not run them. */
+/** depcruise, knip and jscpd run in next-modules and package workspaces; the Makerkit and supabase shapes do not install them. */
 export function analysisOf(config: HarnessConfig, entry: WorkspaceEntry): AnalysisName[] {
-  return entry.shape === "next-modules" ? (config.analysis ?? [...ANALYSIS_NAMES]) : [];
+  return entry.shape === "next-modules" || entry.shape === "package" ? (config.analysis ?? [...ANALYSIS_NAMES]) : [];
 }

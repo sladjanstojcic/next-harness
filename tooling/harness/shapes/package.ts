@@ -6,7 +6,19 @@ const LAYOUT = "(package layout)";
 const ok: PathVerdict = { ok: true };
 const areaFolders = ["components", "server", "domain"];
 const flatFolders = ["hooks", "lib"];
-const topEntries = ["src", "package.json", "tsconfig.json", "README.md", "AGENTS.md", "CLAUDE.md", ...ALL_TOOL_CONFIG_NAMES, ".prettierignore", ".gitignore"];
+const topEntries = [
+  "src",
+  "package.json",
+  "tsconfig.json",
+  "README.md",
+  "AGENTS.md",
+  "CLAUDE.md",
+  ...ALL_TOOL_CONFIG_NAMES,
+  ".dependency-cruiser.json",
+  ".jscpd.json",
+  ".prettierignore",
+  ".gitignore",
+];
 
 const ACTIONS_ADVICE = `Server Actions live in an app's module (under apps/<app>/, in modules/<module>/actions/<name>-action.ts) and call this package's server.ts; a package holds no actions/ and no "use server" ${LAYOUT}`;
 

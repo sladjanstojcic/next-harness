@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeRepo } from "./temp-repo.ts";
-import { harnessKnip, harnessKnipWorkspace } from "../presets/knip.ts";
+import { harnessKnip, harnessKnipPackage, harnessKnipWorkspace } from "../presets/knip.ts";
 
 const PACKAGE = JSON.stringify({ dependencies: { "server-only": "0.0.1" }, devDependencies: { "@eslint/js": "9.39.5", eslint: "9.39.5" } });
 
@@ -57,5 +57,34 @@ describe("the knip preset", () => {
   it("does not ignore a preset tool the project's own ESLint config imports", () => {
     const repo = makeRepo({ "package.json": PACKAGE, "eslint.config.mjs": 'import js from "@eslint/js";\nexport default [js.configs.recommended];\n' });
     expect(harnessKnipWorkspace({}, repo.root).ignoreDependencies).toEqual(["server-only"]);
+  });
+
+  it("gives a package the files its exports point at as entries, and judges their exports too", () => {
+    const manifest = {
+      name: "@repo/billing",
+      exports: {
+        ".": "./src/index.ts",
+        "./server": { types: "./src/server.ts", default: "./src/server.ts" },
+        "./gone": "./src/gone.ts",
+        "./ui/*": "./src/ui/*.tsx",
+      },
+      dependencies: { "server-only": "0.0.1" },
+      devDependencies: { knip: "6.44.1" },
+      scripts: { format: "prettier --write ." },
+    };
+    const files = {
+      "packages/billing/src/index.ts": "",
+      "packages/billing/src/server.ts": "",
+      "packages/billing/prettier.config.ts": "",
+      "node_modules/.bin/prettier": "",
+    };
+    const repo = makeRepo({ ...files, "packages/billing/package.json": JSON.stringify(manifest) });
+    expect(harnessKnipPackage(`${repo.root}/packages/billing`)).toEqual({
+      entry: ["src/index.ts", "src/server.ts", "src/ui/*.tsx"],
+      includeEntryExports: true,
+      ignore: ["prettier.config.ts"],
+      ignoreDependencies: ["server-only"],
+      ignoreBinaries: ["prettier"],
+    });
   });
 });
