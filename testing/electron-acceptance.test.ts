@@ -77,6 +77,8 @@ describe("Desk App, an electron-vite project in the shape's layout, adopted with
       expect(repo.report).toContain("Run the full gate: pnpm run check");
       expect(repo.report).not.toContain("playwright install chromium");
       expect(repo.report).not.toContain("tsconfig.json:");
+      // Its config already bundles the preload script's packages, so init has no step for it.
+      expect(repo.report).not.toContain("externalizeDeps");
       expect(repo.read("knip.config.ts")).toContain("export default harnessKnipElectron()");
       expect(repo.read(".dependency-cruiser.json")).toContain("presets/dependency-cruiser-electron.json");
       expect(repo.read("tsconfig.json")).toBe(DESK_APP["tsconfig.json"]);
