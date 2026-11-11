@@ -423,7 +423,8 @@ the missing tool scripts, and `.prettierignore` entries (`pnpm-lock.yaml`, `src/
 sets `allowImportingTsExtensions` in `tsconfig.json` and excludes `tooling/harness` and the thin configs
 from the project's type check. A next-modules workspace whose tsconfig, with the files it extends, maps
 no `@/*` gets `"@/*": ["./src/*"]` (or `["./*"]` without `src/`), since the starter files and the
-content rules use that alias. A root Next workspace also gets `playwright.config.ts`, which runs only
+content rules use that alias. Where a `baseUrl` other than the tsconfig's folder is in force, or a file
+it extends sets other `paths`, init prints the alias to add by hand instead. A root Next workspace also gets `playwright.config.ts`, which runs only
 `e2e/**/*.test.ts`; the CI browser step reports `playwright: skipped` until such a file exists. A `test`
 script that does not run Vitest gets no `vitest.config.ts`; init prints the `test: "test"` line for
 `harness.config.ts` instead. In a workspace without `src/`, the ESLint config passes
@@ -456,7 +457,12 @@ export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.d
 `base: false` is what init prints for a config that already brings `eslint-config-next`,
 `@next/eslint-plugin-next` or `typescript-eslint`, as create-next-app's does. A config that imports a
 package which depends on one of them counts too, as create-turbo's apps do through
-`@repo/eslint-config`; init reads that package's `package.json` from the workspace's `node_modules`. The preset then adds only
+`@repo/eslint-config`; init reads that package's `package.json` from the workspace's `node_modules`,
+and counts its devDependencies only when it is a workspace package.
+For such a config init also prints `toolsFrom: "@repo/eslint-config"`. A tool the workspace does not
+install itself, such as `typescript-eslint`, is then loaded from that package, and init does not ask to
+install it: a second copy at the template's version could refuse the project's TypeScript. A copy the
+workspace does install still wins. The preset then adds only
 the harness's rule blocks, since ESLint refuses a plugin defined twice. A project's own Prettier config
 is kept as it is, with its style.
 

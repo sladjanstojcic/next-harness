@@ -236,7 +236,9 @@ export default defineHarness({
   above the minimum stays, also when newer. A project's own Prettier config is kept as
   it is. A kept ESLint config that exports a variable gets the line that replaces its
   `export default`; `base: false` is printed when the config, or a package it imports,
-  brings typescript-eslint or the Next configs. A next-modules workspace whose tsconfig
+  brings typescript-eslint or the Next configs; for an imported package it also prints
+  `toolsFrom`, so the preset loads the tools that package brings from there and init
+  does not ask to install them. A next-modules workspace whose tsconfig
   chain maps no `@/*` gets that alias on its source root. In a workspace without `src/`
   the thin ESLint config passes `layout: "app-root"`,
   `--starter` copies the helpers to `shared/lib/`, and the depcruise and jscpd scripts

@@ -21,6 +21,11 @@ export interface HarnessEslintOptions {
    * any Next configs: the preset then adds only the harness's blocks, so no plugin is defined twice.
    */
   base?: boolean;
+  /**
+   * The package the project's own config takes its base from, such as `@repo/eslint-config`: a tool the workspace does not
+   * install itself is loaded from there, so the preset runs the copies the project already runs.
+   */
+  toolsFrom?: string;
   /** Generated files the rules skip; the next-modules vendored paths of the layout by default. */
   vendored?: string[];
   /** A consumer leaves the vendored harness, which its tsconfig excludes, unlinted; the harness's own repository lints it. */
@@ -39,7 +44,7 @@ const isEntry = (value: unknown): value is EslintEntry => isRecord(value) && (va
 export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
   const { root, layout = "app", next = false, base = true, harness = "ignore" } = options;
   const vendored = options.vendored ?? VENDORED.map((glob) => (layout === "app-root" ? glob : `src/${glob}`));
-  const tool = toolLoader(root);
+  const tool = toolLoader(root, options.toolsFrom);
   const eslint = tool("eslint/config");
   const tseslint = defaultOf(tool("typescript-eslint"));
   const disableTypeChecked = member(member(tseslint, "configs"), "disableTypeChecked");

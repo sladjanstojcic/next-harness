@@ -9,10 +9,10 @@ const DEFAULT_EXCLUDE = ["node_modules"];
 
 const ALIAS = "@/*";
 
-/** The `paths` in force for a tsconfig, with every file it extends; empty when the chain sets none or cannot be read. */
-function pathsInForce(file: string): Record<string, unknown> {
-  const parsed = ts.getParsedCommandLineOfConfigFile(file, {}, { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined });
-  return parsed?.options.paths ?? {};
+/** The `paths` and `baseUrl` in force for a tsconfig, with every file it extends; none when the chain sets none or cannot be read. */
+function inForce(file: string): { paths: Record<string, unknown>; baseUrl?: string } {
+  const options = ts.getParsedCommandLineOfConfigFile(file, {}, { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined })?.options;
+  return { paths: options?.paths ?? {}, ...(options?.baseUrl === undefined ? {} : { baseUrl: options.baseUrl }) };
 }
 
 /**
@@ -28,8 +28,17 @@ export function tsconfigStep(root: string, workspace: WorkspaceEntry, force: boo
   const target = workspace.path === "" ? "tsconfig.json" : `${workspace.path}/tsconfig.json`;
   const file = path.join(root, target);
   const left = [...(workspace.path === "" ? [HARNESS_DIR] : []), ...presetConfigs];
-  const alias = workspace.shape === "next-modules" ? [`./${sourceRootOf(workspace)}*`] : undefined;
-  const aliasByHand = alias === undefined ? "" : `\n    "compilerOptions": { "paths": { "${ALIAS}": ${JSON.stringify(alias)} } }`;
+  const sources = workspace.shape === "next-modules" ? path.join(path.dirname(file), sourceRootOf(workspace)) : undefined;
+  /** The alias as the tsconfig holds it: on the source root, relative to the folder `paths` resolve against. */
+  const aliasFrom = (folder: string): string[] => {
+    const relative = path
+      .relative(folder, sources ?? folder)
+      .split(path.sep)
+      .join("/");
+    return [`${relative.startsWith("..") ? relative : `./${relative}`}/*`.replace("//", "/")];
+  };
+  const byHandText = (alias: string[]): string => `\n    "compilerOptions": { "paths": { "${ALIAS}": ${JSON.stringify(alias)} } }`;
+  const aliasByHand = sources === undefined ? "" : byHandText(aliasFrom(path.dirname(file)));
   let config: Record<string, unknown> | undefined;
   try {
     config = readJson(file, target);
@@ -55,13 +64,19 @@ export function tsconfigStep(root: string, workspace: WorkspaceEntry, force: boo
     next = { ...next, compilerOptions: { ...options, allowImportingTsExtensions: true } };
     changes.push("compilerOptions.allowImportingTsExtensions: true");
   }
-  const inForce = alias === undefined ? {} : pathsInForce(file);
-  let byHand = "";
-  if (alias !== undefined && inForce[ALIAS] === undefined) {
-    // `paths` replaces the one a tsconfig extends, so mappings that come from there cannot be kept by writing here.
-    if (!isObject(options.paths) && Object.keys(inForce).length > 0) byHand = aliasByHand;
-    else {
+  let hand = "";
+  const { paths, baseUrl } = sources === undefined ? { paths: {} } : inForce(file);
+  if (sources !== undefined && paths[ALIAS] === undefined) {
+    const folder = path.dirname(file);
+    if (baseUrl !== undefined && path.relative(folder, baseUrl) !== "") {
+      // `paths` resolve against a baseUrl in force, so a value written for the tsconfig's own folder would point elsewhere.
+      hand = `; its baseUrl is ${path.relative(folder, baseUrl).split(path.sep).join("/")}, and paths resolve against it, so add this one by hand:${byHandText(aliasFrom(baseUrl))}`;
+    } else if (!isObject(options.paths) && Object.keys(paths).length > 0) {
+      // `paths` replaces the one a tsconfig extends, so mappings that come from there cannot be kept by writing here.
+      hand = `; it extends other paths, so add this one to them by hand:${aliasByHand}`;
+    } else {
       const compilerOptions = isObject(next.compilerOptions) ? next.compilerOptions : options;
+      const alias = aliasFrom(folder);
       next = { ...next, compilerOptions: { ...compilerOptions, paths: { ...(isObject(options.paths) ? options.paths : {}), [ALIAS]: alias } } };
       changes.push(`compilerOptions.paths "${ALIAS}": ${JSON.stringify(alias)}`);
     }
@@ -72,11 +87,10 @@ export function tsconfigStep(root: string, workspace: WorkspaceEntry, force: boo
     next = { ...next, exclude: [...exclude, ...added] };
     changes.push(`exclude ${added.join(", ")}`);
   }
-  const todo = byHand === "" ? {} : { todo: true };
-  const hand = byHand === "" ? "" : `; it extends other paths, so add this one to them by hand:${byHand}`;
   if (changes.length === 0) {
-    if (byHand === "") return { target, status: "unchanged", detail: "allows .ts imports and leaves the harness out" };
+    if (hand === "") return { target, status: "unchanged", detail: "allows .ts imports and leaves the harness out" };
     return { target, status: "kept", detail: `allows .ts imports and leaves the harness out${hand}`, todo: true };
   }
-  return { target, status: "updated", detail: `${changes.join(", ")}${hand}`, ...todo, apply: writer(file, `${JSON.stringify(next, null, indentOf(file))}\n`) };
+  const apply = writer(file, `${JSON.stringify(next, null, indentOf(file))}\n`);
+  return { target, status: "updated", detail: `${changes.join(", ")}${hand}`, ...(hand === "" ? {} : { todo: true }), apply };
 }

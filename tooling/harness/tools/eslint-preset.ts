@@ -97,13 +97,20 @@ const COMMENTS = /\/\*[\s\S]*?\*\/|(^|\s)\/\/.*$/gm;
 
 const BASE_PACKAGES = ["eslint-config-next", "@next/eslint-plugin-next", "typescript-eslint"];
 
-/** What a package the workspace can import depends on, read from the nearest node_modules up the tree; none when it is not installed. */
+/**
+ * What a package the workspace can import brings, read from the nearest node_modules up the tree; nothing when it is not
+ * installed. A workspace package, whose real folder is outside node_modules, has its devDependencies installed; a
+ * registry package ships the list, but nobody installs them.
+ */
 function dependenciesOf(dir: string, name: string): string[] {
   for (let current = path.resolve(dir); ; current = path.dirname(current)) {
-    const file = path.join(current, "node_modules", name, "package.json");
-    if (fs.existsSync(file)) {
-      const parsed = packageManifest.safeParse(JSON.parse(fs.readFileSync(file, "utf8")));
-      return parsed.success ? Object.values(parsed.data).flatMap((group) => Object.keys(group ?? {})) : [];
+    const folder = path.join(current, "node_modules", name);
+    if (fs.existsSync(path.join(folder, "package.json"))) {
+      const parsed = packageManifest.safeParse(JSON.parse(fs.readFileSync(path.join(folder, "package.json"), "utf8")));
+      if (!parsed.success) return [];
+      const { dependencies, devDependencies, peerDependencies } = parsed.data;
+      const inWorkspace = !fs.realpathSync(folder).split(path.sep).includes("node_modules");
+      return [dependencies, peerDependencies, ...(inWorkspace ? [devDependencies] : [])].flatMap((group) => Object.keys(group ?? {}));
     }
     if (current === path.dirname(current)) return [];
   }
@@ -121,14 +128,20 @@ function importedPackages(config: string): string[] {
 }
 
 /**
- * Whether the config names a base package itself, or imports a package that depends on one: create-turbo's configs take
- * theirs from the workspace package `@repo/eslint-config`. `dir` is the workspace folder the imports resolve from.
+ * The package a config imports that brings a base package, with everything it brings: create-turbo's configs take their
+ * base from the workspace package `@repo/eslint-config`. None for a config that names a base package itself, as
+ * create-next-app's does. `dir` is the workspace folder the imports resolve from.
  */
-function bringsBase(ownConfig: string, dir?: string): boolean {
+function baseProvider(ownConfig: string, dir: string | undefined): { name: string; dependencies: string[] } | undefined {
   const code = ownConfig.replace(COMMENTS, "$1");
-  if (OWN_BASE.test(code)) return true;
-  return dir !== undefined && importedPackages(code).some((name) => dependenciesOf(dir, name).some((dependency) => BASE_PACKAGES.includes(dependency)));
+  if (dir === undefined || OWN_BASE.test(code)) return undefined;
+  return importedPackages(code)
+    .map((name) => ({ name, dependencies: dependenciesOf(dir, name) }))
+    .find(({ dependencies }) => dependencies.some((dependency) => BASE_PACKAGES.includes(dependency)));
 }
+
+/** Whether the config names a base package itself or imports one that brings it. */
+const bringsBase = (ownConfig: string, dir?: string): boolean => OWN_BASE.test(ownConfig.replace(COMMENTS, "$1")) || baseProvider(ownConfig, dir) !== undefined;
 
 /** The name a config exports by default, when it exports a variable rather than an array or a call. */
 export const exportedName = (ownConfig: string): string | undefined =>
@@ -138,7 +151,9 @@ export const exportedName = (ownConfig: string): string | undefined =>
 export function presetCall(workspace: PresetWorkspace, ownConfig = "", dir?: string): string {
   const layout = layoutOf(workspace) === "app" ? "" : `, layout: "${layoutOf(workspace)}"`;
   const base = bringsBase(ownConfig, dir) ? ", base: false" : workspace.next ? ", next: true" : "";
-  return `harnessEslint({ root: import.meta.dirname${layout}${base} })`;
+  const provider = baseProvider(ownConfig, dir);
+  const toolsFrom = provider === undefined ? "" : `, toolsFrom: "${provider.name}"`;
+  return `harnessEslint({ root: import.meta.dirname${layout}${base}${toolsFrom} })`;
 }
 
 /**
@@ -161,6 +176,9 @@ function eslintConfigText(dir: string): string {
 
 /** Whether the workspace's own ESLint config brings the base configs, so the preset's base packages are not needed there. */
 export const bringsOwnBase = (dir: string): boolean => bringsBase(eslintConfigText(dir), dir);
+
+/** The tools the package behind the workspace's own ESLint config already brings; the preset loads them from there. */
+export const broughtByBase = (dir: string): string[] => baseProvider(eslintConfigText(dir), dir)?.dependencies ?? [];
 
 function missingRules(printed: unknown, probe: string, layout: PresetLayout, defaults: Record<string, Options>): string[] {
   const config = printedConfig.parse(printed ?? {});

@@ -24,8 +24,10 @@ const APP_TOOLS = {
   vitest: "5.1.0",
 };
 const PRESET = 'import { harnessEslint } from "../../tooling/harness/presets/eslint.ts";';
-const APP_LINE = 'export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "app-root", base: false })];';
-const UI_LINE = 'export default [...[config].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "package", base: false })];';
+const APP_LINE =
+  'export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "app-root", base: false, toolsFrom: "@repo/eslint-config" })];';
+const UI_LINE =
+  'export default [...[config].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "package", base: false, toolsFrom: "@repo/eslint-config" })];';
 
 /** create-turbo's project before any legacy list, with the workspace packages linked as an install leaves them. */
 function project() {
