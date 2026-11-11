@@ -5,6 +5,7 @@ import { HARNESS_PACKAGE, managerCommands } from "./bootstrap.ts";
 import { codexHooksSetting, withHooksFeature } from "./codex-user.ts";
 import { compareHooks, hooksBlock, mergeHooks, type HooksBlock } from "./hooks-merge.ts";
 import { indentOf, isObject, readJson, scriptsStep, writer, type JsonObject, type Step } from "./files.ts";
+import { auditPreloadBundles, PRELOAD_BUNDLE_SETTING } from "../audit/preload-bundle.ts";
 import { resolveHarness, type Harness } from "../path-check.ts";
 import { ALL_TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { bin } from "../../tools/tool-set.ts";
@@ -157,6 +158,10 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
         ]
       : []),
     ...ownTests.map((workspace) => ownTestsItem(harness, workspace)),
+    ...[...new Set(auditPreloadBundles(root).map(({ file }) => file))].map(
+      (file) =>
+        `Bundle the packages the preload script imports, which a sandboxed preload cannot load and electron-vite leaves outside the bundle (init does not edit ${file}), by adding this to its preload section, and removing externalizeDepsPlugin() from that section's plugins when it is there: ${PRELOAD_BUNDLE_SETTING}`,
+    ),
     ...(preparesHooks(root) ? [] : [`Add to the root package.json "prepare" script, so a fresh clone gets the pre-push hook: ${PREPARE}`]),
     ...(format.length === 0 ? [] : [`Format the app's own files once in the preset's style: ${format.join("; ")}`]),
     ...(edited.length === 0 ? [] : [`Format the kept files you edited, in the project's own style: ${edited.join("; ")}`]),

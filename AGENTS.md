@@ -241,7 +241,10 @@ export default defineHarness({
   (`src/main/logging/log.ts`); the `electron-vite` shape takes no `next: true`.
 - Electron tools: the workspace's `tsconfig.json` names no files, so the tsc step runs
   `tsc --noEmit -p` for each project it refers to, and `tsconfig-strict` judges each of those. CI also
-  runs `electron-vite build`; there is no Next type generation and no browser smoke. `init` lists `scripts/**/*.ts` and
+  runs `electron-vite build`; there is no Next type generation and no browser smoke. The audit rule
+  `preload-bundle` wants `build: { externalizeDeps: false }` written literally in the `preload` section of
+  `electron.vite.config.ts` and no `externalizeDepsPlugin()` there (a config without that section passes): a sandboxed preload script cannot load a package,
+  and electron-vite leaves `dependencies` outside the bundle. `init` lists `scripts/**/*.ts` and
   `e2e/**/*.ts` in the `include` of the project that reads the workspace's top, so code beside `src/` is checked. Knip's entries are
   `electron.vite.config.ts`, `src/main/index.ts`, `src/preload/index.ts`, `src/renderer/index.html`
   and `src/renderer/src/main.tsx`. The code index lists the exports of `src/shared/`, each renderer

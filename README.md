@@ -376,6 +376,17 @@ src/
   and `webContents.send`. Name channels once in `src/shared/`.
   `"use server"`, `"use client"` and `server-only` are reported everywhere, and `process.env` is read in
   `src/main/` only.
+- **Preload bundle.** A sandboxed preload script cannot load a package, and electron-vite leaves every
+  package in `dependencies` outside the main and preload bundles. A contract in `src/shared/` that
+  imports zod then leaves the window without its bridge, while every other check passes. The audit rule
+  `preload-bundle` reads `electron.vite.config.ts` and wants this in it, written literally; it also
+  reports `externalizeDepsPlugin()` in the preload section's `plugins`. Init prints the line as a step and
+  does not edit the file.
+
+  ```ts
+  preload: { build: { externalizeDeps: false } },
+  ```
+
 - **Type check.** The project's `tsconfig.json` names no files and refers to `tsconfig.node.json` and
   `tsconfig.web.json`. The tsc step runs `tsc --noEmit -p` for each project it refers to, and the audit
   judges the strictness of each of them. `*.tsbuildinfo` is git-ignored by init, since `tsc` writes one
@@ -397,8 +408,8 @@ src/
 
 The official scaffold (`pnpm create @quick-start/electron`) predates this layout. Give it a legacy list
 (`legacy: "tooling/harness-legacy.json"`) and run `legacy init`: it lists `App.tsx` and
-`components/Versions.tsx`, the main and preload scripts, `.vscode/`, and the two tsconfig projects whose
-base turns `noImplicitAny` off. New code is then held to the shape while those files stay where they are.
+`components/Versions.tsx`, the main and preload scripts, `.vscode/`, the two tsconfig projects whose
+base turns `noImplicitAny` off, and `electron.vite.config.ts` with its empty preload section. New code is then held to the shape while those files stay where they are.
 
 ### A Makerkit project
 
@@ -734,13 +745,22 @@ Exact versions, no ranges; every config file is TypeScript.
   tests only.
 - The `electron-vite` shape was also run on two real projects, an app already laid out this way and the
   official electron-vite scaffold: init's six printed steps, then all ten gate steps passed, with the real
-  `electron-vite build`. The first needed no legacy list, the scaffold one of 11 files. In an agent session
+  `electron-vite build`. The first needed no legacy list, the scaffold one of 11 files; both runs predate `preload-bundle`, which
+  adds the scaffold's `electron.vite.config.ts` as a twelfth. In an agent session
   there, nine forbidden attempts were all stopped and none was false. Nothing was opened in a window on
   Windows or macOS, and packaging was not run. In this repository's own tests the build is a stub, since
   Electron is not installed here.
 - `electron-security` does not follow a shorthand property (`{ sandbox }`), and it reports the same key
   in another library's options in `src/main/`. `ipc-channel` does not see a literal passed through a
   generic bridge such as `window.api.invoke("…")`.
+- `preload-bundle` reads the config's text and evaluates nothing. A config built by a function, kept in a
+  variable or spread from elsewhere is reported as not visible until the setting is written literally,
+  and `externalizeDepsPlugin` imported under another name is not seen. Only the literal `false` passes:
+  an options object such as `{ exclude: ["zod"] }` is reported though it bundles that package, since the
+  next package would be left out again. A package named in `rollupOptions.external` beside the setting is
+  not seen. A config without a `preload` section builds no preload script and passes. It checks the
+  setting, not the built file, and nothing here opens a window. `build.externalizeDeps` exists from electron-vite 5.0.0;
+  an older version does not know it, so upgrade or put the config on the legacy list.
 - In an Electron project knip prints configuration hints for entries its electron-vite plugin also
   finds; they do not fail the step.
 - The legacy rule is per file. Touching an old file makes all of its old lint, format and type findings
