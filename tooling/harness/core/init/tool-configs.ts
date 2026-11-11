@@ -2,13 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { sourcePaths, sourceRootOf, type WorkspaceEntry } from "../../config.ts";
 import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
-import { eslintPresetLines, exportedName, presetCall, presetImport } from "../../tools/eslint-preset.ts";
-import { isObject, readJson, writer, type Step } from "./files.ts";
-import { developsHarness, gitignoreStep, HARNESS_MODULES, IGNORED, prettierIgnored, ignoreEntriesStep } from "./ignore-files.ts";
-import { tsconfigStep } from "./tsconfig-step.ts";
-
-const HARNESS = path.resolve(import.meta.dirname, "../..");
-const STARTER = path.join(HARNESS, "presets/starter");
+import { JSCPD_CACHE } from "../../tools/analysis.ts";
+import { eslintPresetLines, exportedName, exportsCall, presetCall, presetImport } from "../../tools/eslint-preset.ts";
+import { isObject, readJson, starterSteps, writer, type Step } from "./files.ts";
+import { developsHarness, ELECTRON_IGNORED, gitignoreStep, HARNESS_MODULES, IGNORED, prettierIgnored, ignoreEntriesStep } from "./ignore-files.ts";
+import { typecheckProjects } from "../../tools/typescript.ts";
+import { tsconfigSteps } from "./tsconfig-step.ts";
 
 interface ToolConfig {
   /** The names the tool reads its config from, init's own first; a project's own config is never replaced. */
@@ -30,7 +29,8 @@ const ESLINT: ToolConfig = {
   text: (workspace) => `import { harnessEslint } from "${presetImport(workspace.path, "eslint.ts")}";\n\nexport default ${presetCall(workspace)};\n`,
   placement: (own) => {
     const name = exportedName(own);
-    const second = name === undefined ? "the spread as the last element of the exported array" : `the other two lines in place of \`export default ${name}\``;
+    const spread = exportsCall(own) ? "the spread as the last argument of the exported call" : "the spread as the last element of the exported array";
+    const second = name === undefined ? spread : `the other two lines in place of \`export default ${name}\``;
     return `the import at the top of the file, ${second}`;
   },
   lines: eslintPresetLines,
@@ -48,13 +48,22 @@ const VITEST: ToolConfig = {
   names: TOOL_CONFIG_NAMES.vitest,
   marker: "harnessVitest(",
   text: (workspace) => `import { harnessVitest } from "${presetImport(workspace.path, "vitest.ts")}";\n\nexport default harnessVitest();\n`,
-  lines: (workspace) => [
-    `import { mergeConfig } from "vitest/config"; import { harnessVitest } from "${presetImport(workspace.path, "vitest.ts")}";`,
-    "export default mergeConfig(harnessVitest(), yourConfig);",
-  ],
+  // An Electron project's own Vitest config holds its aliases and needs nothing from the preset.
+  lines: (workspace) =>
+    workspace.shape === "electron-vite"
+      ? []
+      : [
+          `import { mergeConfig } from "vitest/config"; import { harnessVitest } from "${presetImport(workspace.path, "vitest.ts")}";`,
+          "export default mergeConfig(harnessVitest(), yourConfig);",
+        ],
 };
 
-const knipPreset = (workspace: WorkspaceEntry): string => (workspace.shape === "package" ? "harnessKnipPackage" : "harnessKnip");
+const KNIP_PRESETS: Partial<Record<WorkspaceEntry["shape"], string>> = { package: "harnessKnipPackage", "electron-vite": "harnessKnipElectron" };
+const knipPreset = (workspace: WorkspaceEntry): string => KNIP_PRESETS[workspace.shape] ?? "harnessKnip";
+const CRUISER_PRESETS: Partial<Record<WorkspaceEntry["shape"], string>> = {
+  package: "dependency-cruiser-package.json",
+  "electron-vite": "dependency-cruiser-electron.json",
+};
 
 const KNIP: ToolConfig = {
   names: TOOL_CONFIG_NAMES.knip,
@@ -120,8 +129,8 @@ function toolConfigStep(root: string, workspace: WorkspaceEntry, tool: ToolConfi
     return { target: label(workspace, file), status: "created", detail: "harness preset", apply };
   }
   if (found.state === "preset") return { target: label(workspace, found.file), status: "unchanged", detail: "uses the harness preset" };
-  if (tool.lines === undefined) return { target: label(workspace, found.file), status: "kept", detail: "your config stays as it is" };
-  const lines = tool.lines(workspace, found.text, path.join(root, workspace.path)).map((line) => `\n    ${line}`);
+  const lines = (tool.lines?.(workspace, found.text, path.join(root, workspace.path)) ?? []).map((line) => `\n    ${line}`);
+  if (lines.length === 0) return { target: label(workspace, found.file), status: "kept", detail: "your config stays as it is" };
   return {
     target: label(workspace, found.file),
     status: "kept",
@@ -153,7 +162,8 @@ function presetConfigs(root: string, workspace: WorkspaceEntry): string[] {
   return toolsOf(root, workspace).flatMap((tool) => {
     const found = find(root, workspace, tool);
     if (found.state === "absent") return [tool.names[0] ?? ""];
-    return found.state === "own" && tool.lines === undefined ? [] : [found.file];
+    const kept = found.state === "own" && (tool.lines?.(workspace, found.text, path.join(root, workspace.path)) ?? []).length === 0;
+    return kept ? [] : [found.file];
   });
 }
 
@@ -168,7 +178,7 @@ function ownTestsStep(root: string, workspace: WorkspaceEntry): Step[] {
 function dependencyCruiserStep(root: string, workspace: WorkspaceEntry, force: boolean): Step {
   const target = label(workspace, ".dependency-cruiser.json");
   const file = path.join(root, target);
-  const preset = workspace.shape === "package" ? "dependency-cruiser-package.json" : "dependency-cruiser.json";
+  const preset = CRUISER_PRESETS[workspace.shape] ?? "dependency-cruiser.json";
   const text = `{\n  "extends": "${presetImport(workspace.path, preset)}"\n}\n`;
   const apply = writer(file, text);
   if (!fs.existsSync(file)) return { target, status: "created", detail: "harness preset", apply };
@@ -184,49 +194,45 @@ function dependencyCruiserStep(root: string, workspace: WorkspaceEntry, force: b
  */
 export function toolScripts(workspace: WorkspaceEntry, dir = "", starter = false): Record<string, string> {
   const soon = starter && workspace.shape === "next-modules" ? ["shared"] : [];
+  const projects = typecheckProjects(dir, workspace);
   const sources = sourceRootOf(workspace) === "" ? sourcePaths(dir, "", soon).join(" ") : "src";
   const analysis = {
     depcruise: `depcruise ${sources} --config .dependency-cruiser.json`,
     knip: "knip",
-    jscpd: `jscpd ${sources} --config ${presetImport(workspace.path, "jscpd.json")}`,
+    jscpd: `jscpd ${sources} --config ${presetImport(workspace.path, "jscpd.json")}${workspace.shape === "electron-vite" ? ` --output ${JSCPD_CACHE}` : ""}`,
   };
   return {
     lint: "eslint . --max-warnings 0",
-    typecheck: workspace.next ? "next typegen && tsc --noEmit" : "tsc --noEmit",
+    typecheck: workspace.next ? "next typegen && tsc --noEmit" : projects.map((project) => `tsc --noEmit -p ${project}`).join(" && ") || "tsc --noEmit",
     test: "vitest run",
     ...analysis,
     format: "prettier --write .",
   };
 }
 
-/** Copies the starter files kept under presets/starter/<set>/ as `.txt` into a workspace folder, never over a changed file. */
-function starterSteps(root: string, workspace: WorkspaceEntry, set: string, folder: string): Step[] {
-  return fs
-    .readdirSync(path.join(STARTER, set))
-    .sort()
-    .map((name) => {
-      const target = label(workspace, `${folder}/${name.replace(/\.txt$/, "")}`);
-      const text = fs.readFileSync(path.join(STARTER, set, name), "utf8");
-      const file = path.join(root, target);
-      if (!fs.existsSync(file)) return { target, status: "created", detail: "starter file", apply: writer(file, text) };
-      return fs.readFileSync(file, "utf8") === text
-        ? { target, status: "unchanged", detail: "starter file" }
-        : { target, status: "kept", detail: "your file stays; the harness's starter copy differs" };
-    });
-}
-
 /** Tool config, ignore and starter steps of every eslint-prettier workspace; package scripts are the caller's, since the root file also takes the wiring scripts. */
 export function toolConfigSteps(root: string, workspace: WorkspaceEntry, force: boolean, starter: boolean): Step[] {
   const browser = workspace.path === "" && workspace.next;
   const app = isApp(workspace);
+  const electron = workspace.shape === "electron-vite";
+  const ignored = [...(electron ? ELECTRON_IGNORED : IGNORED), ...(workspace.path === "" ? [HARNESS_MODULES] : [])];
   return [
     ...toolsOf(root, workspace).map((tool) => toolConfigStep(root, workspace, tool)),
     ...ownTestsStep(root, workspace),
     dependencyCruiserStep(root, workspace, force),
-    tsconfigStep(root, workspace, force, developsHarness(root) ? [] : presetConfigs(root, workspace)),
-    ...(app ? [gitignoreStep(root, workspace.path, workspace.path === "" ? [...IGNORED, HARNESS_MODULES] : IGNORED)] : []),
+    ...tsconfigSteps(root, workspace, force, developsHarness(root) ? [] : presetConfigs(root, workspace)),
+    ...(app ? [gitignoreStep(root, workspace.path, ignored)] : []),
     ...(workspace.path === "" || !app ? [] : [ignoreEntriesStep(root, label(workspace, ".prettierignore"), prettierIgnored(workspace))]),
-    ...(starter && workspace.shape === "next-modules" ? starterSteps(root, workspace, "next-modules", `${sourceRootOf(workspace)}shared/lib`) : []),
-    ...(starter && browser ? starterSteps(root, workspace, "e2e", "e2e") : []),
+    ...(starter && workspace.shape === "next-modules" ? starterSteps(root, "next-modules", label(workspace, `${sourceRootOf(workspace)}shared/lib`)) : []),
+    ...(starter && browser ? starterSteps(root, "e2e", label(workspace, "e2e")) : []),
+    ...(starter && electron
+      ? [
+          {
+            target: label(workspace, "src"),
+            status: "unchanged" as const,
+            detail: "--starter writes nothing here: the electron-vite shape has no starter files",
+          },
+        ]
+      : []),
   ];
 }

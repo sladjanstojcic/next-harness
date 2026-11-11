@@ -1,0 +1,98 @@
+{
+  "forbidden": [
+    {
+      "name": "no-circular",
+      "comment": "Break cycles by moving the shared rule to src/shared/ or the renderer's shared/lib/, or keep the dependency in one direction (Electron layout).",
+      "severity": "error",
+      "from": {},
+      "to": { "circular": true }
+    },
+    {
+      "name": "renderer-no-node",
+      "comment": "Window code runs in a browser page without Node or Electron; ask the main process through the API on window that src/preload/ sets up (Electron layout).",
+      "severity": "error",
+      "from": { "path": "^src/renderer/" },
+      "to": { "dependencyTypes": ["core"] }
+    },
+    {
+      "name": "renderer-no-electron",
+      "comment": "Window code runs in a browser page without Node or Electron; ask the main process through the API on window that src/preload/ sets up (Electron layout).",
+      "severity": "error",
+      "from": { "path": "^src/renderer/" },
+      "to": { "path": "^electron(/|$)|(^|/)node_modules/electron/" }
+    },
+    {
+      "name": "renderer-own-code",
+      "comment": "Window code takes nothing from the main process or the preload script; what both sides need belongs in src/shared/ (Electron layout).",
+      "severity": "error",
+      "from": { "path": "^src/renderer/" },
+      "to": { "path": "^src/(main|preload)/" }
+    },
+    {
+      "name": "contract-pure-core",
+      "comment": "All three parts load src/shared/, so it holds types, constants and guards only: no Node built-in (Electron layout).",
+      "severity": "error",
+      "from": { "path": "^src/shared/" },
+      "to": { "dependencyTypes": ["core"] }
+    },
+    {
+      "name": "contract-pure-path",
+      "comment": "All three parts load src/shared/, so it holds types, constants and guards only: no Electron, no React, and nothing from the three parts (Electron layout).",
+      "severity": "error",
+      "from": { "path": "^src/shared/" },
+      "to": {
+        "path": ["^electron(/|$)|(^|/)node_modules/electron/", "^(react|react-dom)(/|$)|(^|/)node_modules/(react|react-dom)/", "^src/(main|preload|renderer)/"]
+      }
+    },
+    {
+      "name": "main-no-renderer",
+      "comment": "The main process and the preload script run outside the page; they take no window code and no React (Electron layout).",
+      "severity": "error",
+      "from": { "path": "^src/(main|preload)/" },
+      "to": { "path": ["^src/renderer/", "^(react|react-dom)(/|$)|(^|/)node_modules/(react|react-dom)/"] }
+    },
+    {
+      "name": "preload-bridge-only",
+      "comment": "A preload script is the bridge and nothing more: it imports electron and the contract in src/shared/ (Electron layout).",
+      "severity": "error",
+      "from": { "path": "^src/preload/", "pathNot": "\\.test\\.ts$" },
+      "to": { "pathNot": ["^electron(/|$)|(^|/)node_modules/electron/", "^src/(shared|preload)/"] }
+    },
+    {
+      "name": "module-public-api",
+      "comment": "Import another renderer module through its index.ts; keep internal imports inside their own module (Electron layout).",
+      "severity": "error",
+      "from": { "path": "^src/renderer/src/(?:modules/([^/]+)/|[^/]+\\.tsx?$)" },
+      "to": {
+        "path": "^src/renderer/src/modules/([^/]+)/",
+        "pathNot": ["^src/renderer/src/modules/$1/", "^src/renderer/src/modules/[^/]+/index\\.ts$"]
+      }
+    },
+    {
+      "name": "shared-not-modules",
+      "comment": "Code in the renderer's shared/ is used by every module and may import none; the code that needs a module belongs in src/renderer/src/modules/<module>/ (Electron layout).",
+      "severity": "error",
+      "from": { "path": "^src/renderer/src/shared/" },
+      "to": { "path": "^src/renderer/src/modules/" }
+    },
+    {
+      "name": "domain-pure-path",
+      "comment": "A domain/ rule is plain TypeScript; React belongs in the module's components/ or hooks/ (Electron layout).",
+      "severity": "error",
+      "from": { "path": "^src/renderer/src/modules/[^/]+/domain/", "pathNot": "\\.test\\.tsx?$" },
+      "to": { "path": ["^(react|react-dom)(/|$)|(^|/)node_modules/(react|react-dom)/", "/(components|hooks)/"] }
+    },
+    {
+      "name": "not-to-test",
+      "comment": "Keep test fixtures and assertions in colocated *.test.ts(x) files; move reusable production logic to domain/ or src/shared/ (Electron layout).",
+      "severity": "error",
+      "from": { "pathNot": "\\.test\\.tsx?$" },
+      "to": { "path": "\\.test\\.tsx?$" }
+    }
+  ],
+  "options": {
+    "tsConfig": { "fileName": "tsconfig.json" },
+    "tsPreCompilationDeps": true,
+    "doNotFollow": { "path": "node_modules" }
+  }
+}

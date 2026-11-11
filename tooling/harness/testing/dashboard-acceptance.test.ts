@@ -4,17 +4,17 @@ import { ciGate } from "../core/gates/ci-gate.ts";
 import * as runner from "../core/gates/run-tool.ts";
 import { parseEvent } from "../core/hooks/event.ts";
 import { handleEvent } from "../core/hooks/handle.ts";
-import { PLINT_LEGACY, PLINT_LEGACY_FILES, PLINT_MIGRATION, plintRepo, plintRepoWithoutSrc } from "./plint-repo.ts";
+import { DASHBOARD_LEGACY, DASHBOARD_LEGACY_FILES, DASHBOARD_MIGRATION, dashboardRepo, dashboardRepoWithoutSrc } from "./dashboard-repo.ts";
 import type { RepoFixture } from "./temp-repo.ts";
 
 afterEach(() => vi.restoreAllMocks());
 
-const [LEGACY_UTIL, LEGACY_CHART] = PLINT_LEGACY_FILES;
+const [LEGACY_UTIL, LEGACY_CHART] = DASHBOARD_LEGACY_FILES;
 const NEW_MIGRATION = "supabase/migrations/20261109120000_add_tenants.sql";
 
 function session(repo: RepoFixture) {
   const send = (hook: string, extra: Record<string, unknown> = {}) =>
-    handleEvent(parseEvent("claude", { session_id: "plint", cwd: repo.root, hook_event_name: hook, ...extra }, repo.root), repo.root);
+    handleEvent(parseEvent("claude", { session_id: "dashboard", cwd: repo.root, hook_event_name: hook, ...extra }, repo.root), repo.root);
   const tool = (hook: "PreToolUse" | "PostToolUse", name: string, input: Record<string, unknown>) => send(hook, { tool_name: name, tool_input: input });
   return {
     prompt: () => send("UserPromptSubmit", { prompt: "go" }),
@@ -30,9 +30,9 @@ function session(repo: RepoFixture) {
   };
 }
 
-describe("plint-control-plane dry run (next-modules dashboard, root Supabase, legacy ratchet)", () => {
+describe("a dashboard monorepo, dry run (next-modules dashboard, root Supabase, legacy ratchet)", () => {
   it("reports the two legacy files as pre-existing in CI and passes", async () => {
-    const repo = plintRepo();
+    const repo = dashboardRepo();
     vi.spyOn(runner, "runTool").mockResolvedValue([]);
     const result = await ciGate(repo.root);
     expect(result.findings).toEqual([]);
@@ -42,7 +42,7 @@ describe("plint-control-plane dry run (next-modules dashboard, root Supabase, le
   });
 
   it("lets an agent edit a legacy file and reports its findings as pre-existing at Stop", async () => {
-    const repo = plintRepo();
+    const repo = dashboardRepo();
     vi.spyOn(runner, "runTool").mockResolvedValue([]);
     const hooks = session(repo);
     await hooks.prompt();
@@ -52,7 +52,7 @@ describe("plint-control-plane dry run (next-modules dashboard, root Supabase, le
   });
 
   it("blocks a new violation in the dashboard, by Write and by shell", async () => {
-    const repo = plintRepo();
+    const repo = dashboardRepo();
     vi.spyOn(runner, "runTool").mockResolvedValue([]);
     const hooks = session(repo);
     await hooks.prompt();
@@ -67,7 +67,7 @@ describe("plint-control-plane dry run (next-modules dashboard, root Supabase, le
   });
 
   it("without src/: old files at the dashboard's top are pre-existing, a new route goes in app/ and new feature code in modules/", async () => {
-    const repo = plintRepoWithoutSrc();
+    const repo = dashboardRepoWithoutSrc();
     vi.spyOn(runner, "runTool").mockResolvedValue([]);
     const ci = await ciGate(repo.root);
     expect(ci.findings).toEqual([]);
@@ -90,16 +90,16 @@ describe("plint-control-plane dry run (next-modules dashboard, root Supabase, le
   });
 
   it("refuses to grow the legacy list", async () => {
-    const repo = plintRepo();
+    const repo = dashboardRepo();
     const hooks = session(repo);
-    expect(await hooks.before("Edit", { file_path: PLINT_LEGACY, old_string: "[", new_string: "[ " })).toMatchObject({
+    expect(await hooks.before("Edit", { file_path: DASHBOARD_LEGACY, old_string: "[", new_string: "[ " })).toMatchObject({
       kind: "deny",
       guard: "harness-lock",
     });
   });
 
   it("holds the supabase/migrations rules at the root", async () => {
-    const repo = plintRepo();
+    const repo = dashboardRepo();
     vi.spyOn(runner, "runTool").mockResolvedValue([]);
     const hooks = session(repo);
     await hooks.prompt();
@@ -108,13 +108,13 @@ describe("plint-control-plane dry run (next-modules dashboard, root Supabase, le
       kind: "deny",
       guard: "structure-write",
     });
-    expect(await hooks.before("Edit", { file_path: PLINT_MIGRATION, old_string: "create", new_string: "drop" })).toMatchObject({
+    expect(await hooks.before("Edit", { file_path: DASHBOARD_MIGRATION, old_string: "create", new_string: "drop" })).toMatchObject({
       kind: "deny",
       guard: "migration-applied",
     });
-    expect(await hooks.shell(`rm ${PLINT_MIGRATION}`, () => repo.remove(PLINT_MIGRATION))).toMatchObject({
+    expect(await hooks.shell(`rm ${DASHBOARD_MIGRATION}`, () => repo.remove(DASHBOARD_MIGRATION))).toMatchObject({
       kind: "block",
-      findings: [{ rule: "migration-applied", file: PLINT_MIGRATION }],
+      findings: [{ rule: "migration-applied", file: DASHBOARD_MIGRATION }],
     });
     expect(await hooks.before("Bash", { command: "supabase db push" })).toMatchObject({ kind: "deny", guard: "supabase-push" });
   });

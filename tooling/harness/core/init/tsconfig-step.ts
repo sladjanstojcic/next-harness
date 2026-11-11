@@ -1,6 +1,6 @@
 import path from "node:path";
-import { sourceRootOf, type WorkspaceEntry } from "../../config.ts";
-import { compilerOptionsInForce } from "../../tools/typescript.ts";
+import { CONFIG_FILE, sourceRootOf, type WorkspaceEntry } from "../../config.ts";
+import { compilerOptionsInForce, tsconfigFiles, typecheckProjects } from "../../tools/typescript.ts";
 import { indentOf, isObject, readJson, writer, type Step } from "./files.ts";
 
 const HARNESS_DIR = "tooling/harness";
@@ -93,4 +93,35 @@ export function tsconfigStep(root: string, workspace: WorkspaceEntry, force: boo
   }
   const apply = writer(file, `${JSON.stringify(next, null, indentOf(file))}\n`);
   return { target, status: "updated", detail: `${changes.join(", ")}${hand}`, ...(hand === "" ? {} : { todo: true }), apply };
+}
+
+/**
+ * A workspace that is type-checked project by project, as an electron-vite one: its tsconfig.json names no file, so the
+ * step above has nothing to change there. A project that takes files from the workspace's top (`*.config.ts`) would reach
+ * the harness through harness.config.ts and the tool configs that import a preset; nothing imports those files, so leaving
+ * them out of that project's `exclude` is enough. Any other workspace gets the one step above.
+ */
+export function tsconfigSteps(root: string, workspace: WorkspaceEntry, force: boolean, presetConfigs: readonly string[]): Step[] {
+  const dir = path.join(root, workspace.path);
+  const projects = typecheckProjects(dir, workspace);
+  if (projects.length === 0) return [tsconfigStep(root, workspace, force, presetConfigs)];
+  const left = [...(workspace.path === "" ? [HARNESS_DIR, CONFIG_FILE] : []), ...presetConfigs];
+  return projects.flatMap((project): Step[] => {
+    const file = path.join(dir, project);
+    if (!tsconfigFiles(file).some((source) => path.relative(dir, path.dirname(source)) === "")) return [];
+    const target = path.posix.join(workspace.path, project);
+    const byHand = `"exclude": [..., ${left.map((entry) => `"${entry}"`).join(", ")}]`;
+    let config: Record<string, unknown> | undefined;
+    try {
+      config = readJson(file, target);
+    } catch {
+      return [{ target, status: "kept", detail: `has comments or is not plain JSON; set by hand:\n    ${byHand}`, todo: true }];
+    }
+    if (config === undefined) return [];
+    const exclude: unknown[] = Array.isArray(config.exclude) ? config.exclude.map((entry: unknown) => entry) : DEFAULT_EXCLUDE;
+    const added = left.filter((entry) => !exclude.includes(entry));
+    if (added.length === 0) return [{ target, status: "unchanged", detail: "leaves the harness and its configs out" }];
+    const apply = writer(file, `${JSON.stringify({ ...config, exclude: [...exclude, ...added] }, null, indentOf(file))}\n`);
+    return [{ target, status: "updated", detail: `exclude ${added.join(", ")}`, apply }];
+  });
 }

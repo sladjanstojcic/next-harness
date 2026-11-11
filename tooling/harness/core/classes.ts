@@ -42,6 +42,9 @@ export const HARNESS_RULES: ReadonlySet<string> = new Set([
   "duplicate-export",
   "inline-disable",
   "package-boundary",
+  "electron-security",
+  "electron-bridge",
+  "ipc-channel",
 ]);
 
 export const ALWAYS_BLOCKS = (finding: Finding): boolean =>

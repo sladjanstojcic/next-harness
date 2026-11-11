@@ -22,7 +22,7 @@ describe("supabase shape", () => {
     "migrations/.gitkeep",
     "schemas/00-privileges.sql",
     "schemas/21-profiles-and-modules.sql",
-    "seeds/00-oxy-sequences.sql",
+    "seeds/00-app-sequences.sql",
     "tests/database/00000-makerkit-helpers.sql",
     "tests/database/access-attacks.test.sql",
     "volume/access-volume.sql",
@@ -72,8 +72,8 @@ describe("supabase shape", () => {
     const { root } = makeRepo({
       "harness.config.ts": 'export default { workspaces: [{ path: "supabase", shape: "supabase" }], root: { entries: ["supabase"] } };\n',
     });
-    const plint = resolveHarness(root);
-    expect(checkPath("supabase/migrations/20240101000000_init.sql", plint)).toEqual({ ok: true });
-    expect(checkPath("supabase/migrations/init.sql", plint)).toMatchObject({ ok: false, rule: "module-shape" });
+    const dashboard = resolveHarness(root);
+    expect(checkPath("supabase/migrations/20240101000000_init.sql", dashboard)).toEqual({ ok: true });
+    expect(checkPath("supabase/migrations/init.sql", dashboard)).toMatchObject({ ok: false, rule: "module-shape" });
   });
 });

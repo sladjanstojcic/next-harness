@@ -57,11 +57,12 @@ function linkModules(repo: RepoFixture, folder = ""): void {
 
 /**
  * A project before init: the presets as a subtree holds them, the template's node_modules, no tool configs and no git
- * hooks path. `modules` is the folder that holds node_modules: the root, or a workspace as pnpm installs a monorepo.
+ * hooks path. `modules` is the folder that holds node_modules: the root, or a workspace as pnpm installs a monorepo;
+ * false leaves the install to the caller.
  */
-export function consumerRepo(files: Record<string, string>, modules = "") {
+export function consumerRepo(files: Record<string, string>, modules: string | false = "") {
   const repo = makeRepo({ ...Object.fromEntries(PRESETS.map((file) => [file, fs.readFileSync(path.join(template, file), "utf8")])), ...files });
   repo.git("config", "--unset", "core.hooksPath");
-  linkModules(repo, modules);
+  if (modules !== false) linkModules(repo, modules);
   return repo;
 }

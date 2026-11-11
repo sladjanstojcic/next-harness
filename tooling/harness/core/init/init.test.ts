@@ -86,8 +86,11 @@ describe("init", () => {
       "conflict .claude/settings.json: harness hooks differ in SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop; --force replaces them there and keeps 1 other hook entry",
       "conflict .codex/config.toml: [features] sets hooks to another value; --force sets it to true",
       "conflict .githooks/pre-push: holds a different hook; --force replaces it",
-      "conflict package.json: scripts check differ; --force replaces them",
     ]);
+    // A project's own script under a harness name is no conflict: it stays, and the report prints the harness's line.
+    expect(refused.report).toContain(
+      'updated package.json: scripts prepare, lint, typecheck, test, depcruise, knip, jscpd, format, audit, harness:blocks, harness:lock, harness:unlock; your check script stays; the harness\'s, which --force writes:\n    "check": "node tooling/harness/cli.ts check ci"',
+    );
     expect(snapshot(repo)).toEqual(before);
     expect(fs.existsSync(path.join(repo.root, ".codex/hooks.json"))).toBe(false);
     expect(repo.git("config", "core.hooksPath").trim()).toBe(".husky");

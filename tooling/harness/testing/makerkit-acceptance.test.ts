@@ -78,7 +78,7 @@ function recordSteps(repo: Repo): Step[] {
   return steps;
 }
 
-describe("Makerkit acceptance with the brief's config (oxy-app in miniature)", () => {
+describe("Makerkit acceptance with the brief's config (a Makerkit app in miniature)", () => {
   it("lets a kit file change, even one breaking owned rules, through every hook", async () => {
     const repo = briefRepo();
     recordSteps(repo);

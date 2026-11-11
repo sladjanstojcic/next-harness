@@ -18,6 +18,7 @@ import { ALL_TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { toolWorkspaces, workspaceTools } from "../../tools/index.ts";
 import { testScript } from "../../tools/test-script.ts";
 import { relativePath } from "../../tools/tool-set.ts";
+import { typecheckProjects } from "../../tools/typescript.ts";
 import { knipStep, lacksSources, skippedLine, summarizePreExisting } from "./ci-steps.ts";
 import { runInWorkspace, selectedPaths } from "./fast-gate.ts";
 import type { GateResult } from "./gate-result.ts";
@@ -66,7 +67,7 @@ async function runDoneGate(directory: string, changed: string[], applied: Applie
     all.push(...(await runInWorkspace(directory, workspacePath, step, optional)));
   };
   for (const { workspace, tools, dir } of groups) {
-    for (const step of tools.typecheck.incremental(dir, workspace.next)) await run(workspace.path, step);
+    for (const step of tools.typecheck.incremental(dir, workspace.next, typecheckProjects(dir, workspace))) await run(workspace.path, step);
     const files = sourceGroups.find((group) => group.workspace === workspace)?.files ?? [];
     if (files.length > 0) await run(workspace.path, tools.lint.files(dir, files, false));
     const owned = harnessLinted(harness, legacy, workspace.path, files);

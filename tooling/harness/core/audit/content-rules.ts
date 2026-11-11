@@ -161,6 +161,7 @@ export function auditSource(root: string, target: ContentTarget, text: string): 
   const { file, path, profile } = target;
   const findings = auditDirectives(target, source);
   if (profile?.inlineDisable !== undefined) findings.push(...inlineDisableFindings(file, source, profile.inlineDisable));
+  for (const found of profile?.sourceRules?.(path, source, ts) ?? []) findings.push({ file, ...found });
   const add = (rule: string, message: string, node?: ts.Node): void => {
     findings.push({ rule, file, line: node ? source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 : 1, message });
   };

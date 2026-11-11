@@ -1,4 +1,5 @@
 import { CONFIG_FILE, type ShapeName, type SourceRoot } from "../config.ts";
+import { electronVite } from "./electron/electron-vite.ts";
 import { makerkitApp } from "./makerkit-app.ts";
 import { makerkitFeature } from "./makerkit-feature.ts";
 import { nextModules, nextModulesAtRoot } from "./next-modules.ts";
@@ -9,6 +10,7 @@ import { supabase } from "./supabase.ts";
 const SHAPES: Partial<Record<ShapeName, Shape>> = {
   "next-modules": nextModules,
   package: packageShape,
+  "electron-vite": electronVite,
   "makerkit-app": makerkitApp,
   "makerkit-feature": makerkitFeature,
   supabase,

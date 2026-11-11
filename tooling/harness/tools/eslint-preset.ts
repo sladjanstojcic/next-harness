@@ -6,7 +6,8 @@ import { z } from "zod";
 import type { WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
-import { harnessRuleBlocks, type PresetLayout, type RuleBlock } from "../presets/eslint-rules.ts";
+import { harnessRuleBlocks, type ElectronAliases as Aliases, type PresetLayout, type RuleBlock } from "../presets/eslint-rules.ts";
+import { ELECTRON_PROBES } from "../shapes/electron/electron-vite.ts";
 import { sourceProbes } from "../shapes/next-modules.ts";
 import { PACKAGE_PROBES } from "../shapes/package.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
@@ -18,6 +19,7 @@ export type PresetWorkspace = Pick<WorkspaceEntry, "path" | "shape" | "next" | "
 
 function layoutOf(workspace: PresetWorkspace): PresetLayout {
   if (workspace.shape === "package") return "package";
+  if (workspace.shape === "electron-vite") return "electron";
   return workspace.shape === "next-modules" && workspace.sourceRoot === "" ? "app-root" : "app";
 }
 type Setting = RuleBlock["rules"][string];
@@ -37,10 +39,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const selectors = (options: Options): unknown[] => options.map((option) => (isRecord(option) ? option.selector : option));
 
 /** The settings the preset gives a path: every block whose files match it and whose ignores do not, later blocks winning. */
-export function expectedRules(probe: string, layout: PresetLayout = "app"): Record<string, Setting> {
+export function expectedRules(probe: string, layout: PresetLayout = "app", aliases?: Aliases): Record<string, Setting> {
   const matches = (globs: readonly string[] = []): boolean => globs.some((glob) => path.posix.matchesGlob(probe, glob));
   const settings: Record<string, Setting> = {};
-  for (const block of harnessRuleBlocks(layout)) if (matches(block.files) && !matches(block.ignores)) Object.assign(settings, block.rules);
+  for (const block of harnessRuleBlocks(layout, aliases)) if (matches(block.files) && !matches(block.ignores)) Object.assign(settings, block.rules);
   return settings;
 }
 
@@ -156,6 +158,9 @@ function brings(packages: readonly string[], ownConfig: string, dir?: string): b
 export const exportedName = (ownConfig: string): string | undefined =>
   /^[ \t]*export\s+default\s+([A-Za-z_$][\w$]*)[ \t]*;?[ \t]*$/m.exec(ownConfig.replace(COMMENTS, "$1"))?.[1];
 
+/** Whether the config exports a call that takes its entries as arguments, such as `defineConfig(a, b)`; a call around one array is an array. */
+export const exportsCall = (ownConfig: string): boolean => /^[ \t]*export\s+default\s+[\w$.]+\s*\(\s*(?!\[)/m.test(ownConfig.replace(COMMENTS, "$1"));
+
 /** The preset call for a workspace; a project's own config that brings the base configs takes only the harness's blocks. */
 export function presetCall(workspace: PresetWorkspace, ownConfig = "", dir?: string): string {
   const layout = layoutOf(workspace) === "app" ? "" : `, layout: "${layoutOf(workspace)}"`;
@@ -197,21 +202,23 @@ export const bringsOwnNext = (dir: string): boolean => brings(NEXT_RULES, eslint
 /** The tools the package behind the workspace's own ESLint config already brings; the preset loads them from there. */
 export const broughtByBase = (dir: string): string[] => baseProvider(eslintConfigText(dir), dir)?.dependencies ?? [];
 
-function missingRules(printed: unknown, probe: string, layout: PresetLayout, defaults: Record<string, Options>): string[] {
+function missingRules(printed: unknown, probe: string, layout: PresetLayout, defaults: Record<string, Options>, aliases?: Aliases): string[] {
   const config = printedConfig.parse(printed ?? {});
-  const missing = Object.entries(expectedRules(probe, layout))
+  const missing = Object.entries(expectedRules(probe, layout, aliases))
     .filter(([rule, expected]) => !holds(rule, expected, config.rules?.[rule], defaults[rule] ?? []))
     .map(([rule]) => rule);
   return config.linterOptions?.noInlineConfig === true ? missing : [...missing, "linterOptions.noInlineConfig"];
 }
 
-function presetFindings(stdout: string, probes: string[], workspace: PresetWorkspace, presetLines: string[], exported: string | undefined): Finding[] {
-  const rest = exported === undefined ? "the second as the last entry of the exported array" : `the other two in place of \`export default ${exported}\``;
+function presetFindings(stdout: string, probes: string[], workspace: PresetWorkspace, presetLines: string[], own: string, aliases?: Aliases): Finding[] {
+  const exported = exportedName(own);
+  const last = exportsCall(own) ? "the second as the last argument of the exported call" : "the second as the last entry of the exported array";
+  const rest = exported === undefined ? last : `the other two in place of \`export default ${exported}\``;
   const { configs, defaults } = runnerOutput.parse(JSON.parse(stdout));
   const where = workspace.path === "" ? "the root" : workspace.path;
   const lines = presetLines.map((line) => `  ${line}`).join("\n");
   return probes.flatMap((probe) =>
-    missingRules(configs[probe], probe, layoutOf(workspace), defaults).map((rule) => ({
+    missingRules(configs[probe], probe, layoutOf(workspace), defaults, aliases).map((rule) => ({
       rule: "preset-missing",
       file: "",
       message: `${rule} is not active as the harness sets it for ${probe} in the ESLint config of ${where}. Keep your config and add the harness preset: put the first line at the top and ${rest}, with no later entry weakening these rules.\n${lines}`,
@@ -226,8 +233,9 @@ export const CONFIG_RUNNER = path.join(import.meta.dirname, "eslint-config-runne
  * One step for every probe path the workspace's shape derives, each under a fresh random name so a config cannot leave
  * the probes out by name: its effective ESLint config must hold every rule the preset sets there, with its options.
  */
-export function eslintPreset(dir: string, workspace: PresetWorkspace, token: () => string = probeToken): ToolStep {
-  const templates = workspace.shape === "package" ? PACKAGE_PROBES : sourceProbes(layoutOf(workspace) === "app-root" ? "" : "src/");
+export function eslintPreset(dir: string, workspace: PresetWorkspace, token: () => string = probeToken, aliases?: Aliases): ToolStep {
+  const layout = layoutOf(workspace);
+  const templates = layout === "package" ? PACKAGE_PROBES : layout === "electron" ? ELECTRON_PROBES : sourceProbes(layout === "app-root" ? "" : "src/");
   const probes = templates.map((template) => template.replaceAll("{name}", token()));
   return {
     name: "eslint-preset",
@@ -236,7 +244,7 @@ export function eslintPreset(dir: string, workspace: PresetWorkspace, token: () 
     timeoutMs: CHECK_TIMEOUT_MS,
     findings: (stdout) => {
       const own = eslintConfigText(dir);
-      return presetFindings(stdout, probes, workspace, eslintPresetLines(workspace, own, dir), exportedName(own));
+      return presetFindings(stdout, probes, workspace, eslintPresetLines(workspace, own, dir), own, aliases);
     },
   };
 }

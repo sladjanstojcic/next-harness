@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { z } from "zod";
 
-const SHAPE_NAMES = ["next-modules", "package", "makerkit-app", "makerkit-feature", "supabase"] as const;
+const SHAPE_NAMES = ["next-modules", "package", "electron-vite", "makerkit-app", "makerkit-feature", "supabase"] as const;
 const TOOL_SET_NAMES = ["eslint-prettier", "oxc", "none"] as const;
 const ANALYSIS_NAMES = ["depcruise", "knip", "jscpd"] as const;
 
@@ -15,6 +15,7 @@ export type AnalysisName = (typeof ANALYSIS_NAMES)[number];
 const DEFAULT_TOOLS: Record<ShapeName, ToolSetName> = {
   "next-modules": "eslint-prettier",
   package: "eslint-prettier",
+  "electron-vite": "eslint-prettier",
   "makerkit-app": "oxc",
   "makerkit-feature": "oxc",
   supabase: "none",
@@ -96,6 +97,10 @@ const schema = z.strictObject({
         .refine((workspace) => workspace.shape !== "supabase" || (workspace.tools ?? "none") === "none", {
           path: ["tools"],
           message: 'must be "none" for the supabase shape',
+        })
+        .refine((workspace) => workspace.shape !== "electron-vite" || workspace.next !== true, {
+          path: ["next"],
+          message: "must not be true for the electron-vite shape, which is not a Next app",
         })
         .refine((workspace) => workspace.test === undefined || (workspace.tools ?? DEFAULT_TOOLS[workspace.shape]) !== "none", {
           path: ["test"],
@@ -215,7 +220,7 @@ export function workspaceOf<T extends WorkspaceEntry>(entries: readonly T[], fil
 export const isConfigOnly = (gitRoot: string, workspace: WorkspaceEntry): boolean =>
   workspace.shape === "package" && !fs.existsSync(path.join(gitRoot, workspace.path, "src"));
 
-/** depcruise, knip and jscpd run in next-modules and package workspaces; the Makerkit and supabase shapes do not install them. */
+/** depcruise, knip and jscpd run in next-modules, package and electron-vite workspaces; the Makerkit and supabase shapes do not install them. */
 export function analysisOf(config: HarnessConfig, entry: WorkspaceEntry): AnalysisName[] {
-  return entry.shape === "next-modules" || entry.shape === "package" ? (config.analysis ?? [...ANALYSIS_NAMES]) : [];
+  return ["next-modules", "package", "electron-vite"].includes(entry.shape) ? (config.analysis ?? [...ANALYSIS_NAMES]) : [];
 }

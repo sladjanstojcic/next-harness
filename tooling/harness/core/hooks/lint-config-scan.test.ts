@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makerkitConfig, makerkitRepo } from "../../testing/makerkit-repo.ts";
-import { plintRepo } from "../../testing/plint-repo.ts";
+import { dashboardRepo } from "../../testing/dashboard-repo.ts";
 import { makeRepo, type RepoFixture } from "../../testing/temp-repo.ts";
 import { ciGate } from "../gates/ci-gate.ts";
 import * as runner from "../gates/run-tool.ts";
@@ -110,7 +110,7 @@ describe("nested ESLint configs, which ESLint 10 reads for the files below them"
   const DEEP = "apps/dashboard/src/modules/usage/eslint.config.mjs";
 
   it("are found in an eslint-prettier workspace even when ignored, the workspace's own config is not", async () => {
-    const repo = plintRepo({ "apps/dashboard/eslint.config.ts": "export default [];\n" });
+    const repo = dashboardRepo({ "apps/dashboard/eslint.config.ts": "export default [];\n" });
     vi.spyOn(runner, "runTool").mockResolvedValue([]);
     const hooks = session(repo);
     await hooks.prompt();
