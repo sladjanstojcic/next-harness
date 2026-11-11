@@ -6,7 +6,7 @@
 
 Clone it, and your Claude Code or Codex agent is told where code belongs, stopped before it writes a file in the wrong place, checked after every edit, and gated before it ends its turn.
 
-The same harness [installs into](#install-it) an existing Next.js project, a Turborepo and a Makerkit project.
+The same harness [installs into](#install-it) an existing Next.js project, a Turborepo with shared packages, an Electron app and a Makerkit project.
 
 [![Check](https://github.com/sladjanstojcic/next-harness/actions/workflows/check.yml/badge.svg)](https://github.com/sladjanstojcic/next-harness/actions/workflows/check.yml)
 [![Node](https://img.shields.io/badge/node-24-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
@@ -112,6 +112,11 @@ directly, with no build step.
 | After a command             | Path and content audit of whatever the command created or changed, plus the lock                                                                                     | ≈ 1 s    |
 | Stop                        | Done gate: `next typegen`, `tsc`, typed ESLint on changed files, full audit, dependency-cruiser, knip, jscpd, `vitest related`                                       | seconds  |
 | Pre-push and GitHub Actions | The full gate: format check, typed lint, typegen, types, audit, boundaries, dead code, copies, all tests, `next build`, Chromium smoke                               | minutes  |
+
+The table shows a Next.js app at the repository root. Another shape runs its own tools at the same
+moments: an Electron app builds with `electron-vite build` and has no type generation or browser smoke, a
+Makerkit workspace is linted and formatted by the kit's oxlint and oxfmt, and a monorepo runs each step
+once per workspace.
 
 When the Done gate fails, the agent's turn does not end: it gets the findings and fixes them. Changed
 files and their importers block; older problems elsewhere are reported, not blamed on this turn.
@@ -720,7 +725,7 @@ Exact versions, no ranges; every config file is TypeScript.
 ## Known limitations
 
 - It was tried on real projects of each kind: `create-next-app` with and without `src/`, a fresh
-  `create-turbo` project, an older Turborepo with 710 legacy files, and a Makerkit app. In the agent
+  `create-turbo` project, an older Turborepo with 710 legacy files, a Makerkit app and two Electron apps. In the agent
   sessions there, 61 denials or blocks were recorded and 4 were false; those four rules were fixed. That
   is a first measurement, not a track record; keep reading the block log, and say so rather than work
   around a wrong block. Every one of those sessions was Claude Code. The Codex hooks are covered by unit
