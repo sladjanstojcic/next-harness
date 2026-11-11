@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeRepo } from "./temp-repo.ts";
-import { harnessKnip, harnessKnipWorkspace } from "../presets/knip.ts";
+import { harnessKnip, harnessKnipPackage, harnessKnipWorkspace } from "../presets/knip.ts";
 
 const PACKAGE = JSON.stringify({ dependencies: { "server-only": "0.0.1" }, devDependencies: { "@eslint/js": "9.39.5", eslint: "9.39.5" } });
 
@@ -23,6 +23,31 @@ describe("the knip preset", () => {
     });
   });
 
+  it("names the configs and script binaries of a tool installed above the workspace, and nothing once the workspace lists the tool", () => {
+    const app = { scripts: { format: "prettier --write .", lint: "eslint .", test: "vitest run" }, devDependencies: { eslint: "9.39.5" } };
+    const files = { "node_modules/.bin/prettier": "", "node_modules/.bin/eslint": "", "apps/web/prettier.config.ts": "", "apps/web/eslint.config.js": "" };
+    const repo = makeRepo({ ...files, "apps/web/package.json": JSON.stringify(app) });
+    const dir = `${repo.root}/apps/web`;
+    expect(harnessKnipWorkspace({ harness: "analyse" }, dir)).toEqual({
+      next: true,
+      entry: [],
+      ignore: ["prettier.config.ts"],
+      ignoreDependencies: [],
+      ignoreBinaries: ["prettier"],
+    });
+    repo.write("apps/web/package.json", JSON.stringify({ ...app, devDependencies: { eslint: "9.39.5", prettier: "3.9.10" } }));
+    expect(harnessKnipWorkspace({ harness: "analyse" }, dir)).toEqual({ next: true, entry: [], ignore: [], ignoreDependencies: [] });
+  });
+
+  it("names tsc where the workspace lists typescript as the TypeScript 6 alias, whose binary is tsc6", () => {
+    const app = { scripts: { "check-types": "next typegen && tsc --noEmit" }, devDependencies: { typescript: "npm:@typescript/typescript6@^6.0.2" } };
+    const repo = makeRepo({ "node_modules/.bin/tsc": "", "apps/web/node_modules/.bin/tsc6": "", "apps/web/package.json": JSON.stringify(app) });
+    const dir = `${repo.root}/apps/web`;
+    expect(harnessKnipWorkspace({ harness: "analyse" }, dir).ignoreBinaries).toEqual(["tsc"]);
+    repo.write("apps/web/node_modules/.bin/tsc", "");
+    expect(harnessKnipWorkspace({ harness: "analyse" }, dir).ignoreBinaries).toBeUndefined();
+  });
+
   it("leaves the harness to analysis in the harness's own repository; the preset's tools have no import there either", () => {
     const repo = makeRepo({ "package.json": PACKAGE });
     const analysed = { next: true, entry: [], ignore: [], ignoreDependencies: ["server-only", "@eslint/js"] };
@@ -32,5 +57,66 @@ describe("the knip preset", () => {
   it("does not ignore a preset tool the project's own ESLint config imports", () => {
     const repo = makeRepo({ "package.json": PACKAGE, "eslint.config.mjs": 'import js from "@eslint/js";\nexport default [js.configs.recommended];\n' });
     expect(harnessKnipWorkspace({}, repo.root).ignoreDependencies).toEqual(["server-only"]);
+  });
+
+  it("gives a package the files its exports point at as entries, and judges their exports too", () => {
+    const manifest = {
+      name: "@repo/billing",
+      exports: {
+        ".": "./src/index.ts",
+        "./server": { types: "./src/server.ts", default: "./src/server.ts" },
+        "./gone": "./src/gone.ts",
+        "./ui/*": "./src/ui/*.tsx",
+      },
+      dependencies: { "server-only": "0.0.1" },
+      devDependencies: { knip: "6.44.1" },
+      scripts: { format: "prettier --write ." },
+    };
+    const files = {
+      "packages/billing/src/index.ts": "",
+      "packages/billing/src/server.ts": "",
+      "packages/billing/prettier.config.ts": "",
+      "node_modules/.bin/prettier": "",
+    };
+    const repo = makeRepo({ ...files, "packages/billing/package.json": JSON.stringify(manifest) });
+    expect(harnessKnipPackage(`${repo.root}/packages/billing`)).toEqual({
+      entry: ["src/index.ts", "src/server.ts", "src/ui/*.tsx"],
+      includeEntryExports: true,
+      ignore: ["prettier.config.ts"],
+      ignoreDependencies: ["server-only"],
+      ignoreBinaries: ["prettier"],
+    });
+  });
+
+  it("names any binary a script runs that a folder above installs, not only the harness's own tools", () => {
+    const scripts = { "generate:component": "turbo gen react-component", lint: "eslint . --max-warnings 0", local: "mine --fast && absent" };
+    const files = { "node_modules/.bin/turbo": "", "node_modules/.bin/eslint": "", "node_modules/.bin/mine": "", "packages/ui/node_modules/.bin/mine": "" };
+    const repo = makeRepo({ ...files, "packages/ui/package.json": JSON.stringify({ name: "@repo/ui", scripts, devDependencies: { eslint: "^10.9.1" } }) });
+    repo.write("packages/ui/node_modules/.bin/eslint", "");
+    // turbo comes from the root; eslint and mine are the workspace's own; absent is installed nowhere, so knip may report it.
+    expect(harnessKnipPackage(`${repo.root}/packages/ui`).ignoreBinaries).toEqual(["turbo"]);
+    repo.write("apps/web/package.json", JSON.stringify({ scripts: { dev: "turbo watch dev" } }));
+    expect(harnessKnipWorkspace({ harness: "analyse" }, `${repo.root}/apps/web`).ignoreBinaries).toEqual(["turbo"]);
+  });
+
+  it("does not call react and @types/react unused in a workspace with .tsx files: the automatic JSX runtime imports nothing", () => {
+    const manifest = { name: "@repo/ui", dependencies: { react: "19.3.0", zod: "4.6.7" }, devDependencies: { "@types/react": "19.2.2" } };
+    const repo = makeRepo({
+      "packages/ui/package.json": JSON.stringify(manifest),
+      "packages/ui/src/components/button.tsx": "export const Button = () => <button />;\n",
+    });
+    expect(harnessKnipPackage(`${repo.root}/packages/ui`).ignoreDependencies).toEqual(["react", "@types/react"]);
+    expect(harnessKnipWorkspace({ harness: "analyse" }, `${repo.root}/packages/ui`).ignoreDependencies).toEqual(["react", "@types/react"]);
+    const plain = makeRepo({
+      "packages/ui/package.json": JSON.stringify(manifest),
+      "packages/ui/src/lib/a.ts": "export const a = 1;\n",
+      "packages/ui/node_modules/x/a.tsx": "",
+    });
+    expect(harnessKnipPackage(`${plain.root}/packages/ui`).ignoreDependencies).toEqual([]);
+    repo.write(
+      "packages/ui/src/components/card.tsx",
+      'import type { ReactNode } from "react";\nexport const Card = ({ children }: { children: ReactNode }) => <div>{children}</div>;\n',
+    );
+    expect(harnessKnipPackage(`${repo.root}/packages/ui`).ignoreDependencies).toEqual([]);
   });
 });

@@ -6,14 +6,14 @@ import { makeRepo } from "./testing/temp-repo.ts";
 
 const source = path.resolve(import.meta.dirname);
 
-function harnessRepo(broken: boolean) {
+function harnessRepo(broken: false | "dependency" | "harness-file") {
   const repo = makeRepo();
   const harness = path.join(repo.root, "tooling/harness");
   fs.cpSync(source, harness, { recursive: true });
   repo.write("package.json", '{"type":"module"}');
   fs.mkdirSync(path.join(repo.root, "node_modules"));
-  fs.symlinkSync(path.resolve(source, "../../node_modules/zod"), path.join(repo.root, "node_modules/zod"), "dir");
-  if (broken) fs.renameSync(path.join(harness, "core/hooks/handle.ts"), path.join(harness, "core/hooks/handle.ts.missing"));
+  if (broken !== "dependency") fs.symlinkSync(path.resolve(source, "../../node_modules/zod"), path.join(repo.root, "node_modules/zod"), "dir");
+  if (broken === "harness-file") fs.renameSync(path.join(harness, "core/hooks/handle.ts"), path.join(harness, "core/hooks/handle.ts.missing"));
   const run = (input: Record<string, unknown>, cwd = repo.root) =>
     spawnSync(process.execPath, [path.join(harness, "cli.ts"), "hook", "claude"], {
       cwd,
@@ -58,8 +58,8 @@ const INSTALLS: [string, number][] = [
 ];
 
 describe("hook CLI recovery", () => {
-  it("allows only a single plain install while a harness module is missing", () => {
-    const { run } = harnessRepo(true);
+  it("allows only a single plain install while a dependency is missing", () => {
+    const { run } = harnessRepo("dependency");
     for (const [command, status] of INSTALLS) {
       const result = run({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command } });
       expect(result.status, command).toBe(status);
@@ -69,6 +69,20 @@ describe("hook CLI recovery", () => {
     expect(write.status).toBe(2);
     expect(write.stderr).toContain("pnpm install --frozen-lockfile");
   }, 60_000);
+
+  it("names a missing harness file instead of the install hint, and still denies", () => {
+    const { run } = harnessRepo("harness-file");
+    const write = run({ hook_event_name: "PreToolUse", tool_name: "Write", tool_input: { file_path: "src/modules/a/index.ts" } });
+    expect(write.status).toBe(2);
+    expect(write.stderr).toContain("tooling/harness/core/hooks/handle.ts is missing");
+    expect(write.stderr).toContain("Restore or create that file");
+    expect(write.stderr).not.toContain("pnpm install");
+    const shell = run({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "ls" } });
+    expect(shell.status).toBe(2);
+    const stop = run({ hook_event_name: "Stop" });
+    expect(stop.status).toBe(0);
+    expect(stop.stderr).toContain("tooling/harness/core/hooks/handle.ts is missing");
+  }, 20_000);
 
   it("resolves the checkout from a cwd inside .git", () => {
     const { root, run } = harnessRepo(false);

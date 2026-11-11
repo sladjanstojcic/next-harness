@@ -9,9 +9,10 @@ import { resolveHarness, type Harness } from "../path-check.ts";
 import { ALL_TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { bin } from "../../tools/tool-set.ts";
 import { gitignoreStep, HARNESS_MODULES, rootIgnoreSteps } from "./ignore-files.ts";
-import { peerInstall, starterInstall } from "./peers.ts";
+import { TYPESCRIPT_API_REASON } from "../../presets/load-tool.ts";
+import { needsTypescriptApi, peerInstall, starterInstall } from "./peers.ts";
 import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
-import { CONFIG_FILE, type WorkspaceEntry } from "../../config.ts";
+import { CONFIG_FILE, isConfigOnly, type WorkspaceEntry } from "../../config.ts";
 import { ciSteps, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH, PREPARE } from "./wiring.ts";
 
 function hooksStep(root: string, label: string, wanted: HooksBlock, force: boolean): Step {
@@ -112,10 +113,9 @@ function preparesHooks(root: string): boolean {
 /** The config line that makes the gates run a workspace's own test script; the config file is the user's to edit. */
 function ownTestsItem(harness: Harness, workspace: WorkspaceEntry): string {
   const where = workspace.path === "" ? "." : workspace.path;
-  const create = harness.configured
-    ? ""
-    : ` (no ${CONFIG_FILE} yet: export default defineHarness({ workspaces: [{ path: ".", shape: "next-modules", next: true, test: "test" }] }))`;
-  return `Run this workspace's own tests in the gates instead of Vitest: add test: "test" to the "${where}" workspace in ${CONFIG_FILE}${create}`;
+  const lead = "Run this workspace's own tests in the gates instead of Vitest";
+  if (harness.configured) return `${lead}, by adding this to the "${where}" workspace in ${CONFIG_FILE}: test: "test"`;
+  return `${lead}, by creating ${CONFIG_FILE} with: export default defineHarness({ workspaces: [{ path: ".", shape: "next-modules", next: true, test: "test" }] })`;
 }
 
 /** One numbered list of what the user runs after init, in the order that works: tools before the files that need them. */
@@ -135,13 +135,21 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
   const { legacy } = harness.config;
   const ownTests = workspaces.filter((workspace) => workspace.test === undefined && runsOwnTests(root, workspace) !== undefined);
   const items = [
-    ...workspaces
-      .flatMap((workspace) => peerInstall(root, harness.config, workspace) ?? [])
-      .map((command) => `Install the harness's tools (init does not install): ${command}`),
+    ...workspaces.flatMap((workspace) => {
+      const command = peerInstall(root, harness.config, workspace);
+      // A step ends with its command, so a copied line is one the shell takes: the reason goes before the colon.
+      const why = needsTypescriptApi(root, workspace) ? `; ${TYPESCRIPT_API_REASON}` : "";
+      return command === undefined ? [] : [`Install the harness's tools (init does not install${why}): ${command}`];
+    }),
     ...(starter ? workspaces.filter((workspace) => workspace.shape === "next-modules") : [])
       .flatMap((workspace) => starterInstall(root, workspace) ?? [])
       .map((command) => `Install the runtime packages the starter files import: ${command}`),
     ...(todo.length === 0 ? [] : [`Make the change each kept file above asks for: ${todo.join(", ")}`]),
+    ...(starter && fs.existsSync(path.join(root, "turbo.json")) && workspaces.some((workspace) => workspace.shape === "next-modules")
+      ? [
+          'Declare NODE_ENV in "globalEnv" of turbo.json, because the starter shared/lib/env.ts reads it and Turborepo\'s lint rule reports a variable turbo.json does not list',
+        ]
+      : []),
     ...ownTests.map((workspace) => ownTestsItem(harness, workspace)),
     ...(preparesHooks(root) ? [] : [`Add to the root package.json "prepare" script, so a fresh clone gets the pre-push hook: ${PREPARE}`]),
     ...(format.length === 0 ? [] : [`Format the app's own files once in the preset's style: ${format.join("; ")}`]),
@@ -165,13 +173,13 @@ export interface InitOptions {
 }
 
 /**
- * Writes the harness wiring every consumer shares and each eslint-prettier workspace's tool configs; nothing is written
+ * Writes the harness wiring every consumer shares and each eslint-prettier workspace's tool configs, but a config-only package's; nothing is written
  * while a step conflicts and force is off. The git config step applies first, so a git failure precedes any file write.
  */
 export function initHarness(root: string, { force, starter }: InitOptions): { report: string; ok: boolean } {
   const harness = resolveHarness(root);
   const all = harness.workspaces;
-  const workspaces = all.filter((workspace) => workspace.tools === "eslint-prettier");
+  const workspaces = all.filter((workspace) => workspace.tools === "eslint-prettier" && !isConfigOnly(root, workspace));
   const atRoot = workspaces.find((workspace) => workspace.path === "");
   const steps = [
     hooksPathStep(root, force),
@@ -179,10 +187,12 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
     hooksStep(root, ".codex/hooks.json", CODEX_HOOKS, force),
     codexConfigStep(root, force),
     prePushStep(root, force),
-    scriptsStep(root, "package.json", PACKAGE_SCRIPTS, { prepare: PREPARE, ...(atRoot === undefined ? {} : toolScripts(atRoot)) }, force),
+    scriptsStep(root, "package.json", PACKAGE_SCRIPTS, { prepare: PREPARE, ...(atRoot === undefined ? {} : toolScripts(atRoot, root, starter)) }, force),
     ...(atRoot === undefined ? [gitignoreStep(root, "", [HARNESS_MODULES])] : []),
     ...workspaces.flatMap((workspace) => [
-      ...(workspace.path === "" ? [] : [scriptsStep(root, `${workspace.path}/package.json`, {}, toolScripts(workspace), force)]),
+      ...(workspace.path === ""
+        ? []
+        : [scriptsStep(root, `${workspace.path}/package.json`, {}, toolScripts(workspace, path.join(root, workspace.path), starter), force)]),
       ...toolConfigSteps(root, workspace, force, starter),
     ]),
     ...rootIgnoreSteps(root, all),

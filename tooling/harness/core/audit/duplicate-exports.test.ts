@@ -31,6 +31,15 @@ describe("findDuplicateExports", () => {
     expect(auditChanged(repo.root, [selected])).toEqual([]);
   });
 
+  it("compares exports inside one workspace only: two apps are two programs", () => {
+    const config = 'export default { workspaces: [{ path: "apps/*", shape: "next-modules" }], root: { entries: ["apps"] } };\n';
+    const [web, docs, again] = ["apps/web/src/shared/lib/a.ts", "apps/docs/src/shared/lib/a.ts", "apps/web/src/shared/lib/b.ts"];
+    const apart = makeRepo({ "harness.config.ts": config, [web]: largeFunction("calculate", "value"), [docs]: largeFunction("calculate", "value") });
+    expect(findDuplicateExports(apart.root, [web, docs])).toEqual([]);
+    const together = makeRepo({ "harness.config.ts": config, [web]: largeFunction("calculate", "value"), [again]: largeFunction("compute", "input") });
+    expect(findDuplicateExports(together.root, [web, again]).map(({ file }) => file)).toEqual([web, again]);
+  });
+
   it("does not flag 10-node idioms", () => {
     const repo = makeRepo({ [original]: "export function a(x: number): number { return x; }", [copy]: "export function b(y: number): number { return y; }" });
     expect(findDuplicateExports(repo.root, [original, copy])).toEqual([]);

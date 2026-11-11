@@ -89,7 +89,10 @@ describe("hook CLI", () => {
     const repo = makeRepo();
     for (const level of ["fast", "done"]) {
       const result = spawnSync(process.execPath, [cli, "check", level], { cwd: repo.root, encoding: "utf8" });
-      expect([result.status, result.stdout, result.stderr]).toEqual([0, "", ""]);
+      const said = `No files were given, so check ${level} judged nothing; \`check ci\` judges the whole tree.\n`;
+      expect([result.status, result.stdout, result.stderr]).toEqual([0, said, ""]);
+      const given = spawnSync(process.execPath, [cli, "check", level, "package.json"], { cwd: repo.root, encoding: "utf8" });
+      expect(given.stdout).not.toContain("No files were given");
     }
     repo.write("src/utils/x.ts", "\n");
     const audit = spawnSync(process.execPath, [cli, "audit"], { cwd: repo.root, encoding: "utf8" });

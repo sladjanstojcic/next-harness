@@ -64,7 +64,7 @@ describe("init in an existing app", () => {
     expect(report).toContain('kept apps/dashboard/package.json: its "test" script does not run Vitest; no Vitest config is written (see the next steps)');
     expect(nextSteps(report)).toContainEqual(
       expect.stringContaining(
-        'Run this workspace\'s own tests in the gates instead of Vitest: add test: "test" to the "apps/dashboard" workspace in harness.config.ts',
+        'Run this workspace\'s own tests in the gates instead of Vitest, by adding this to the "apps/dashboard" workspace in harness.config.ts: test: "test"',
       ),
     );
     expect(installLine(report)).not.toMatch(/vitest@|@types\/node@/);
@@ -98,10 +98,10 @@ describe("init in an existing app", () => {
     const repo = dashboard({ "apps/dashboard/eslint.config.mjs": OWN_ESLINT, "apps/dashboard/.prettierrc": "{}\n" });
     const { report } = initHarness(repo.root, OFF);
     expect(report).toContain(
-      "updated apps/dashboard/tsconfig.json: compilerOptions.allowImportingTsExtensions: true, exclude eslint.config.mjs, knip.config.ts",
+      'updated apps/dashboard/tsconfig.json: compilerOptions.allowImportingTsExtensions: true, compilerOptions.paths "@/*": ["./src/*"], exclude eslint.config.mjs, knip.config.ts',
     );
     expect(JSON.parse(repo.read("apps/dashboard/tsconfig.json"))).toEqual({
-      compilerOptions: { allowJs: true, allowImportingTsExtensions: true },
+      compilerOptions: { allowJs: true, allowImportingTsExtensions: true, paths: { "@/*": ["./src/*"] } },
       include: ["**/*.ts", "**/*.tsx"],
       exclude: ["node_modules", "eslint.config.mjs", "knip.config.ts"],
     });

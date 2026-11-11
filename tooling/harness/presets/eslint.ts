@@ -1,8 +1,8 @@
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
-import { harnessRuleBlocks } from "./eslint-rules.ts";
+import { harnessRuleBlocks, type PresetLayout } from "./eslint-rules.ts";
 import { call, defaultOf, isRecord, list, member, toolLoader } from "./load-tool.ts";
 
-const VENDORED = ["src/shared/ui/**", "src/shared/lib/utils.ts"];
+const VENDORED = ["shared/ui/**", "shared/lib/utils.ts"];
 
 /** The TypeScript tool configs at a workspace top; a consumer's tsconfig leaves them out, so they are linted without types. */
 const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
@@ -12,6 +12,8 @@ const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
 export interface HarnessEslintOptions {
   /** The workspace folder holding tsconfig.json, for typed rules; ESLint and its plugins load from there. */
   root: string;
+  /** "app-root" for an app without src/ (app/, modules/, shared/ at its top), "package" for a shared package; an app's src/ layout by default. */
+  layout?: PresetLayout;
   /** Adds the Next.js core-web-vitals and TypeScript configs. */
   next?: boolean;
   /**
@@ -19,7 +21,12 @@ export interface HarnessEslintOptions {
    * any Next configs: the preset then adds only the harness's blocks, so no plugin is defined twice.
    */
   base?: boolean;
-  /** Generated files the rules skip; the next-modules vendored paths by default. */
+  /**
+   * The package the project's own config takes its base from, such as `@repo/eslint-config`: a tool the workspace does not
+   * install itself is loaded from there, so the preset runs the copies the project already runs.
+   */
+  toolsFrom?: string;
+  /** Generated files the rules skip; the next-modules vendored paths of the layout by default. */
   vendored?: string[];
   /** A consumer leaves the vendored harness, which its tsconfig excludes, unlinted; the harness's own repository lints it. */
   harness?: "lint" | "ignore";
@@ -33,9 +40,11 @@ export interface EslintEntry {
 
 const isEntry = (value: unknown): value is EslintEntry => isRecord(value) && (value.plugins === undefined || isRecord(value.plugins));
 
-/** The harness's ESLint rules for a next-modules workspace; a project with its own config appends these after its entries. */
-export function harnessEslint({ root, next = false, base = true, vendored = VENDORED, harness = "ignore" }: HarnessEslintOptions): EslintEntry[] {
-  const tool = toolLoader(root);
+/** The harness's ESLint rules for a next-modules or package workspace; a project with its own config appends these after its entries. */
+export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
+  const { root, layout = "app", next = false, base = true, harness = "ignore" } = options;
+  const vendored = options.vendored ?? VENDORED.map((glob) => (layout === "app-root" ? glob : `src/${glob}`));
+  const tool = toolLoader(root, options.toolsFrom);
   const eslint = tool("eslint/config");
   const tseslint = defaultOf(tool("typescript-eslint"));
   const disableTypeChecked = member(member(tseslint, "configs"), "disableTypeChecked");
@@ -50,7 +59,7 @@ export function harnessEslint({ root, next = false, base = true, vendored = VEND
   const entries = [
     call(member(eslint, "globalIgnores"), [[...ignored, ".next/**", "next-env.d.ts", "out/**", "build/**", ".superpowers/**", ".serena/**"]]),
     ...(base ? recommended() : []),
-    ...harnessRuleBlocks().map((block, index) =>
+    ...harnessRuleBlocks(layout).map((block, index) =>
       index === 0
         ? {
             ...block,

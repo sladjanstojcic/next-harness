@@ -77,7 +77,7 @@ export async function initLegacy(gitRoot: string, harness: Harness): Promise<str
   try {
     for (const group of toolWorkspaces(gitRoot, harness.workspaces)) {
       const { format, lint, types } = checkSteps(group, true);
-      for (const step of [format, lint, ...types, ...analysisSteps(harness, group, true, output)]) {
+      for (const step of [format, lint, ...types, ...analysisSteps(gitRoot, harness, group, true, output)]) {
         if (!("skipped" in step)) found.push(...(await runInWorkspace(gitRoot, group.workspace.path, step)));
       }
     }

@@ -13,12 +13,12 @@ import { lockFindings } from "../lock.ts";
 import { resolveHarness } from "../path-check.ts";
 import { withGateLock } from "../state/run-lock.ts";
 import { stateDir } from "../state/state-file.ts";
-import { depcruise, jscpd, knip } from "../../tools/analysis.ts";
+import { depcruise, jscpd } from "../../tools/analysis.ts";
 import { ALL_TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { toolWorkspaces, workspaceTools } from "../../tools/index.ts";
 import { testScript } from "../../tools/test-script.ts";
 import { relativePath } from "../../tools/tool-set.ts";
-import { lacksSources, skippedLine, summarizePreExisting } from "./ci-steps.ts";
+import { knipStep, lacksSources, skippedLine, summarizePreExisting } from "./ci-steps.ts";
 import { runInWorkspace, selectedPaths } from "./fast-gate.ts";
 import type { GateResult } from "./gate-result.ts";
 import type { ToolStep } from "./run-tool.ts";
@@ -73,8 +73,7 @@ async function runDoneGate(directory: string, changed: string[], applied: Applie
     if (tools.lint.owned !== undefined && owned.length > 0) await run(workspace.path, tools.lint.owned(dir, owned));
   }
   for (const { workspace, tools, dir } of toolWorkspaces(directory, harness.workspaces)) {
-    if (tools.lint.preset !== undefined && presetInputChanged(changedPaths, workspace.path))
-      await run(workspace.path, tools.lint.preset(dir, workspace.path, workspace.next));
+    if (tools.lint.preset !== undefined && presetInputChanged(changedPaths, workspace.path)) await run(workspace.path, tools.lint.preset(dir, workspace));
   }
   all.push(
     ...audit(directory),
@@ -85,23 +84,24 @@ async function runDoneGate(directory: string, changed: string[], applied: Applie
     ...legacyInvalidFindings(directory, harness.config),
   );
   const skipped: string[] = [];
-  for (const { workspace, dir, files } of groups) {
+  for (const group of groups) {
+    const { workspace, dir, files } = group;
     const analysis = new Set(analysisOf(harness.config, workspace));
-    if (lacksSources(harness, dir)) {
+    if (lacksSources(harness, dir, workspace)) {
       for (const name of ["depcruise", "jscpd"] as const) if (analysis.delete(name)) skipped.push(skippedLine(name, workspace.path, "no src/"));
     }
     if (analysis.has("depcruise"))
       await run(
         workspace.path,
-        depcruise.report(dir, new Set(files), (result) => {
+        depcruise.report(dir, workspace, new Set(files), (result) => {
           for (const file of result) affected.add(path.posix.join(workspace.path, file));
         }),
       );
-    if (analysis.has("knip")) await run(workspace.path, knip.report(dir));
+    if (analysis.has("knip")) await run(workspace.path, knipStep(directory, group, true));
     if (analysis.has("jscpd")) {
       const output = fs.mkdtempSync(path.join(stateDir(directory), "jscpd-"));
       try {
-        await run(workspace.path, jscpd.report(dir, output, workspace.path));
+        await run(workspace.path, jscpd.report(dir, output, workspace));
       } finally {
         fs.rmSync(output, { recursive: true, force: true });
       }

@@ -2,7 +2,7 @@ import path from "node:path";
 import { classify, legacyInvalidFindings, readLegacy } from "../classes.ts";
 import { INIT_FORCE_COMMAND, isLocked, lockReason, UNLOCK_COMMAND, unlocked } from "../lock.ts";
 import { isIgnored } from "../state/git-ignore.ts";
-import { checkPath, isVendoredIn, resolveHarness } from "../path-check.ts";
+import { checkPath, isVendoredIn, resolveHarness, sourceRootAt } from "../path-check.ts";
 import type { HookEvent } from "./event.ts";
 import { namesHarnessState } from "./harness-state-guard.ts";
 import { isNestedLintConfig, LINT_CONFIG_RULE, lintConfigReason } from "./lint-config-guard.ts";
@@ -111,9 +111,12 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
     }
     if (isNestedLintConfig(harness, relative)) return { guard: LINT_CONFIG_RULE, reason: lintConfigReason(harness, relative) };
     if (isVendoredIn(harness, relative)) {
-      return { guard: "vendored-write", reason: "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/" };
+      return {
+        guard: "vendored-write",
+        reason: `add primitives with \`pnpm dlx shadcn add <name>\`; customise in ${sourceRootAt(harness, relative)}shared/components/`,
+      };
     }
-    if (isLocked(relative, harness.config) && !unlocked(canonicalRoot)) return { guard: "harness-lock", reason: lockReason(relative) };
+    if (isLocked(relative, harness.config, canonicalRoot) && !unlocked(canonicalRoot)) return { guard: "harness-lock", reason: lockReason(relative) };
     if (writePaths.has(relative) && classify(relative, harness, legacy) === "owned") {
       const verdict = checkPath(relative, harness);
       if (!verdict.ok && !isIgnored(canonicalRoot, relative)) return { guard: "structure-write", reason: `${verdict.rule}: ${verdict.reason}` };

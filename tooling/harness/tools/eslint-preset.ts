@@ -3,19 +3,30 @@ import fs from "node:fs";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
+import type { WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
-import { harnessRuleBlocks, type RuleBlock } from "../presets/eslint-rules.ts";
-import { SOURCE_PROBES } from "../shapes/next-modules.ts";
+import { harnessRuleBlocks, type PresetLayout, type RuleBlock } from "../presets/eslint-rules.ts";
+import { sourceProbes } from "../shapes/next-modules.ts";
+import { PACKAGE_PROBES } from "../shapes/package.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import { bin, CHECK_TIMEOUT_MS } from "./tool-set.ts";
 
 type Options = readonly unknown[];
+/** What the preset and its check read of a workspace. */
+export type PresetWorkspace = Pick<WorkspaceEntry, "path" | "shape" | "next" | "sourceRoot">;
+
+function layoutOf(workspace: PresetWorkspace): PresetLayout {
+  if (workspace.shape === "package") return "package";
+  return workspace.shape === "next-modules" && workspace.sourceRoot === "" ? "app-root" : "app";
+}
 type Setting = RuleBlock["rules"][string];
 
 const severity = z.union([z.number(), z.string()]);
 const ruleSetting = z.union([severity, z.tuple([severity], z.unknown())]);
 const runnerOutput = z.object({ configs: z.record(z.string(), z.unknown()), defaults: z.record(z.string(), z.array(z.unknown())) });
+const dependencyGroup = z.record(z.string(), z.unknown()).optional();
+const packageManifest = z.object({ dependencies: dependencyGroup, devDependencies: dependencyGroup, peerDependencies: dependencyGroup });
 const printedConfig = z.object({
   linterOptions: z.object({ noInlineConfig: z.boolean().optional() }).optional(),
   rules: z.record(z.string(), ruleSetting).optional(),
@@ -26,10 +37,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const selectors = (options: Options): unknown[] => options.map((option) => (isRecord(option) ? option.selector : option));
 
 /** The settings the preset gives a path: every block whose files match it and whose ignores do not, later blocks winning. */
-export function expectedRules(probe: string): Record<string, Setting> {
+export function expectedRules(probe: string, layout: PresetLayout = "app"): Record<string, Setting> {
   const matches = (globs: readonly string[] = []): boolean => globs.some((glob) => path.posix.matchesGlob(probe, glob));
   const settings: Record<string, Setting> = {};
-  for (const block of harnessRuleBlocks()) if (matches(block.files) && !matches(block.ignores)) Object.assign(settings, block.rules);
+  for (const block of harnessRuleBlocks(layout)) if (matches(block.files) && !matches(block.ignores)) Object.assign(settings, block.rules);
   return settings;
 }
 
@@ -78,18 +89,97 @@ export function presetImport(workspacePath: string, file: string): string {
 }
 
 /**
- * A config that brings the Next configs, Next's plugin or typescript-eslint itself takes only the harness's blocks; ESLint
- * refuses a plugin defined twice. Comments do not count.
+ * Two things a project's own config can already bring, each read from its text and from the packages it imports.
+ * The TypeScript base (parser and plugin): the preset then adds only its own blocks, since ESLint refuses a plugin
+ * defined twice. The Next rules: the preset then adds its base without the Next configs, for the same reason.
+ * create-turbo's config package brings Next's plugin and no typescript-eslint, so it needs the base and not `next`.
  */
-const OWN_BASE = /eslint-config-next|@next\/eslint-plugin-next|typescript-eslint/;
+const TYPESCRIPT_BASE = ["typescript-eslint", "eslint-config-next"];
+const NEXT_RULES = ["@next/eslint-plugin-next", "eslint-config-next"];
 const COMMENTS = /\/\*[\s\S]*?\*\/|(^|\s)\/\/.*$/gm;
 
-const bringsBase = (ownConfig: string): boolean => OWN_BASE.test(ownConfig.replace(COMMENTS, "$1"));
+const BASE_PACKAGES = [...new Set([...TYPESCRIPT_BASE, ...NEXT_RULES])];
 
-/** The two lines that put the harness's ESLint rules after the entries of a project's own config, given that config's text. */
-export function eslintPresetLines(workspacePath: string, next: boolean, ownConfig: string): string[] {
-  const options = bringsBase(ownConfig) ? ", base: false" : next ? ", next: true" : "";
-  return [`import { harnessEslint } from "${presetImport(workspacePath, "eslint.ts")}";`, `...harnessEslint({ root: import.meta.dirname${options} }),`];
+/**
+ * What a package the workspace can import brings, read from the nearest node_modules up the tree; nothing when it is not
+ * installed. A workspace package, whose real folder is outside node_modules, has its devDependencies installed; a
+ * registry package ships the list, but nobody installs them.
+ */
+function dependenciesOf(dir: string, name: string): string[] {
+  for (let current = path.resolve(dir); ; current = path.dirname(current)) {
+    const folder = path.join(current, "node_modules", name);
+    if (fs.existsSync(path.join(folder, "package.json"))) {
+      const parsed = packageManifest.safeParse(JSON.parse(fs.readFileSync(path.join(folder, "package.json"), "utf8")));
+      if (!parsed.success) return [];
+      const { dependencies, devDependencies, peerDependencies } = parsed.data;
+      const inWorkspace = !fs.realpathSync(folder).split(path.sep).includes("node_modules");
+      return [dependencies, peerDependencies, ...(inWorkspace ? [devDependencies] : [])].flatMap((group) => Object.keys(group ?? {}));
+    }
+    if (current === path.dirname(current)) return [];
+  }
+}
+
+/** The packages a config imports by name: `@scope/name/sub` and `name/sub` give the package. */
+function importedPackages(config: string): string[] {
+  const specifiers = [...config.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)["']([^"'./][^"']*)["']/g)].map((match) => match[1] ?? "");
+  return specifiers.map((specifier) =>
+    specifier
+      .split("/")
+      .slice(0, specifier.startsWith("@") ? 2 : 1)
+      .join("/"),
+  );
+}
+
+/** Whether the config's text names one of the packages. Comments do not count. */
+const names = (packages: readonly string[], code: string): boolean => packages.some((name) => code.includes(name));
+
+/**
+ * The package a config imports that brings a base package, with everything it brings: create-turbo's configs take theirs
+ * from the workspace package `@repo/eslint-config`. None for a config that names a base package itself, as
+ * create-next-app's does. `dir` is the workspace folder the imports resolve from.
+ */
+function baseProvider(ownConfig: string, dir: string | undefined): { name: string; dependencies: string[] } | undefined {
+  const code = ownConfig.replace(COMMENTS, "$1");
+  if (dir === undefined || names(BASE_PACKAGES, code)) return undefined;
+  return importedPackages(code)
+    .map((name) => ({ name, dependencies: dependenciesOf(dir, name) }))
+    .find(({ dependencies }) => dependencies.some((dependency) => BASE_PACKAGES.includes(dependency)));
+}
+
+/** Whether the config names one of the packages itself or imports a package that brings one. */
+function brings(packages: readonly string[], ownConfig: string, dir?: string): boolean {
+  if (names(packages, ownConfig.replace(COMMENTS, "$1"))) return true;
+  return baseProvider(ownConfig, dir)?.dependencies.some((dependency) => packages.includes(dependency)) === true;
+}
+
+/** The name a config exports by default, when it exports a variable rather than an array or a call. */
+export const exportedName = (ownConfig: string): string | undefined =>
+  /^[ \t]*export\s+default\s+([A-Za-z_$][\w$]*)[ \t]*;?[ \t]*$/m.exec(ownConfig.replace(COMMENTS, "$1"))?.[1];
+
+/** The preset call for a workspace; a project's own config that brings the base configs takes only the harness's blocks. */
+export function presetCall(workspace: PresetWorkspace, ownConfig = "", dir?: string): string {
+  const layout = layoutOf(workspace) === "app" ? "" : `, layout: "${layoutOf(workspace)}"`;
+  const next = workspace.next && !brings(NEXT_RULES, ownConfig, dir) ? ", next: true" : "";
+  const base = brings(TYPESCRIPT_BASE, ownConfig, dir) ? ", base: false" : next;
+  const provider = baseProvider(ownConfig, dir);
+  const toolsFrom = provider === undefined ? "" : `, toolsFrom: "${provider.name}"`;
+  return `harnessEslint({ root: import.meta.dirname${layout}${base}${toolsFrom} })`;
+}
+
+/**
+ * The lines that put the harness's ESLint rules after the entries of a project's own config, given that config's text
+ * and, to follow its imports, the workspace folder: the import, then a spread for the exported array. A config that
+ * exports a variable has no array to add a spread to: two lines then replace its `export default`. `[name].flat()` takes
+ * an array as well as a single config object, and the array gets a name of its own because Next's lint rules warn on an
+ * anonymous default export.
+ */
+export function eslintPresetLines(workspace: PresetWorkspace, ownConfig: string, dir?: string): string[] {
+  const call = presetCall(workspace, ownConfig, dir);
+  const name = exportedName(ownConfig);
+  const importLine = `import { harnessEslint } from "${presetImport(workspace.path, "eslint.ts")}";`;
+  if (name === undefined) return [importLine, `...${call},`];
+  const combined = name === "harnessConfig" ? "withHarnessConfig" : "harnessConfig";
+  return [importLine, `const ${combined} = [...[${name}].flat(), ...${call}];`, `export default ${combined};`];
 }
 
 /** The text of the ESLint config in a workspace folder, or "" when it has none. */
@@ -99,25 +189,32 @@ function eslintConfigText(dir: string): string {
 }
 
 /** Whether the workspace's own ESLint config brings the base configs, so the preset's base packages are not needed there. */
-export const bringsOwnBase = (dir: string): boolean => bringsBase(eslintConfigText(dir));
+export const bringsOwnBase = (dir: string): boolean => brings(TYPESCRIPT_BASE, eslintConfigText(dir), dir);
 
-function missingRules(printed: unknown, probe: string, defaults: Record<string, Options>): string[] {
+/** Whether the workspace's own ESLint config brings the Next rules, so the preset adds its base without them. */
+export const bringsOwnNext = (dir: string): boolean => brings(NEXT_RULES, eslintConfigText(dir), dir);
+
+/** The tools the package behind the workspace's own ESLint config already brings; the preset loads them from there. */
+export const broughtByBase = (dir: string): string[] => baseProvider(eslintConfigText(dir), dir)?.dependencies ?? [];
+
+function missingRules(printed: unknown, probe: string, layout: PresetLayout, defaults: Record<string, Options>): string[] {
   const config = printedConfig.parse(printed ?? {});
-  const missing = Object.entries(expectedRules(probe))
+  const missing = Object.entries(expectedRules(probe, layout))
     .filter(([rule, expected]) => !holds(rule, expected, config.rules?.[rule], defaults[rule] ?? []))
     .map(([rule]) => rule);
   return config.linterOptions?.noInlineConfig === true ? missing : [...missing, "linterOptions.noInlineConfig"];
 }
 
-function presetFindings(stdout: string, probes: string[], workspacePath: string, presetLines: string[]): Finding[] {
+function presetFindings(stdout: string, probes: string[], workspace: PresetWorkspace, presetLines: string[], exported: string | undefined): Finding[] {
+  const rest = exported === undefined ? "the second as the last entry of the exported array" : `the other two in place of \`export default ${exported}\``;
   const { configs, defaults } = runnerOutput.parse(JSON.parse(stdout));
-  const where = workspacePath === "" ? "the root" : workspacePath;
+  const where = workspace.path === "" ? "the root" : workspace.path;
   const lines = presetLines.map((line) => `  ${line}`).join("\n");
   return probes.flatMap((probe) =>
-    missingRules(configs[probe], probe, defaults).map((rule) => ({
+    missingRules(configs[probe], probe, layoutOf(workspace), defaults).map((rule) => ({
       rule: "preset-missing",
       file: "",
-      message: `${rule} is not active as the harness sets it for ${probe} in the ESLint config of ${where}. Keep your config and add the harness preset: put the first line at the top and the second as the last entry of the exported array, with no later entry weakening these rules.\n${lines}`,
+      message: `${rule} is not active as the harness sets it for ${probe} in the ESLint config of ${where}. Keep your config and add the harness preset: put the first line at the top and ${rest}, with no later entry weakening these rules.\n${lines}`,
     })),
   );
 }
@@ -126,16 +223,20 @@ function presetFindings(stdout: string, probes: string[], workspacePath: string,
 export const CONFIG_RUNNER = path.join(import.meta.dirname, "eslint-config-runner.ts");
 
 /**
- * One step for every probe path the next-modules shape derives, each under a fresh random name so a config cannot leave
+ * One step for every probe path the workspace's shape derives, each under a fresh random name so a config cannot leave
  * the probes out by name: its effective ESLint config must hold every rule the preset sets there, with its options.
  */
-export function eslintPreset(dir: string, workspacePath: string, next: boolean, token: () => string = probeToken): ToolStep {
-  const probes = SOURCE_PROBES.map((template) => template.replaceAll("{name}", token()));
+export function eslintPreset(dir: string, workspace: PresetWorkspace, token: () => string = probeToken): ToolStep {
+  const templates = workspace.shape === "package" ? PACKAGE_PROBES : sourceProbes(layoutOf(workspace) === "app-root" ? "" : "src/");
+  const probes = templates.map((template) => template.replaceAll("{name}", token()));
   return {
     name: "eslint-preset",
     command: [process.execPath, CONFIG_RUNNER, bin(dir, "eslint"), ...probes],
     cwd: dir,
     timeoutMs: CHECK_TIMEOUT_MS,
-    findings: (stdout) => presetFindings(stdout, probes, workspacePath, eslintPresetLines(workspacePath, next, eslintConfigText(dir))),
+    findings: (stdout) => {
+      const own = eslintConfigText(dir);
+      return presetFindings(stdout, probes, workspace, eslintPresetLines(workspace, own, dir), exportedName(own));
+    },
   };
 }

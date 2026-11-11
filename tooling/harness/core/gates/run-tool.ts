@@ -10,6 +10,8 @@ export interface ToolStep {
   cwd?: string;
   timeoutMs?: number;
   findings(stdout: string, exitCode: number): Finding[];
+  /** One line for a failure the tool's own output explains at length, such as a missing config; undefined keeps that output. */
+  explain?(output: string): string | undefined;
 }
 
 interface Execution {
@@ -86,13 +88,18 @@ export async function runTool(root: string, step: ToolStep): Promise<Finding[]> 
   const result = await execute(root, step);
   let output = result.stdout + result.stderr;
   if (result.timedOut) output = `Tool timed out after ${step.timeoutMs ?? 120_000} ms.\n${output}`;
-  const failure = (): Finding[] => [{ rule: `${step.name}-failed`, file: "", message: output.split(/\r?\n/).slice(0, 40).join("\n") }];
+  const failure = (): Finding[] => [
+    { rule: `${step.name}-failed`, file: "", message: step.explain?.(output) ?? output.split(/\r?\n/).slice(0, 40).join("\n") },
+  ];
   if (result.code === null) return failure();
   try {
     const findings = step.findings(result.stdout, result.code);
     return findings.length > 0 || result.code === 0 ? findings : failure();
   } catch (error) {
-    output = `Cannot parse ${step.name} output: ${error instanceof Error ? error.message : String(error)}\n${output}`;
+    // A tool that died before it printed its report says why on stderr: that line leads, not the parser's.
+    const lines = result.code === 0 ? [] : result.stderr.split(/\r?\n/).filter((line) => line.trim() !== "");
+    const cause = lines.find((line) => /^\s*\w*Error\b/.test(line)) ?? lines[0];
+    output = `${cause === undefined ? "" : `${cause.trim()}\n`}Cannot parse ${step.name} output: ${error instanceof Error ? error.message : String(error)}\n${output}`;
     return failure();
   }
 }

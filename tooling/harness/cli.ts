@@ -11,6 +11,20 @@ function isMissingDependency(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ERR_MODULE_NOT_FOUND";
 }
 
+/** The harness's own file a failed import names, relative to the harness; undefined when a package is missing. */
+function missingHarnessFile(error: Error): string | undefined {
+  const target = /^Cannot find module '([^']+)'/.exec(error.message)?.[1];
+  if (target === undefined || !path.isAbsolute(target)) return undefined;
+  const relative = path.relative(import.meta.dirname, target);
+  return relative.startsWith("..") || relative.split(path.sep).includes("node_modules") ? undefined : relative.split(path.sep).join("/");
+}
+
+function missingHint(error: unknown): string {
+  const file = error instanceof Error ? missingHarnessFile(error) : undefined;
+  if (file === undefined) return INSTALL_HINT;
+  return `The harness cannot load: its file tooling/harness/${file} is missing, and an install does not bring it back. Restore or create that file (for example \`git checkout -- tooling/harness/${file}\`); every tool call is denied until then, so ask the user to do it in their own terminal.`;
+}
+
 function isInstallCommand(input: unknown): boolean {
   if (typeof input !== "object" || input === null || !("tool_name" in input) || input.tool_name !== "Bash" || !("tool_input" in input)) return false;
   const toolInput = input.tool_input;
@@ -69,6 +83,8 @@ try {
           ? await (await import("./core/gates/fast-gate.ts")).fastGate(root, paths)
           : await (await import("./core/gates/done-gate.ts")).doneGate(root, paths);
     if (result.report) process.stdout.write(`${result.report}\n`);
+    if (mode !== "ci" && paths.length === 0)
+      process.stdout.write(`No files were given, so check ${mode} judged nothing; \`check ci\` judges the whole tree.\n`);
     process.exitCode = result.passed ? 0 : 1;
   } else if (command === "audit" && mode === undefined) {
     const { audit } = await import("./core/audit/audit.ts");
@@ -135,7 +151,7 @@ try {
   if (command === "hook" && isMissingDependency(error)) {
     // A fresh clone has no node_modules yet: let the install through and tell the agent what to run first.
     const allowed = !preTool || isInstallCommand(input);
-    if (!allowed || !preTool) process.stderr.write(`${INSTALL_HINT}\n`);
+    if (!allowed || !preTool) process.stderr.write(`${missingHint(error)}\n`);
     process.exitCode = allowed ? 0 : 2;
   } else {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);

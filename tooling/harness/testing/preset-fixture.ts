@@ -28,15 +28,23 @@ export const APP: Record<string, string> = {
   "pnpm-lock.yaml": PNPM_LOCK,
 };
 
-/** A kept config with the lines init printed for it: the import first, the spread as the last entry of the exported array. */
+/** The same project as create-next-app writes it without --src-dir: app/ at the root and "@/*" on "./*". */
+export const APP_WITHOUT_SRC: Record<string, string> = Object.fromEntries(
+  Object.entries(APP).map(([file, text]) => [file.replace(/^src\//, ""), file === "tsconfig.json" ? text.replace('"./src/*"', '"./*"') : text]),
+);
+
+/**
+ * A kept config with the lines init printed for it: the import first, then the spread as the last entry of the exported
+ * array, or the two printed lines in place of the config's own `export default` when it exports a variable.
+ */
 export function withPresetLines(config: string, report: string): string {
-  const [importLine, spread] = report
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.includes("harnessEslint"));
-  if (importLine === undefined || spread === undefined) throw new Error(`init printed no ESLint lines:\n${report}`);
+  const lines = report.split("\n").map((line) => line.trim());
+  const at = lines.findIndex((line) => line.startsWith("import { harnessEslint }"));
+  const [importLine, second, third] = at === -1 ? [] : lines.slice(at, at + 3);
+  if (importLine === undefined || second === undefined) throw new Error(`init printed no ESLint lines:\n${report}`);
+  if (second.startsWith("const ")) return `${importLine}\n${config.replace(/^export default [\w$]+;?[ \t]*$/m, `${second}\n${third ?? ""}`)}`;
   const end = config.lastIndexOf("]");
-  return `${importLine}\n${config.slice(0, end)}  ${spread}\n${config.slice(end)}`;
+  return `${importLine}\n${config.slice(0, end)}  ${second}\n${config.slice(end)}`;
 }
 
 export function run(cwd: string, tool: string, args: string[]): { status: number | null; output: string } {
@@ -54,9 +62,11 @@ export function initialised(files: Record<string, string>, starter = false) {
   return { ...repo, report: result.report };
 }
 
+export const ROOT_APP = { path: "", shape: "next-modules", next: true } as const;
+
 /** Every presence-check finding of the workspace at the git root, its probes named by `token` when given. */
 export async function presetFindings(root: string, token?: () => string): Promise<Finding[]> {
-  return runTool(root, eslintPreset(root, "", true, token));
+  return runTool(root, eslintPreset(root, ROOT_APP, token));
 }
 
 const PROBES = SOURCE_PROBES.map((template) => {

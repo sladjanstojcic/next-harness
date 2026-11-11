@@ -26,6 +26,17 @@ describe("tool runner", () => {
     expect(findings).toEqual([{ rule: "parsed-3", file: "a.ts", message: "problem" }]);
   });
 
+  it("leads with the tool's own error when it died before printing a report the parser can read", async () => {
+    const repo = makeRepo();
+    const script =
+      "process.stderr.write('\\nOops! Something went wrong! :(\\n\\nESLint: 10.9.1\\n\\nError: cannot load the config\\n    at x'); process.exit(2)";
+    const parse = (stdout: string) => JSON.parse(stdout) as [];
+    const [died] = await runTool(repo.root, { name: "eslint", command: [process.execPath, "-e", script], findings: parse });
+    expect(died?.message.split("\n").slice(0, 2)).toEqual(["Error: cannot load the config", "Cannot parse eslint output: Unexpected end of JSON input"]);
+    const [garbled] = await runTool(repo.root, { name: "eslint", command: [process.execPath, "-e", "process.stdout.write('{')"], findings: parse });
+    expect(garbled?.message.split("\n")[0]).toMatch(/^Cannot parse eslint output: /);
+  });
+
   it("caps fallback diagnostics at the first 40 lines including stderr", async () => {
     const repo = makeRepo();
     const findings = await runTool(repo.root, {

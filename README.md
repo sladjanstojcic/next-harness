@@ -48,12 +48,15 @@ where the code belongs, and the agent cannot edit the rules.
 
 **One shape.** Routes in `src/app/`, features in `src/modules/<module>/`, cross-cutting code in
 `src/shared/`. Nothing else under `src/`, and nothing new at the repository root without a deliberate
-entry. [`tooling/harness/shapes/next-modules.ts`](tooling/harness/shapes/next-modules.ts) defines the
+entry. A project without `src/` keeps the same three folders beside `app/`; see
+[an existing Next.js project](#an-existing-nextjs-project).
+[`tooling/harness/shapes/next-modules.ts`](tooling/harness/shapes/next-modules.ts) defines the
 shape inside a workspace; [`tooling/harness/core/root-layout.ts`](tooling/harness/core/root-layout.ts)
 defines the repository root. An optional `harness.config.ts` adds workspaces, root entries and path
 classes; AGENTS.md describes every field. With it, a monorepo can give each folder its own shape:
-`next-modules` (below), `makerkit-app` and `makerkit-feature` for a Makerkit app and its feature
-packages, and `supabase` for append-only migrations. Each workspace also gets a tool set:
+`next-modules` (below), `package` for a [shared package](#a-turborepo-or-other-monorepo),
+`makerkit-app` and `makerkit-feature` for a Makerkit app and its feature packages, and `supabase` for
+append-only migrations. Each workspace also gets a tool set:
 `eslint-prettier`, `oxc` (oxlint and oxfmt) or `none`.
 
 **Four classes of file.** Not every file in an adopted project is yours to fix, so each file has a class:
@@ -133,7 +136,7 @@ which shape.
 | --------------------------- | -------------------------------------- | ------------------------------------------ | ------------------------------------------------- |
 | New Next.js project         | clone this template                    | not needed                                 | ESLint and Prettier, ours                         |
 | Existing Next.js project    | `git subtree add`, then `init`         | not needed                                 | ESLint and Prettier, ours added                   |
-| Turborepo or other monorepo | `git subtree add`, config, then `init` | one workspace per app, plus a legacy list  | each app's own, ours added                        |
+| Turborepo or other monorepo | `git subtree add`, config, then `init` | apps, shared packages, and a legacy list   | each workspace's own, ours added                  |
 | Makerkit project            | `git subtree add`, config, then `init` | the kit's folders, plus your `owned` paths | the kit's oxlint and oxfmt, ours as a second pass |
 
 All four need Node 24. The commands below are shown for pnpm; init prints each command in the project's
@@ -157,8 +160,13 @@ pnpm dev
 
 ### An existing Next.js project
 
-For a single app at the repository root, such as `create-next-app` output with a `src/` folder. No config
-file is needed: the whole repository is one `next-modules` workspace.
+For a single app at the repository root, such as `create-next-app` output, with or without a `src/`
+folder. No config file is needed: the whole repository is one `next-modules` workspace.
+
+Without `--src-dir`, create-next-app puts `app/` at the root, and Next.js ignores `src/app/` while it
+exists. The harness then keeps the same shape one level up: routes in `app/`, features in
+`modules/<module>/`, shared code in `shared/`. It reads this from git: `app/` holds a file git lists and
+`src/app/` holds none. Nothing is configured, and an empty folder does not switch the layout.
 
 ```sh
 git subtree add --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
@@ -178,7 +186,8 @@ Then do the printed steps in order. On a real `create-next-app` project there we
 6. `git add -A && git commit -m "Add the harness"`.
 7. `pnpm run check`, the full gate.
 
-`--starter` copies the `src/shared/lib/` helpers that the content rules point at, and `e2e/smoke.test.ts`.
+`--starter` copies the `shared/lib/` helpers that the content rules point at, under `src/` or beside
+`app/`, and `e2e/smoke.test.ts`.
 Code that does not fit the shape yet shows up in step 7. Move it, or give the project a legacy list as
 the monorepo section below does.
 
@@ -200,7 +209,10 @@ export default defineHarness({
 });
 ```
 
-- `path: "apps/*"` makes every folder under `apps/` a workspace of that shape.
+- `path: "apps/*"` makes every folder under `apps/` a workspace of that shape. An app that create-turbo
+  wrote has `app/` at its top and no `src/`; it keeps that layout, with `modules/` and `shared/` beside
+  `app/`.
+- `{ path: "packages/*", shape: "package" }` puts the shared packages under the harness too; see below.
 - `test: "test"` runs the app's own `test` package script instead of Vitest. Leave it out for a Vitest app.
 - `legacy` names the file that lists old code. Leave it out for a monorepo with no old code.
 - `root.entries` names what may sit at the repository root besides the defaults.
@@ -213,12 +225,39 @@ pnpm install
 node tooling/harness/cli.ts init    # second run: writes the wiring, prints the next steps
 ```
 
-The printed steps on a real Turborepo with one Next.js app were six: install the tools in the app's
-folder, add the two printed lines to the app's `eslint.config.mjs`, format that one file, write the
-legacy list, commit, run `pnpm run check`.
+For a fresh `create-turbo` project the whole config is two workspace entries and a legacy list:
+
+```ts
+export default defineHarness({
+  workspaces: [
+    { path: "apps/*", shape: "next-modules", next: true },
+    { path: "packages/*", shape: "package" },
+  ],
+  legacy: "tooling/harness-legacy.json",
+  root: { entries: ["apps", "packages", "turbo.json"] },
+});
+```
+
+`init --starter` then prints eleven steps for it, and after them all 27 gate steps pass:
+
+- **Steps 1 to 3.** Install the harness's tools in `apps/docs`, `apps/web` and `packages/ui`, one
+  printed `pnpm add -D` line each. create-turbo ships TypeScript 7, so each line ends with the
+  [TypeScript 6 alias](#your-own-eslint-config). The config-only packages get no line.
+- **Steps 4 and 5.** Install `zod` and `server-only` in each app, for the starter files.
+- **Step 6.** Replace `export default …` in the three kept ESLint configs with the two printed lines.
+- **Step 7.** Declare `NODE_ENV` in `globalEnv` of `turbo.json`.
+- **Step 8.** Format each workspace once with the printed `prettier --write .` commands.
+- **Step 9.** `node tooling/harness/cli.ts legacy init`, which lists what create-turbo wrote outside
+  the shapes: each app's fonts, `page.module.css`, long `page.tsx` and `next.config.js`, the three
+  `packages/eslint-config/*.js` and the three components directly in `packages/ui/src/`.
+- **Step 10.** Commit.
+- **Step 11.** `pnpm run check`.
+
+An older Turborepo with one Next.js app and its own tools needed six steps and a legacy list of 710
+files.
 
 **The legacy list.** `node tooling/harness/cli.ts legacy init` runs the tools once and lists every file
-that has a finding today. In that project it listed 710 files. From then on:
+that has a finding today. From then on:
 
 - an untouched old file passes, and its findings are printed as a count per step;
 - a new file, and a file outside the list, is held to every rule;
@@ -230,6 +269,51 @@ default branch. Init prints the workflow steps with that line.
 
 A project that had its own Prettier style and its own ESLint version keeps both. Init does not reformat
 such an app and does not downgrade its tools.
+
+**Shared packages.** Without a workspace entry, code under `packages/` gets only the root layout rules.
+The `package` shape gives each package the layout of one module of the app, so moving
+`apps/<app>/src/modules/<m>/` to `packages/<m>/src/` is a folder move:
+
+```text
+packages/<name>/
+  package.json          exports "." -> src/index.ts and "./server" -> src/server.ts
+  tsconfig.json, README.md, tool configs
+  src/
+    index.ts            client-safe public entry, named exports only
+    server.ts           server-only public entry
+    schemas.ts, types.ts
+    components/         UI; one optional area subfolder
+    server/             queries and I/O; one optional area subfolder; "server-only"
+    domain/             pure rules with a test beside each file; one optional area subfolder
+    hooks/              flat; use-<name>.ts(x)
+    lib/                flat helpers
+```
+
+- A package holds no `actions/` and no `"use server"`. A Server Action stays in the app's module and
+  calls the package's `server.ts`.
+- A package does not read `process.env`. The app reads it in `src/shared/lib/env.ts` and passes the value in.
+- A relative import that leaves the package, or leaves `src/` from inside it, is `package-boundary`;
+  import the other package by its name.
+- The package's top level takes configuration only: the tool configs, `.json` and `.md` files, and no
+  folder but `src/`. A package without `src/`, such as create-turbo's `typescript-config`, is
+  config-only: no tool runs there and init writes nothing into it.
+- The harness requires TypeScript, so JavaScript is denied everywhere in a package but for the tool
+  config names. create-turbo's `packages/eslint-config/{base,next,react-internal}.js` predate the
+  harness: `legacy init` puts them on the legacy list, or convert the package to TypeScript under
+  `src/`. `root.jsExceptions` cannot name them, since it covers the repository root only. Name such a
+  file in `locked` when agents should not edit it.
+- `src/domain/` takes `.ts` files only.
+- depcruise, knip and jscpd run in each package with `src/`, as in an app. dependency-cruiser uses a
+  package preset: no cycles, a pure `src/domain/`, `src/server/` internals reached only through
+  `src/server.ts`, and `src/index.ts` never reaching server code. Knip takes the files the package's
+  `exports` point at as entries and reports one of their exports that no workspace imports.
+- ESLint, Prettier, tsc and Vitest run in each package's folder. Init writes
+  `harnessEslint({ root: import.meta.dirname, layout: "package" })` there, or prints that line for a
+  config the package already has, as create-turbo's `packages/ui/eslint.config.mjs`. With that layout the
+  preset allows adapter casts in `src/server/` and keeps `src/domain/` free of React, Next, Node
+  built-ins and server code.
+- create-turbo generates `packages/ui/src/button.tsx` directly in `src/`. Move such files to
+  `src/components/` and export them from `src/index.ts`, or put them on the legacy list.
 
 ### A Makerkit project
 
@@ -371,11 +455,15 @@ project's `prettier --write .`, `oxfmt` or `oxlint --fix` then leaves the locked
 `vitest.config.ts`, `knip.config.ts` and `.dependency-cruiser.json` files over `tooling/harness/presets/`,
 the missing tool scripts, and `.prettierignore` entries (`pnpm-lock.yaml`, `src/shared/ui`, `.next`). It
 sets `allowImportingTsExtensions` in `tsconfig.json` and excludes `tooling/harness` and the thin configs
-from the project's type check. A root Next workspace also gets `playwright.config.ts`, which runs only
+from the project's type check. A next-modules workspace whose tsconfig, with the files it extends, maps
+no `@/*` gets `"@/*": ["./src/*"]` (or `["./*"]` without `src/`), since the starter files and the
+content rules use that alias. Where a `baseUrl` other than the tsconfig's folder is in force, or a file
+it extends sets other `paths`, init prints the alias to add by hand instead. A root Next workspace also gets `playwright.config.ts`, which runs only
 `e2e/**/*.test.ts`; the CI browser step reports `playwright: skipped` until such a file exists. A `test`
 script that does not run Vitest gets no `vitest.config.ts`; init prints the `test: "test"` line for
-`harness.config.ts` instead. A next-modules workspace without `src/` skips depcruise and jscpd until
-`src/` exists.
+`harness.config.ts` instead. In a workspace without `src/`, the ESLint config passes
+`layout: "app-root"`, the ignore entry is `shared/ui`, and depcruise and jscpd read `app/`, `modules/`
+and `shared/`.
 
 **Tools.** Init prints one install line: only tools that are missing, or below the minimum the presets
 work with. An installed tool at or above the minimum stays, also when newer. The presets import no tool
@@ -393,9 +481,39 @@ import { harnessEslint } from "../../tooling/harness/presets/eslint.ts";
 export default defineConfig([...nextVitals, ...nextTs, ...harnessEslint({ root: import.meta.dirname, base: false })]);
 ```
 
-`base: false` is what init prints for a config that already brings `eslint-config-next`,
-`@next/eslint-plugin-next` or `typescript-eslint`, as create-next-app's does. The preset then adds only
-the harness's rule blocks, since ESLint refuses a plugin defined twice. A project's own Prettier config
+A config that exports a variable has no array to add a spread to. Init then prints two lines
+that replace its `export default`. They work for an array and for a single config object, and the
+array has a name because Next's lint rules warn on an anonymous default export:
+
+```js
+const harnessConfig = [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, toolsFrom: "@repo/eslint-config" })];
+export default harnessConfig;
+```
+
+Init reads two things from a kept config, from its text and from the packages it imports:
+
+- **The TypeScript base.** A config that brings `typescript-eslint` or `eslint-config-next`, as
+  create-next-app's does, gets `base: false`: the preset adds only the harness's rule blocks, since
+  ESLint refuses a plugin defined twice.
+- **The Next rules.** A config that brings `@next/eslint-plugin-next` or `eslint-config-next` gets the
+  preset's base without `next: true`.
+
+An imported package counts through its `package.json` in the workspace's `node_modules`; its
+devDependencies count only when it is a workspace package. create-turbo's `@repo/eslint-config` brings
+Next's plugin and no `typescript-eslint`, so its apps get the full base without `next`. For such a
+package init also prints `toolsFrom: "@repo/eslint-config"`: a tool the workspace does not install
+itself, such as `@eslint/js`, is loaded from that package, and init does not ask to install it. A copy
+the workspace does install still wins.
+
+**TypeScript 7.** It ships no JavaScript API, which `typescript-eslint` needs. Where a workspace
+resolves TypeScript 7 or newer, init's install line adds
+`"typescript@npm:@typescript/typescript6@^6.0.2"`: TypeScript 6 under the name `typescript`. That
+package's binary is `tsc6`, so `tsc` stays the project's own.
+
+**Turborepo.** With `--starter` and a `turbo.json` at the root, init prints one more step: declare
+`NODE_ENV` in `globalEnv`, because the starter `env.ts` reads it. Init does not edit `turbo.json`.
+
+A project's own Prettier config
 is kept as it is, with its style.
 
 ### The preset check
@@ -417,6 +535,15 @@ An agent that can edit the harness can switch it off, so it cannot. Locked: `too
 too), the tool configs init writes in each eslint-prettier workspace, plus the legacy list and `locked`
 paths that config names. Edits by tool are denied, edits
 by shell are reported and block Done, and the unlock command is denied to agents.
+
+A new workspace is the exception, so that an agent can add a package or an app without you. While no
+commit has ever held a file in its folder, its own tool configs and `tsconfig.json` may be created and changed, also by
+running `node tooling/harness/cli.ts init`. From the commit that adds the workspace they are locked like
+the rest. Two checks keep such a workspace honest: the preset check for its ESLint config, and the audit
+rule `tsconfig-strict`, which holds every next-modules and package `tsconfig.json` to `strict: true`
+with `noImplicitAny` and `strictNullChecks` left on and no `noCheck`, read with the files it extends.
+A `tsconfig.json` that names no files to check (`"files": []` and no `include`) is reported too, since
+the harness's `tsc` step reads that file.
 
 ```sh
 pnpm harness:unlock   # you, in your own terminal: four hours to change the harness with the agent
@@ -454,6 +581,7 @@ config.ts           defineHarness, loading harness.config.ts, workspaces and the
 package.json        the harness's own pins (typescript for the compiler API, zod), so the folder works as a subtree
 shapes/
   next-modules.ts   the next-modules shape: folders, names, content rules, vendored files
+  package.ts        a shared package: one module's layout under src/, configuration at its top
   makerkit-app.ts   a Makerkit apps/web; its content rules sit in makerkit-app-content.ts
   makerkit-feature.ts a Makerkit feature package and its package.json exports
   supabase.ts       a Supabase folder: migration, schema, seed and test names
@@ -471,6 +599,7 @@ tools/
   analysis.ts       depcruise, knip, jscpd, build and browser smoke steps
   eslint-preset.ts  the preset presence check
 core/
+  package-usage.ts  what other workspaces import from a package, for knip's unused public exports
   root-layout.ts    what may sit at the repository root, and JS_EXCEPTIONS
   path-check.ts     one path check: the root layout, then the file's workspace shape
   classes.ts        owned, upstream, legacy and vendored files, and what each one blocks
@@ -480,11 +609,12 @@ core/
   telemetry.ts      the block log and the false-block marker
   code-index.ts     the public-export index handed over at session start
   hooks/            event parsing for both clients, guards, responses, apply_patch paths
-  audit/            path rules, content rules, duplicate exports
+  audit/            path rules, content rules, duplicate exports, the tsconfig check
   gates/            fast, done and ci gates, the tool runner, the repair budget
   state/            tree snapshots, per-session state files and the gate lock under .git/harness/
-testing/            disposable git repositories (template, Makerkit and Plint miniatures), the decision corpus,
-                    the Makerkit and Plint acceptance tests, the lint-config and server-only tests
+testing/            disposable git repositories (template, Makerkit, Plint and create-turbo miniatures), the
+                    decision corpus, the acceptance tests on those miniatures, the lint-config and
+                    server-only tests
 ```
 
 Every file obeys the same rules as application code.
@@ -546,8 +676,38 @@ Exact versions, no ranges; every config file is TypeScript.
   locked file edited and committed in the same command therefore passes. The migration check compares
   with the applied version (upstream, remote default branch, else the task's start) and catches that case, but CI does not check migrations, and
   `cli.ts check done` run by hand compares with HEAD.
+- Without `src/`, the `depcruise` and `jscpd` package scripts init writes name the source paths that
+  exist at that moment, and `shared` with `--starter`, because both tools fail on a missing path. Add
+  `modules` to them once it exists; the gates work out the paths themselves on every run. A new app
+  under `apps/*` is judged with `src/` until git lists a file under its `app/` folder.
+- The layout follows the files git lists under `app/` and `src/app/`. The Write tool cannot switch it,
+  but a shell command that moves or creates files there can (`git mv src/app app`). The full audit then
+  reports every file left in the other layout.
+- In a project with `src/`, a root-level `modules/` or `shared/` folder is possible only through
+  `root.entries` or the legacy list. dependency-cruiser then applies its rules to imports of it, Vitest
+  runs test files in it, and knip takes `shared/lib/` helpers there as entries.
+- A new workspace's tool configs are open until its first commit. Within that window an agent can also
+  set compiler options the `tsconfig-strict` rule does not read, and a Vitest or Prettier config of its
+  own; the ESLint preset check and `strict` are what is enforced.
+- `tsconfig-strict` is skipped for a tsconfig whose `extends` cannot be resolved, as before an install;
+  `tsc` reports that case itself.
+- In a `package` workspace knip runs inside the package and reports every unused export of its entry
+  files; the gate then takes out the names another workspace imports from the package. It matches by
+  name, so an unused internal export that shares its name with a used public one is not reported, and
+  `pnpm knip` run by hand in the package also lists public exports that other workspaces do use. A
+  package's server components may import `src/server/` only through `src/server.ts`.
+- A kept ESLint config that takes its base rules from another package is recognised only after an
+  install, when that package sits in `node_modules`: if ESLint reports a plugin defined twice, add
+  `base: false` to the printed line.
+- In a monorepo the knip preset names a tool's config and script binary when the workspace's
+  `package.json` does not list the tool and a folder above installs it, as create-turbo does with
+  Prettier. The same holds for any binary a workspace script runs from a folder above, such as
+  `turbo`. Vitest must be listed in the workspace itself, as init's install line does, or knip calls
+  the test files unused. In a workspace with `.tsx` files where no file imports React, the preset does
+  not report `react` and `@types/react` as unused: JSX with the automatic runtime needs them and
+  imports nothing.
 - Inside a workspace, denials name paths relative to that workspace: `src/shared/lib/`, not
-  `apps/dashboard/src/shared/lib/`. A stray top-level file in a Makerkit app or package still gets the
+  `apps/dashboard/src/shared/lib/`. A stray top-level file in a Makerkit app or feature package still gets the
   next-modules advice that application code belongs in `src/`.
 - `pnpm install` inside a subtree copy of `tooling/harness/` writes its own `pnpm-lock.yaml`. Whether a
   consumer commits it is not decided yet.

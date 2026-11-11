@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { workspaceOf } from "../../config.ts";
 import { TEST_FILE } from "../../shapes/next-modules.ts";
 import { ts } from "../../tools/typescript.ts";
-import { isVendoredIn, resolveHarness } from "../path-check.ts";
+import { isVendoredIn, resolveHarness, sourceRootAt } from "../path-check.ts";
 import { listFiles } from "./list-files.ts";
 import type { Finding } from "./finding.ts";
 
@@ -78,7 +79,12 @@ export function findDuplicateExports(root: string, files: string[]): Finding[] {
   for (const file of listFiles(root)) {
     if (!/\.tsx?$/.test(file) || isVendoredIn(harness, file) || TEST_FILE.test(file) || fixtureModule.test(file)) continue;
     const source = ts.createSourceFile(file, readFileSync(join(root, file), "utf8"), ts.ScriptTarget.Latest, true);
-    for (const exported of exportsOf(file, source)) byShape.set(exported.shape, [...(byShape.get(exported.shape) ?? []), exported]);
+    // Two workspaces are two programs: an export is a copy only of one in its own workspace.
+    const program = workspaceOf(harness.workspaces, file)?.entry.path ?? "";
+    for (const exported of exportsOf(file, source)) {
+      const key = `${program}\0${exported.shape}`;
+      byShape.set(key, [...(byShape.get(key) ?? []), exported]);
+    }
   }
   const findings: Finding[] = [];
   for (const copies of byShape.values()) {
@@ -86,11 +92,12 @@ export function findDuplicateExports(root: string, files: string[]): Finding[] {
       if (!selected.has(copy.file)) continue;
       const original = copies.find((other) => other !== copy);
       if (!original) continue;
+      const root = sourceRootAt(harness, copy.file);
       findings.push({
         rule: "duplicate-export",
         file: copy.file,
         line: copy.line,
-        message: `${copy.name} is ${original.file}#${original.name} under another name. Reuse that export; put cross-module logic in src/shared/lib/ or src/shared/components/.`,
+        message: `${copy.name} is ${original.file}#${original.name} under another name. Reuse that export; put cross-module logic in ${root}shared/lib/ or ${root}shared/components/.`,
       });
     }
   }

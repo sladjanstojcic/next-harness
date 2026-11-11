@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { ToolSetName } from "../config.ts";
+import type { ToolSetName, WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
 
@@ -19,7 +19,7 @@ export interface ToolSet {
     /** The whole-workspace lint with one finding per message, where `all` judges by exit code only. */
     report?(dir: string): ToolStep;
     /** Checks the harness's rules are active in the workspace's own lint config; the message names the workspace path. */
-    preset?(dir: string, workspacePath: string, next: boolean): ToolStep;
+    preset?(dir: string, workspace: WorkspaceEntry): ToolStep;
     /** Lints owned files with the harness's own rules on top of the project's untouched config; workspace-relative paths. */
     owned?(dir: string, files: string[]): ToolStep;
   };
@@ -74,8 +74,9 @@ export function placeStep(gitRoot: string, workspacePath: string, step: ToolStep
     const tool = arg.slice(local.length);
     const found = bin(dir, tool, gitRoot);
     if (found === undefined) {
-      const message = `${tool} not found from ${workspacePath}; install it or set tools: "none"`;
-      return { finding: { rule: `${step.name}-failed`, file: "", message } };
+      const manifest = `${workspacePath}/package.json`;
+      const message = `${tool} not found from ${workspacePath}. Run the package manager's install (\`pnpm install\`); if ${manifest} does not list the tool, \`node tooling/harness/cli.ts init\` prints what to add.`;
+      return { finding: { rule: `${step.name}-failed`, file: manifest, message } };
     }
     command.push(found);
   }

@@ -10,7 +10,7 @@ import { SOURCE_PROBES } from "../shapes/next-modules.ts";
 import { doubleCast, harnessRuleBlocks, workarounds } from "../presets/eslint-rules.ts";
 import { eslintPreset, eslintPresetLines, expectedRules, probeToken } from "../tools/eslint-preset.ts";
 import { harnessEslint } from "../presets/eslint.ts";
-import { APP, CNA_ESLINT, initialised, presetFindings, run, withPresetLines } from "./preset-fixture.ts";
+import { APP, CNA_ESLINT, initialised, presetFindings, ROOT_APP, run, withPresetLines } from "./preset-fixture.ts";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -62,8 +62,8 @@ describe("the preset presence check", () => {
     expect(names.some((name) => !/\d/.test(name))).toBe(true);
     expect(names.some((name) => name.includes("-"))).toBe(true);
     expect(names.some((name) => !name.includes("-"))).toBe(true);
-    const first = eslintPreset("/repo", "", true).command.slice(3);
-    const second = eslintPreset("/repo", "", true).command.slice(3);
+    const first = eslintPreset("/repo", ROOT_APP).command.slice(3);
+    const second = eslintPreset("/repo", ROOT_APP).command.slice(3);
     expect(first).toHaveLength(SOURCE_PROBES.length);
     expect(first.every((probe, index) => probe !== second[index] || SOURCE_PROBES.includes(probe))).toBe(true);
   });
@@ -93,19 +93,20 @@ describe("the preset presence check", () => {
       .flatMap((block) => Object.keys(block.rules))
       .filter((rule) => rule !== "@typescript-eslint/no-explicit-any");
     expect(new Set(missing.map(({ message }) => message.split(" ")[0]))).toEqual(new Set([...rules, "linterOptions.noInlineConfig"]));
-    const lines = `  ${IMPORT}\n  ...harnessEslint({ root: import.meta.dirname, base: false }),`;
+    const lines = `  ${IMPORT}\n  const harnessConfig = [...[eslintConfig].flat(), ...harnessEslint({ root: import.meta.dirname, base: false })];\n  export default harnessConfig;`;
     expect(missing[0]?.message).toContain(lines);
     expect(repo.report).toContain(lines.replaceAll("  ", "    "));
     repo.write("eslint.config.mjs", withPresetLines(CNA_ESLINT, repo.report));
     expect(await presetFindings(repo.root)).toEqual([]);
-    const lint = run(repo.root, "eslint", ["src", "--max-warnings", "0"]);
+    // The kept config is linted too: Next's rules warn on an anonymous default export, and a warning fails the gate.
+    const lint = run(repo.root, "eslint", ["src", "eslint.config.mjs", "--max-warnings", "0"]);
     expect(lint.status, lint.output).toBe(0);
   }, 120_000);
 
   it("prints base: false for a config that brings Next's or typescript-eslint's plugins, comments aside", () => {
-    const spread = (config: string) => eslintPresetLines("", true, config)[1];
+    const spread = (config: string) => eslintPresetLines(ROOT_APP, config)[1];
     expect(spread(CNA_ESLINT)).toContain("base: false");
-    expect(spread('import next from "@next/eslint-plugin-next";\nexport default [];\n')).toContain("base: false");
+    expect(spread('import next from "@next/eslint-plugin-next";\nexport default [];\n')).toBe("...harnessEslint({ root: import.meta.dirname }),");
     expect(spread("// like eslint-config-next\n/* or typescript-eslint */\nexport default [];\n")).toContain("next: true");
     expect(spread('const url = "https://x";\nexport default [];\n')).toContain("next: true");
   });

@@ -1,10 +1,9 @@
-import fs from "node:fs";
-import path from "node:path";
-import { analysisOf } from "../../config.ts";
+import { analysisOf, sourcePaths, sourceRootOf, type WorkspaceEntry } from "../../config.ts";
 import { depcruise, jscpd, knip } from "../../tools/analysis.ts";
 import type { WorkspaceTools } from "../../tools/index.ts";
 import { testScript } from "../../tools/test-script.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
+import { importedFromPackage } from "../package-usage.ts";
 import type { Harness } from "../path-check.ts";
 import type { ToolStep } from "./run-tool.ts";
 
@@ -15,11 +14,11 @@ export interface SkippedStep {
 }
 
 /**
- * depcruise and jscpd read src/. A workspace of a configured repository that has none yet, as an adopted app keeps its own
- * layout, skips them until src/ appears; without harness.config.ts they run as before.
+ * depcruise and jscpd read the workspace's source folders: src/, or app/, modules/ and shared/ at its top. A workspace of a
+ * configured repository with neither src/ nor app/ yet skips them until one appears; without harness.config.ts they run as before.
  */
-export function lacksSources(harness: Harness, dir: string): boolean {
-  return harness.configured && !fs.existsSync(path.join(dir, "src"));
+export function lacksSources(harness: Harness, dir: string, workspace: WorkspaceEntry): boolean {
+  return harness.configured && sourcePaths(dir, sourceRootOf(workspace)).length === 0;
 }
 
 export const skippedLine = (name: string, workspacePath: string, reason: string): string =>
@@ -38,15 +37,24 @@ export function checkSteps({ tools, dir, workspace }: WorkspaceTools, perFile: b
   };
 }
 
+/** Knip for one workspace: a package is judged with what the rest of the repository imports from it, always by its report. */
+export function knipStep(root: string, { dir, workspace }: WorkspaceTools, perFile: boolean): ToolStep {
+  if (workspace.shape === "package") return knip.package(dir, () => importedFromPackage(root, workspace.path));
+  return perFile ? knip.report(dir) : knip.check(dir);
+}
+
 /** A workspace's depcruise, knip and jscpd steps, in that order; `output` is a folder for jscpd's per-file report. */
-export function analysisSteps(harness: Harness, { dir, workspace }: WorkspaceTools, perFile: boolean, output: string): (ToolStep | SkippedStep)[] {
+export function analysisSteps(root: string, harness: Harness, group: WorkspaceTools, perFile: boolean, output: string): (ToolStep | SkippedStep)[] {
+  const { dir, workspace } = group;
   const analysis = new Set(analysisOf(harness.config, workspace));
-  const sourceless = lacksSources(harness, dir);
+  const sourceless = lacksSources(harness, dir, workspace);
   const sources = (name: string, step: () => ToolStep): ToolStep | SkippedStep => (sourceless ? { name, skipped: "no src/" } : step());
   return [
-    ...(analysis.has("depcruise") ? [sources("depcruise", () => (perFile ? depcruise.report(dir, new Set(), () => undefined) : depcruise.check(dir)))] : []),
-    ...(analysis.has("knip") ? [perFile ? knip.report(dir) : knip.check(dir)] : []),
-    ...(analysis.has("jscpd") ? [sources("jscpd", () => (perFile ? jscpd.report(dir, output, workspace.path) : jscpd.check(dir, workspace.path)))] : []),
+    ...(analysis.has("depcruise")
+      ? [sources("depcruise", () => (perFile ? depcruise.report(dir, workspace, new Set(), () => undefined) : depcruise.check(dir, workspace)))]
+      : []),
+    ...(analysis.has("knip") ? [knipStep(root, group, perFile)] : []),
+    ...(analysis.has("jscpd") ? [sources("jscpd", () => (perFile ? jscpd.report(dir, output, workspace) : jscpd.check(dir, workspace)))] : []),
   ];
 }
 

@@ -68,13 +68,13 @@ function auditDirectives({ file, path, profile }: ContentTarget, source: ts.Sour
   const findings: Finding[] = [];
   if (profile === undefined) return findings;
   const directives: { node: ts.Node; text: string }[] = [];
-  const imports: { node: ts.Node; target: string }[] = [];
+  const imports: { node: ts.Node; target: string; relative: boolean }[] = [];
   let hasServerOnly = false;
   let hasBuilder = false;
   const visit = (node: ts.Node): void => {
     if (ts.isExpressionStatement(node) && ts.isStringLiteral(node.expression)) directives.push({ node, text: node.expression.text });
     const target = importTarget(node);
-    if (target !== undefined) imports.push({ node, target: resolveTarget(profile, path, target) });
+    if (target !== undefined) imports.push({ node, target: resolveTarget(profile, path, target), relative: target.startsWith(".") });
     if (ts.isImportDeclaration(node) && target === "server-only" && !node.importClause?.isTypeOnly) hasServerOnly = true;
     if (ts.isCallExpression(node) && profile.actionBuilders.includes(calleeRoot(node.expression) ?? "")) hasBuilder = true;
     ts.forEachChild(node, visit);
@@ -83,10 +83,12 @@ function auditDirectives({ file, path, profile }: ContentTarget, source: ts.Sour
   const add = (rule: string, key: ContentMessage, node?: ts.Node): void => {
     findings.push({ file, rule, line: node ? source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 : 1, message: message(profile, key) });
   };
-  if (profile.serverFile?.test(path) && !TEST_FILE.test(path) && !hasServerOnly) add("server-only", "serverOnly");
   const serverDirectives = directives.filter(({ text }) => text === "use server");
-  if (profile.actionFile) {
-    const isAction = profile.actionFile.test(path);
+  // In a shape without actions the misplaced directive is the whole story: asking for "server-only" beside it pulls the other way.
+  const standsAlone = profile.noActions === true && serverDirectives.length > 0;
+  if (profile.serverFile?.test(path) && !TEST_FILE.test(path) && !hasServerOnly && !standsAlone) add("server-only", "serverOnly");
+  if (profile.actionFile || profile.noActions) {
+    const isAction = profile.actionFile?.test(path) ?? false;
     const invalidServer = serverDirectives.find(({ node }) => !isAction || node !== source.statements[0]);
     if (invalidServer || (isAction && (!serverDirectives.some(({ node }) => node === source.statements[0]) || !hasBuilder))) {
       add("use-server-placement", "useServer", invalidServer?.node ?? serverDirectives[0]?.node);
@@ -96,12 +98,16 @@ function auditDirectives({ file, path, profile }: ContentTarget, source: ts.Sour
   for (const directive of clientDirectives) {
     if (profile.clientFile && !profile.clientFile.test(path)) add("use-client-placement", "useClient", directive.node);
   }
-  for (const { node, target } of imports) {
-    const isServer = /(?:^|\/)server(?:\.tsx?$|\/|$)/.test(target);
+  const { sourceRoot } = profile;
+  for (const { node, target, relative } of imports) {
+    const isServer = /(?:^|\/)server(?:\.(?:js|ts)x?$|\/|$)/.test(target);
     if (clientDirectives.length > 0 && isServer && !isTypeOnlyImport(node) && profile.actionImport?.test(target) !== true)
       add("client-imports-server", "clientImportsServer", node);
     if (profile.publicIndex?.test(path) && (isServer || profile.actionImport?.test(target))) add("index-exports", "indexExports", node);
-    if (profile.packageBoundary !== undefined && (target === ".." || target.startsWith("../"))) {
+    // With a source root only the files under it are judged, and their relative imports stay under it too.
+    const judged = sourceRoot === undefined || path.startsWith(sourceRoot);
+    const leavesSource = relative && sourceRoot !== undefined && !target.startsWith(sourceRoot);
+    if (profile.packageBoundary !== undefined && judged && (target === ".." || target.startsWith("../") || leavesSource)) {
       findings.push({
         file,
         rule: "package-boundary",
