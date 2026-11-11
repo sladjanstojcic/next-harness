@@ -91,6 +91,8 @@ export type ContentMessage =
 /** Workspace-relative patterns the core content rules read; a rule whose pattern is absent is off for the shape. */
 export interface ContentProfile {
   actionFile?: RegExp;
+  /** The shape holds no Server Actions: every "use server" is misplaced, and that finding stands alone on its file. */
+  noActions?: true;
   actionBuilders: readonly string[];
   serverFile?: RegExp;
   clientFile?: RegExp;

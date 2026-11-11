@@ -107,7 +107,7 @@ describe("package paths", () => {
 
   it("sends Server Actions to the app's module", () => {
     const verdict = checkPath(`${PKG}/src/actions/save-price-action.ts`, resolveHarness(turboRepo().root));
-    expect(verdict.ok ? "" : verdict.reason).toContain("apps/<app>/src/modules/<module>/actions/<name>-action.ts");
+    expect(verdict.ok ? "" : verdict.reason).toContain("under apps/<app>/, in modules/<module>/actions/<name>-action.ts");
     expect(verdict.ok ? "" : verdict.reason).toContain("this package's server.ts");
   });
 
@@ -124,7 +124,7 @@ describe("package content", () => {
   it("reports each content rule with the package layout", () => {
     const repo = turboRepo({
       [`${PKG}/src/server/get-prices.ts`]: "export const getPrices = () => [];\n",
-      [`${PKG}/src/server/save-price.ts`]: '"use server";\nimport "server-only";\nexport async function savePrice() {}\n',
+      [`${PKG}/src/server/save-price.ts`]: '"use server";\nexport async function savePrice() {}\n',
       [`${PKG}/src/lib/widget.ts`]: '"use client";\nexport const widget = 1;\n',
       [`${PKG}/src/components/price-tag.tsx`]: '"use client";\nimport { getPrices } from "../server";\nexport const PriceTag = () => getPrices();\n',
       [`${PKG}/src/index.ts`]: 'export { getPrices } from "./server.js";\n',
@@ -166,7 +166,7 @@ describe("package content", () => {
     ]);
     for (const { message, rule } of findings) expect(message.endsWith(LAYOUT), rule).toBe(true);
     expect(findings.find(({ rule }) => rule === "env-access")?.message).toContain("the app's src/shared/lib/env.ts");
-    expect(findings.find(({ rule }) => rule === "use-server-placement")?.message).toContain("Server Actions live in the app's module");
+    expect(findings.find(({ rule }) => rule === "use-server-placement")?.message).toContain("Server Actions live in an app's module");
   });
 
   it("accepts a package that follows the layout", () => {

@@ -281,7 +281,12 @@ export default defineHarness({
   Playwright, dependency-cruiser, jscpd), `harness.config.ts`, its legacy list and the
   paths in its `locked` list cannot be edited, by tool or by shell, until the
   user runs `pnpm harness:unlock` in their own terminal (valid four hours; `pnpm
-harness:lock` ends it). Running the unlock yourself is denied. When a harness rule is
+harness:lock` ends it). Running the unlock yourself is denied. One exception: in a
+  workspace folder with no file at HEAD, a new package or app, the workspace's own tool
+  configs and `tsconfig.json` may be created and changed, by tool, by shell and by plain
+  `node tooling/harness/cli.ts init`; they are locked from the commit that adds the
+  workspace. The audit holds every next-modules and package `tsconfig.json` to
+  `strict: true` with `noImplicitAny` and `strictNullChecks` left on (`tsconfig-strict`). When a harness rule is
   wrong, say so in the handoff instead of working around it.
 - Every denial and block is logged under `.git/harness/blocks.jsonl`. `pnpm harness:blocks`
   lists them per rule with a false-block count; marking one false is the user's judgement

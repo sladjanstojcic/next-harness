@@ -1,6 +1,6 @@
 import path from "node:path";
 import { sourceRootOf, type WorkspaceEntry } from "../../config.ts";
-import { ts } from "../../tools/typescript.ts";
+import { compilerOptionsInForce } from "../../tools/typescript.ts";
 import { indentOf, isObject, readJson, writer, type Step } from "./files.ts";
 
 const HARNESS_DIR = "tooling/harness";
@@ -11,7 +11,7 @@ const ALIAS = "@/*";
 
 /** The `paths` and `baseUrl` in force for a tsconfig, with every file it extends; none when the chain sets none or cannot be read. */
 function inForce(file: string): { paths: Record<string, unknown>; baseUrl?: string } {
-  const options = ts.getParsedCommandLineOfConfigFile(file, {}, { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined })?.options;
+  const options = compilerOptionsInForce(file);
   return { paths: options?.paths ?? {}, ...(options?.baseUrl === undefined ? {} : { baseUrl: options.baseUrl }) };
 }
 

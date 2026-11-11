@@ -29,7 +29,17 @@ export const UNLOCK_COMMAND = /\bharness:unlock\b|cli\.ts\s+unlock\b|harness\/un
 export const INIT_FORCE_COMMAND = /(?:\bharness:init\b|cli\.ts\s+init\b)[^;&|]*\s--force\b/;
 const unlockState = z.object({ until: z.number() });
 
-export function isLocked(file: string, config?: HarnessConfig): boolean {
+/** A workspace folder with no file at HEAD: a new package or app, whose tool configs its author creates. */
+function isNewWorkspace(root: string, folder: string): boolean {
+  const listed = spawnSync("git", ["ls-tree", "--name-only", "HEAD", "--", `${folder}/`], { cwd: root, encoding: "utf8" });
+  return listed.status === 0 && listed.stdout.trim() === "";
+}
+
+/**
+ * `root` lets a new workspace through: its tool configs are open until the workspace has a file at HEAD, and locked
+ * from that commit on. Without `root` a workspace's tool configs are always locked.
+ */
+export function isLocked(file: string, config?: HarnessConfig, root?: string): boolean {
   const entries = [
     ...LOCKED_PATHS,
     CONFIG_FILE,
@@ -39,11 +49,11 @@ export function isLocked(file: string, config?: HarnessConfig): boolean {
   ];
   if (entries.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) : file === entry))) return true;
   const folder = path.posix.dirname(file);
-  return (
+  const toolConfig =
     folder !== "." &&
     WORKSPACE_TOOL_CONFIGS.includes(path.posix.basename(file)) &&
-    (config?.workspaces ?? []).some((workspace) => toolsOf(workspace) === "eslint-prettier" && isWorkspaceFolder(workspace, folder))
-  );
+    (config?.workspaces ?? []).some((workspace) => toolsOf(workspace) === "eslint-prettier" && isWorkspaceFolder(workspace, folder));
+  return toolConfig && !(root !== undefined && isNewWorkspace(root, folder));
 }
 
 export function unlocked(root: string, now = Date.now()): boolean {
@@ -75,7 +85,7 @@ function matchesHead(root: string, file: string): boolean {
 export function lockFindings(root: string, changed: Iterable<string>, config: HarnessConfig = loadConfig(root)): Finding[] {
   if (unlocked(root)) return [];
   return [...changed]
-    .filter((file) => isLocked(file, config) && !matchesHead(root, file))
+    .filter((file) => isLocked(file, config, root) && !matchesHead(root, file))
     .map((file): Finding => ({ rule: "harness-lock", file, message: lockReason(file) }));
 }
 

@@ -131,7 +131,9 @@ describe("per-workspace Done", () => {
     const calls = recordSteps(repo.real);
     const result = await doneGate(repo.root, [PACKAGE]);
     expect(calls.map(({ name, cwd }) => `${cwd} ${name}`)).toEqual(["packages/a eslint", "packages/a depcruise", "packages/a knip", "packages/a jscpd"]);
-    expect(result.findings).toEqual([{ rule: "tsc-failed", file: "", message: 'tsc not found from packages/a; install it or set tools: "none"' }]);
+    expect(result.findings).toEqual([
+      { rule: "tsc-failed", file: "", message: "tsc not found from packages/a; install the tools `node tooling/harness/cli.ts init` lists for that workspace" },
+    ]);
   });
 
   it("reports a CI test step without a reachable vitest as skipped", async () => {

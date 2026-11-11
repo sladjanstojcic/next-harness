@@ -21,7 +21,7 @@ const PLINT_FILES: Readonly<Record<string, string>> = {
   "turbo.json": "{}\n",
   [PLINT_LEGACY]: `${JSON.stringify({ version: 1, files: PLINT_LEGACY_FILES }, null, 2)}\n`,
   "apps/dashboard/package.json": "{}\n",
-  "apps/dashboard/tsconfig.json": "{}\n",
+  "apps/dashboard/tsconfig.json": '{ "compilerOptions": { "strict": true } }\n',
   "apps/dashboard/src/app/layout.tsx": "export default function Layout() { return null; }\n",
   "apps/dashboard/src/app/page.tsx": "export default function Page() { return null; }\n",
   "apps/dashboard/src/modules/usage/index.ts": "export type Usage = { calls: number };\n",

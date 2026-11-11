@@ -49,7 +49,7 @@ function recordSteps(repo: RepoFixture): string[] {
 describe("a Turborepo with shared packages (create-turbo in miniature)", () => {
   it.each([
     [`${BILLING}/src/utils/x.ts`, "src/components/, server/, domain/, hooks/ or lib/"],
-    [`${BILLING}/src/actions/save-price-action.ts`, "apps/<app>/src/modules/<module>/actions/<name>-action.ts"],
+    [`${BILLING}/src/actions/save-price-action.ts`, "under apps/<app>/, in modules/<module>/actions/<name>-action.ts"],
     ["packages/invoices/src/helpers/x.ts", "src/components/, server/, domain/, hooks/ or lib/"],
     ["packages/ui/src/tooltip.tsx", "src/components/, server/, domain/, hooks/ or lib/"],
     ["packages/eslint-config/rules/x.js", "no folder but src/"],

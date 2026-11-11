@@ -500,6 +500,13 @@ too), the tool configs init writes in each eslint-prettier workspace, plus the l
 paths that config names. Edits by tool are denied, edits
 by shell are reported and block Done, and the unlock command is denied to agents.
 
+A new workspace is the exception, so that an agent can add a package or an app without you. While its
+folder has no file at HEAD, its own tool configs and `tsconfig.json` may be created and changed, also by
+running `node tooling/harness/cli.ts init`. From the commit that adds the workspace they are locked like
+the rest. Two checks keep such a workspace honest: the preset check for its ESLint config, and the audit
+rule `tsconfig-strict`, which holds every next-modules and package `tsconfig.json` to `strict: true`
+with `noImplicitAny` and `strictNullChecks` left on, read with the files it extends.
+
 ```sh
 pnpm harness:unlock   # you, in your own terminal: four hours to change the harness with the agent
 pnpm harness:lock     # when the change is done
@@ -639,6 +646,11 @@ Exact versions, no ranges; every config file is TypeScript.
 - In a project with `src/`, a root-level `modules/` or `shared/` folder is possible only through
   `root.entries` or the legacy list. dependency-cruiser then applies its rules to imports of it, Vitest
   runs test files in it, and knip takes `shared/lib/` helpers there as entries.
+- A new workspace's tool configs are open until its first commit. Within that window an agent can also
+  set compiler options the `tsconfig-strict` rule does not read, and a Vitest or Prettier config of its
+  own; the ESLint preset check and `strict` are what is enforced.
+- `tsconfig-strict` is skipped for a tsconfig whose `extends` cannot be resolved, as before an install;
+  `tsc` reports that case itself.
 - A `package` workspace runs no depcruise, knip or jscpd. Import cycles, unused exports and duplicated
   code inside a package are therefore not checked, and domain purity there is a lint rule only. A
   package's server components may import `src/server/`; only files with `"use client"` are stopped. A

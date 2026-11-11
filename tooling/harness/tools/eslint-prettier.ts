@@ -34,6 +34,12 @@ function eslintFindings(root: string, stdout: string): Finding[] {
   );
 }
 
+/** ESLint's own text for a folder with no config runs to a screen; the fix is one command. */
+const explain = (output: string): string | undefined =>
+  /couldn't find an eslint\.config/i.test(output)
+    ? "This workspace has no ESLint config (eslint.config.*). Create it with `node tooling/harness/cli.ts init`, which writes the harness's config for every workspace that lacks one."
+    : undefined;
+
 /** One finding per path `prettier --list-different` prints; exit code 2 is a file Prettier could not read at all. */
 function prettierFindings(dir: string, stdout: string, exitCode: number): Finding[] {
   const files = stdout.split(/\r?\n/).filter((line) => line.trim() !== "");
@@ -59,13 +65,15 @@ export const eslintPrettier: ToolSet = {
       name: "eslint",
       command: [...(fast ? ["/usr/bin/env", "HARNESS_FAST_LINT=1"] : []), bin(dir, "eslint"), "--format", "json", "--no-warn-ignored", "--", ...files],
       findings: (stdout) => eslintFindings(dir, stdout),
+      explain,
     }),
-    all: (dir) => ({ name: "eslint", command: [bin(dir, "eslint"), ".", "--max-warnings", "0"], timeoutMs: CHECK_TIMEOUT_MS, findings: () => [] }),
+    all: (dir) => ({ name: "eslint", command: [bin(dir, "eslint"), ".", "--max-warnings", "0"], timeoutMs: CHECK_TIMEOUT_MS, findings: () => [], explain }),
     report: (dir) => ({
       name: "eslint",
       command: [bin(dir, "eslint"), ".", "--format", "json"],
       timeoutMs: CHECK_TIMEOUT_MS,
       findings: (stdout) => eslintFindings(dir, stdout),
+      explain,
     }),
     preset: eslintPreset,
   },

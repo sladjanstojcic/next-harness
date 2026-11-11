@@ -74,7 +74,7 @@ export function placeStep(gitRoot: string, workspacePath: string, step: ToolStep
     const tool = arg.slice(local.length);
     const found = bin(dir, tool, gitRoot);
     if (found === undefined) {
-      const message = `${tool} not found from ${workspacePath}; install it or set tools: "none"`;
+      const message = `${tool} not found from ${workspacePath}; install the tools \`node tooling/harness/cli.ts init\` lists for that workspace`;
       return { finding: { rule: `${step.name}-failed`, file: "", message } };
     }
     command.push(found);

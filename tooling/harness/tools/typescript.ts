@@ -5,6 +5,17 @@ import { bin, CHECK_TIMEOUT_MS, relativePath } from "./tool-set.ts";
 
 export { ts };
 
+/**
+ * The compiler options in force for a tsconfig, with every file it extends, without listing the project's files.
+ * Undefined when the file or one it extends cannot be read: `tsc` then reports that itself.
+ */
+export function compilerOptionsInForce(file: string): ts.CompilerOptions | undefined {
+  const host = { ...ts.sys, readDirectory: () => [], onUnRecoverableConfigFileDiagnostic: () => undefined };
+  const parsed = ts.getParsedCommandLineOfConfigFile(file, {}, host);
+  const NO_INPUTS = 18003;
+  return parsed === undefined || parsed.errors.some((error) => error.code !== NO_INPUTS) ? undefined : parsed.options;
+}
+
 function typeFindings(root: string, stdout: string): Finding[] {
   return stdout.split(/\r?\n/).flatMap((line): Finding[] => {
     const match = /^(.*?)\((\d+),\d+\): error (TS\d+): (.*)$/.exec(line);
