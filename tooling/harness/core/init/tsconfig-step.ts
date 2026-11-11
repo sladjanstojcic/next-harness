@@ -99,7 +99,8 @@ export function tsconfigStep(root: string, workspace: WorkspaceEntry, force: boo
  * A workspace that is type-checked project by project, as an electron-vite one: its tsconfig.json names no file, so the
  * step above has nothing to change there. A project that takes files from the workspace's top (`*.config.ts`) would reach
  * the harness through harness.config.ts and the tool configs that import a preset; nothing imports those files, so leaving
- * them out of that project's `exclude` is enough. Any other workspace gets the one step above.
+ * them out of that project's `exclude` is enough. That project also takes `scripts/` and `e2e/`, the code beside `src/`.
+ * Any other workspace gets the one step above.
  */
 export function tsconfigSteps(root: string, workspace: WorkspaceEntry, force: boolean, presetConfigs: readonly string[]): Step[] {
   const dir = path.join(root, workspace.path);
@@ -120,8 +121,18 @@ export function tsconfigSteps(root: string, workspace: WorkspaceEntry, force: bo
     if (config === undefined) return [];
     const exclude: unknown[] = Array.isArray(config.exclude) ? config.exclude.map((entry: unknown) => entry) : DEFAULT_EXCLUDE;
     const added = left.filter((entry) => !exclude.includes(entry));
-    if (added.length === 0) return [{ target, status: "unchanged", detail: "leaves the harness and its configs out" }];
-    const apply = writer(file, `${JSON.stringify({ ...config, exclude: [...exclude, ...added] }, null, indentOf(file))}\n`);
-    return [{ target, status: "updated", detail: `exclude ${added.join(", ")}`, apply }];
+    // The same project checks the code beside src/: without these, a first file in scripts/ or e2e/ would need a locked edit.
+    const include: unknown[] | undefined = Array.isArray(config.include) ? config.include.map((entry: unknown) => entry) : undefined;
+    const wanted = [...(workspace.path === "" ? ["scripts/**/*.ts"] : []), "e2e/**/*.ts"];
+    const included = include === undefined ? [] : wanted.filter((entry) => !include.includes(entry));
+    if (added.length === 0 && included.length === 0) return [{ target, status: "unchanged", detail: "leaves the harness and its configs out" }];
+    const next = {
+      ...config,
+      ...(include === undefined || included.length === 0 ? {} : { include: [...include, ...included] }),
+      ...(added.length === 0 ? {} : { exclude: [...exclude, ...added] }),
+    };
+    const changes = [...(included.length === 0 ? [] : [`include ${included.join(", ")}`]), ...(added.length === 0 ? [] : [`exclude ${added.join(", ")}`])];
+    const apply = writer(file, `${JSON.stringify(next, null, indentOf(file))}\n`);
+    return [{ target, status: "updated", detail: changes.join(", "), apply }];
   });
 }

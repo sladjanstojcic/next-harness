@@ -39,7 +39,7 @@ describe("the official electron-vite scaffold (react-ts), adopted with a legacy 
         "created vitest.config.ts: harness preset",
         "created knip.config.ts: harness preset",
         "created .dependency-cruiser.json: harness preset",
-        "updated tsconfig.node.json: exclude tooling/harness, harness.config.ts, eslint.config.mjs, vitest.config.ts, knip.config.ts",
+        "updated tsconfig.node.json: include scripts/**/*.ts, e2e/**/*.ts, exclude tooling/harness, harness.config.ts, eslint.config.mjs, vitest.config.ts, knip.config.ts",
         "updated .gitignore: *.tsbuildinfo",
       ].join("\n"),
     );

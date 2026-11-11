@@ -379,7 +379,9 @@ src/
 - **Type check.** The project's `tsconfig.json` names no files and refers to `tsconfig.node.json` and
   `tsconfig.web.json`. The tsc step runs `tsc --noEmit -p` for each project it refers to, and the audit
   judges the strictness of each of them. `*.tsbuildinfo` is git-ignored by init, since `tsc` writes one
-  beside each composite project.
+  beside each composite project. Init adds `scripts/**/*.ts` and `e2e/**/*.ts` to the `include` of the
+  project that reads the workspace's top (`tsconfig.node.json`), so the first automation script or browser
+  test is type-checked and linted without a change to a locked file.
 - **Gates.** ESLint, Prettier, tsc, Vitest, depcruise, knip and jscpd run as in a Next app. CI also runs
   `electron-vite build`. There is no Next type generation and no browser smoke test; packaging with
   electron-builder stays your step.
