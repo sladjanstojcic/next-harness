@@ -7,10 +7,10 @@ import { consumerRepo } from "./template-repo.ts";
 import { linkWorkspacePackages, TURBO_APPS, TURBO_FILES, TURBO_LEGACY } from "./turbo-repo.ts";
 
 export const TURBO_PRESET = 'import { harnessEslint } from "../../tooling/harness/presets/eslint.ts";';
-export const TURBO_APP_LINE =
-  'export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "app-root", toolsFrom: "@repo/eslint-config" })];';
-export const TURBO_UI_LINE =
-  'export default [...[config].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "package", toolsFrom: "@repo/eslint-config" })];';
+const call = (layout: string): string => `harnessEslint({ root: import.meta.dirname, layout: "${layout}", toolsFrom: "@repo/eslint-config" })`;
+/** The two lines init prints in place of each kept config's `export default <name>;`. */
+export const TURBO_APP_LINES = [`const harnessConfig = [...[nextJsConfig].flat(), ...${call("app-root")}];`, "export default harnessConfig;"];
+export const TURBO_UI_LINES = [`const harnessConfig = [...[config].flat(), ...${call("package")}];`, "export default harnessConfig;"];
 
 /** What init's install line puts into a workspace's package.json; Prettier stays at the root, as create-turbo installs it. */
 const TOOLS = {
@@ -48,11 +48,11 @@ export function adoptedTurbo() {
   }
   for (const app of TURBO_APPS) {
     const own = repo.read(`${app}/eslint.config.js`);
-    repo.write(`${app}/eslint.config.js`, `${TURBO_PRESET}\n${own.replace("export default nextJsConfig;", TURBO_APP_LINE)}`);
+    repo.write(`${app}/eslint.config.js`, `${TURBO_PRESET}\n${own.replace("export default nextJsConfig;", TURBO_APP_LINES.join("\n"))}`);
   }
   repo.write(
     "packages/ui/eslint.config.mjs",
-    `${TURBO_PRESET}\n${repo.read("packages/ui/eslint.config.mjs").replace("export default config;", TURBO_UI_LINE)}`,
+    `${TURBO_PRESET}\n${repo.read("packages/ui/eslint.config.mjs").replace("export default config;", TURBO_UI_LINES.join("\n"))}`,
   );
   for (const workspace of [...TURBO_APPS, ...PACKAGES]) {
     const format = run(path.join(repo.root, workspace), "prettier", ["--write", "."]);

@@ -14,7 +14,7 @@ const CONFIG = 'export default { workspaces: [{ path: "apps/*", shape: "next-mod
 const OWN_ESLINT = `import { nextJsConfig } from "${BASE}/next-js";\n\nexport default nextJsConfig;\n`;
 /** create-turbo's config package: Next's plugin and the base tools, and no typescript-eslint. */
 const BROUGHT = { "@eslint/js": "10.0.1", "@next/eslint-plugin-next": "^16.2.0", "eslint-config-prettier": "^10.1.1" };
-const APP_LINE = `export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "app-root", toolsFrom: "${BASE}" })];`;
+const APP_LINE = `const harnessConfig = [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "app-root", toolsFrom: "${BASE}" })];`;
 
 /** A copy of a tool that says where it was loaded from, or fails to load as a version that refuses the project's TypeScript does. */
 function install(root: string, folder: string, name: string, source: string): void {
@@ -68,7 +68,12 @@ describe("tools the project's own lint config already brings", () => {
     const [workspace] = expandWorkspaces(repo.root, loadConfig(repo.root));
     if (workspace === undefined) throw new Error("no workspace");
     // The base package brings Next's plugin, so no `next`; it brings no typescript-eslint, so the preset's base stays.
-    expect(eslintPresetLines(workspace, OWN_ESLINT, repo.dir)[1]).toBe(APP_LINE);
+    expect(eslintPresetLines(workspace, OWN_ESLINT, repo.dir).slice(1)).toEqual([APP_LINE, "export default harnessConfig;"]);
+    const clash = "const harnessConfig = [];\nexport default harnessConfig;\n";
+    expect(eslintPresetLines(workspace, clash, repo.dir).slice(1)).toEqual([
+      'const withHarnessConfig = [...[harnessConfig].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "app-root", next: true })];',
+      "export default withHarnessConfig;",
+    ]);
     const line = peerInstall(repo.root, loadConfig(repo.root), workspace) ?? "";
     expect(line).toContain(`cd ${APP} && pnpm add -D `);
     for (const name of ["prettier", "typescript-eslint", "jiti"]) expect(line, name).toContain(` ${name}@`);

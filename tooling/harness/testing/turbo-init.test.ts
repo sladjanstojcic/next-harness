@@ -10,7 +10,7 @@ import { resolveHarness } from "../core/path-check.ts";
 import { bringsOwnBase, bringsOwnNext, eslintPreset, eslintPresetLines } from "../tools/eslint-preset.ts";
 import { placeStep } from "../tools/tool-set.ts";
 import { run } from "./preset-fixture.ts";
-import { adoptedTurbo, TURBO_APP_LINE, TURBO_PRESET, TURBO_UI_LINE, turboProject } from "./turbo-adopted.ts";
+import { adoptedTurbo, TURBO_APP_LINES, TURBO_PRESET, TURBO_UI_LINES, turboProject } from "./turbo-adopted.ts";
 import { TURBO_LEGACY, TURBO_LEGACY_FILES } from "./turbo-repo.ts";
 
 const APP = { path: "apps/web", shape: "next-modules", next: true, sourceRoot: "" } as const;
@@ -22,12 +22,12 @@ describe("init --starter in a create-turbo project, then its printed steps", () 
     const dir = path.join(repo.root, APP.path);
     // The config package brings Next's plugin and no typescript-eslint: the base is the preset's, without `next`.
     expect([bringsOwnBase(dir), bringsOwnNext(dir)]).toEqual([false, true]);
-    expect(eslintPresetLines(APP, repo.read("apps/web/eslint.config.js"), dir)).toEqual([TURBO_PRESET, TURBO_APP_LINE]);
+    expect(eslintPresetLines(APP, repo.read("apps/web/eslint.config.js"), dir)).toEqual([TURBO_PRESET, ...TURBO_APP_LINES]);
     const { report } = initHarness(repo.root, { force: false, starter: true });
     expect(report).toContain(
-      `kept apps/web/eslint.config.js: your config stays; add the harness preset to it, the import at the top of the file, the second line in place of \`export default nextJsConfig\`:\n    ${TURBO_PRESET}\n    ${TURBO_APP_LINE}`,
+      `kept apps/web/eslint.config.js: your config stays; add the harness preset to it, the import at the top of the file, the other two lines in place of \`export default nextJsConfig\`:\n    ${[TURBO_PRESET, ...TURBO_APP_LINES].join("\n    ")}`,
     );
-    expect(report).toContain(`the second line in place of \`export default config\`:\n    ${TURBO_PRESET}\n    ${TURBO_UI_LINE}`);
+    expect(report).toContain(`the other two lines in place of \`export default config\`:\n    ${[TURBO_PRESET, ...TURBO_UI_LINES].join("\n    ")}`);
     expect(report).not.toMatch(/pnpm add -D [^\n]*(?:eslint-config-next|@eslint\/js)/);
     expect(report).toContain('Declare NODE_ENV in "globalEnv" of turbo.json, because the starter shared/lib/env.ts reads it');
     // Every step that gives a command ends with it: nothing a copied line would hand to the shell as prose.

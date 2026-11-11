@@ -93,12 +93,13 @@ describe("the preset presence check", () => {
       .flatMap((block) => Object.keys(block.rules))
       .filter((rule) => rule !== "@typescript-eslint/no-explicit-any");
     expect(new Set(missing.map(({ message }) => message.split(" ")[0]))).toEqual(new Set([...rules, "linterOptions.noInlineConfig"]));
-    const lines = `  ${IMPORT}\n  export default [...[eslintConfig].flat(), ...harnessEslint({ root: import.meta.dirname, base: false })];`;
+    const lines = `  ${IMPORT}\n  const harnessConfig = [...[eslintConfig].flat(), ...harnessEslint({ root: import.meta.dirname, base: false })];\n  export default harnessConfig;`;
     expect(missing[0]?.message).toContain(lines);
     expect(repo.report).toContain(lines.replaceAll("  ", "    "));
     repo.write("eslint.config.mjs", withPresetLines(CNA_ESLINT, repo.report));
     expect(await presetFindings(repo.root)).toEqual([]);
-    const lint = run(repo.root, "eslint", ["src", "--max-warnings", "0"]);
+    // The kept config is linted too: Next's rules warn on an anonymous default export, and a warning fails the gate.
+    const lint = run(repo.root, "eslint", ["src", "eslint.config.mjs", "--max-warnings", "0"]);
     expect(lint.status, lint.output).toBe(0);
   }, 120_000);
 

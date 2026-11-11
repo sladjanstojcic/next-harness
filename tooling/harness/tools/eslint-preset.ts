@@ -167,15 +167,19 @@ export function presetCall(workspace: PresetWorkspace, ownConfig = "", dir?: str
 }
 
 /**
- * The two lines that put the harness's ESLint rules after the entries of a project's own config, given that config's text
- * and, to follow its imports, the workspace folder. A config that exports a variable has no array to add a spread to: the
- * second line then replaces its `export default`, and `[name].flat()` takes an array as well as a single config object.
+ * The lines that put the harness's ESLint rules after the entries of a project's own config, given that config's text
+ * and, to follow its imports, the workspace folder: the import, then a spread for the exported array. A config that
+ * exports a variable has no array to add a spread to: two lines then replace its `export default`. `[name].flat()` takes
+ * an array as well as a single config object, and the array gets a name of its own because Next's lint rules warn on an
+ * anonymous default export.
  */
 export function eslintPresetLines(workspace: PresetWorkspace, ownConfig: string, dir?: string): string[] {
   const call = presetCall(workspace, ownConfig, dir);
   const name = exportedName(ownConfig);
-  const second = name === undefined ? `...${call},` : `export default [...[${name}].flat(), ...${call}];`;
-  return [`import { harnessEslint } from "${presetImport(workspace.path, "eslint.ts")}";`, second];
+  const importLine = `import { harnessEslint } from "${presetImport(workspace.path, "eslint.ts")}";`;
+  if (name === undefined) return [importLine, `...${call},`];
+  const combined = name === "harnessConfig" ? "withHarnessConfig" : "harnessConfig";
+  return [importLine, `const ${combined} = [...[${name}].flat(), ...${call}];`, `export default ${combined};`];
 }
 
 /** The text of the ESLint config in a workspace folder, or "" when it has none. */
@@ -202,7 +206,7 @@ function missingRules(printed: unknown, probe: string, layout: PresetLayout, def
 }
 
 function presetFindings(stdout: string, probes: string[], workspace: PresetWorkspace, presetLines: string[], exported: string | undefined): Finding[] {
-  const second = exported === undefined ? "as the last entry of the exported array" : `in place of \`export default ${exported}\``;
+  const rest = exported === undefined ? "the second as the last entry of the exported array" : `the other two in place of \`export default ${exported}\``;
   const { configs, defaults } = runnerOutput.parse(JSON.parse(stdout));
   const where = workspace.path === "" ? "the root" : workspace.path;
   const lines = presetLines.map((line) => `  ${line}`).join("\n");
@@ -210,7 +214,7 @@ function presetFindings(stdout: string, probes: string[], workspace: PresetWorks
     missingRules(configs[probe], probe, layoutOf(workspace), defaults).map((rule) => ({
       rule: "preset-missing",
       file: "",
-      message: `${rule} is not active as the harness sets it for ${probe} in the ESLint config of ${where}. Keep your config and add the harness preset: put the first line at the top and the second ${second}, with no later entry weakening these rules.\n${lines}`,
+      message: `${rule} is not active as the harness sets it for ${probe} in the ESLint config of ${where}. Keep your config and add the harness preset: put the first line at the top and ${rest}, with no later entry weakening these rules.\n${lines}`,
     })),
   );
 }

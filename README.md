@@ -244,7 +244,7 @@ export default defineHarness({
   printed `pnpm add -D` line each. create-turbo ships TypeScript 7, so each line ends with the
   [TypeScript 6 alias](#your-own-eslint-config). The config-only packages get no line.
 - **Steps 4 and 5.** Install `zod` and `server-only` in each app, for the starter files.
-- **Step 6.** Replace `export default …` in the three kept ESLint configs with the printed line.
+- **Step 6.** Replace `export default …` in the three kept ESLint configs with the two printed lines.
 - **Step 7.** Declare `NODE_ENV` in `globalEnv` of `turbo.json`.
 - **Step 8.** Format each workspace once with the printed `prettier --write .` commands.
 - **Step 9.** `node tooling/harness/cli.ts legacy init`, which lists what create-turbo wrote outside
@@ -481,11 +481,13 @@ import { harnessEslint } from "../../tooling/harness/presets/eslint.ts";
 export default defineConfig([...nextVitals, ...nextTs, ...harnessEslint({ root: import.meta.dirname, base: false })]);
 ```
 
-A config that exports a variable has no array to add a spread to. Init then prints the line that
-replaces its `export default`, which works for an array and for a single config object:
+A config that exports a variable has no array to add a spread to. Init then prints two lines
+that replace its `export default`. They work for an array and for a single config object, and the
+array has a name because Next's lint rules warn on an anonymous default export:
 
 ```js
-export default [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, toolsFrom: "@repo/eslint-config" })];
+const harnessConfig = [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, toolsFrom: "@repo/eslint-config" })];
+export default harnessConfig;
 ```
 
 Init reads two things from a kept config, from its text and from the packages it imports:

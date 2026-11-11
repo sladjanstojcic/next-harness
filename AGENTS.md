@@ -239,7 +239,7 @@ export default defineHarness({
 - `init` writes the thin configs and prints one install line: only tools that are
   missing, at the template's version, or below the minimum. An installed tool at or
   above the minimum stays, also when newer. A project's own Prettier config is kept as
-  it is. A kept ESLint config that exports a variable gets the line that replaces its
+  it is. A kept ESLint config that exports a variable gets two lines that replace its
   `export default`; `base: false` is printed when the config, or a package it imports,
   brings typescript-eslint or `eslint-config-next`, and `next: true` is left out when
   it brings Next's plugin; for an imported package it also prints `toolsFrom`, so the
