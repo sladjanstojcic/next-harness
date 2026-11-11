@@ -26,7 +26,7 @@ export const createCheckout = authActionClient.inputSchema(BillingSchema).action
 
 const ACCOUNTS_PACKAGE = `${JSON.stringify({ name: "@kit/accounts", exports: { "./api": "./src/server/api.ts", "./hooks/*": "./src/hooks/*.ts" } })}\n`;
 
-/** oxy-app's layout in miniature: apps/web as a Makerkit app, kit and owned feature packages beside it, committed env files and .mjs configs. */
+/** A Makerkit app in miniature: apps/web as a Makerkit app, kit and owned feature packages beside it, committed env files and .mjs configs. */
 export function makerkitRepo(files: Record<string, string> = {}): RepoFixture {
   return makeRepo({
     "harness.config.ts": makerkitConfig(),
@@ -34,7 +34,7 @@ export function makerkitRepo(files: Record<string, string> = {}): RepoFixture {
     "pnpm-workspace.yaml": "packages:\n  - apps/*\n  - packages/**\n",
     "apps/web/package.json": "{}\n",
     "apps/web/tsconfig.json": "{}\n",
-    "apps/web/.env": "NEXT_PUBLIC_PRODUCT_NAME=Oxy\n",
+    "apps/web/.env": "NEXT_PUBLIC_PRODUCT_NAME=Acme\n",
     "apps/web/.env.development": "NEXT_PUBLIC_SITE_URL=http://localhost:3000\n",
     "apps/web/next.config.mjs": "export default {};\n",
     "apps/web/postcss.config.mjs": "export default {};\n",

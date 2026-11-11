@@ -2,7 +2,8 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { CONFIG_FILE, isWorkspaceFolder, loadConfig, toolsOf, type HarnessConfig } from "../config.ts";
+import { CONFIG_FILE, isWorkspaceFolder, loadConfig, toolsOf, type HarnessConfig, type WorkspaceConfig } from "../config.ts";
+import { ELECTRON_CONFIGS } from "../shapes/electron/electron-vite.ts";
 import { ALL_TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import type { Finding } from "./audit/finding.ts";
 import { readState, stateDir, writeState } from "./state/state-file.ts";
@@ -52,11 +53,13 @@ export function isLocked(file: string, config?: HarnessConfig, root?: string): b
   ];
   if (entries.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) : file === entry))) return true;
   const folder = path.posix.dirname(file);
-  const toolConfig =
-    folder !== "." &&
-    WORKSPACE_TOOL_CONFIGS.includes(path.posix.basename(file)) &&
-    (config?.workspaces ?? []).some((workspace) => toolsOf(workspace) === "eslint-prettier" && isWorkspaceFolder(workspace, folder));
-  return toolConfig && !(root !== undefined && isNewWorkspace(root, folder));
+  const name = path.posix.basename(file);
+  const inWorkspace = (is: (workspace: WorkspaceConfig) => boolean): boolean =>
+    (config?.workspaces ?? []).some((workspace) => is(workspace) && isWorkspaceFolder(workspace, folder === "." ? "" : folder));
+  // An electron-vite workspace, at the root too: its build configs and every tsconfig*.json, which its type check reads.
+  const electron = ELECTRON_CONFIGS.test(name) && inWorkspace((workspace) => workspace.shape === "electron-vite");
+  const toolConfig = folder !== "." && WORKSPACE_TOOL_CONFIGS.includes(name) && inWorkspace((workspace) => toolsOf(workspace) === "eslint-prettier");
+  return (electron || toolConfig) && !(root !== undefined && folder !== "." && isNewWorkspace(root, folder));
 }
 
 export function unlocked(root: string, now = Date.now()): boolean {

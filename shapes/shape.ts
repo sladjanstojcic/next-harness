@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { dirname, join } from "node:path";
+import type ts from "typescript";
 import { MAX_FILE_LINES, MAX_FOLDER_FILES, MAX_PAGE_LINES } from "./limits.ts";
 
 export type PathRule =
@@ -17,6 +18,10 @@ export interface Shape {
   /** The reason for an entry the workspace top does not take, and for a JavaScript file, in this shape's words; the core's own otherwise. */
   topAdvice?: string;
   jsAdvice?: string;
+  /** The reason for a name that is not kebab-case in tooling/ or scripts/ of a repository this shape sits at the root of; the core's own otherwise. */
+  nameAdvice?: string;
+  /** The folder that holds modules/ and shared/ where it is not the source root; messages about shared code name it. */
+  moduleRoot?: string;
   kebabFolders: readonly string[];
   checkHidden(path: string): PathVerdict;
   isNameExempt(parts: readonly string[], index: number): boolean;
@@ -85,6 +90,13 @@ export function matchesEntry(entries: readonly string[], file: string): boolean 
   return entries.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) : file === entry));
 }
 
+/** A finding of a shape's own rule on one parsed file; the audit adds the file. */
+export interface SourceFinding {
+  rule: string;
+  line: number;
+  message: string;
+}
+
 export type ContentMessage =
   "serverOnly" | "useServer" | "useClient" | "clientImportsServer" | "indexExports" | "thinPage" | "domainTest" | "envAccess" | "errorText";
 
@@ -112,6 +124,11 @@ export interface ContentProfile {
   packageBoundary?: string;
   /** With packageBoundary: only files under this folder are judged, and their relative imports must also stay under it. */
   sourceRoot?: string;
+  /**
+   * Rules only this shape has, on the parsed file at a workspace-relative path. The audit hands the compiler in, so a
+   * shape loads without it: the hooks resolve shapes on every tool call.
+   */
+  sourceRules?(path: string, source: ts.SourceFile, compiler: typeof ts): SourceFinding[];
   messages: Record<ContentMessage, string>;
 }
 

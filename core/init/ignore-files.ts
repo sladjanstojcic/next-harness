@@ -6,10 +6,15 @@ import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { writer, type Step } from "./files.ts";
 
 export const IGNORED = [".next/", "test-results/"];
+/** electron-vite's build output, and the build info `tsc` writes beside each composite project it checks. */
+export const ELECTRON_IGNORED = ["out/", "*.tsbuildinfo"];
 /** pnpm links the harness's own dependencies here once it is a workspace package; create-next-app ignores only `/node_modules`. */
 export const HARNESS_MODULES = "tooling/harness/node_modules/";
 /** Files the format check must skip: pnpm's own lockfile style, the vendored shadcn primitives and the build output. */
-export const prettierIgnored = (workspace: WorkspaceEntry): string[] => ["pnpm-lock.yaml", `${sourceRootOf(workspace)}shared/ui`, ".next"];
+export const prettierIgnored = (workspace: WorkspaceEntry): string[] =>
+  workspace.shape === "electron-vite"
+    ? ["pnpm-lock.yaml", "src/renderer/src/shared/ui", "out", "dist"]
+    : ["pnpm-lock.yaml", `${sourceRootOf(workspace)}shared/ui`, ".next"];
 /**
  * The vendored harness and its locked config. A project's `prettier --write .`, `oxfmt` or `oxlint --fix` would rewrite
  * them in the project's style, which the lock then reports; formatting harness.config.ts is the user's, during an unlock.

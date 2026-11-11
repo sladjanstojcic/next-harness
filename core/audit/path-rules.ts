@@ -52,7 +52,8 @@ function duplicateFindings(harness: Harness, inventory: string[], selected: Set<
   const findings: Finding[] = [];
   for (const [key, members] of names) {
     const name = posix.basename(key);
-    const root = sourceRootAt(harness, members[0]?.file ?? "");
+    const first = members[0]?.file ?? "";
+    const root = workspaceOf(harness.workspaces, first)?.entry.shapeImpl.moduleRoot ?? sourceRootAt(harness, first);
     for (const member of members) {
       if (!selected.has(member.file)) continue;
       const others = members.filter((other) => other.scope !== member.scope);

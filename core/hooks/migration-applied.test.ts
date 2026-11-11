@@ -107,7 +107,7 @@ describe("blocks ef3800, 32f9e2: the agent's own committed migration is not appl
     repo.write(JOURNAL, "create table public.journal ();\n");
     repo.git("add", "-A");
     repo.git("commit", "-q", "-m", "journal");
-    repo.git("remote", "add", "origin", "https://example.invalid/oxy.git");
+    repo.git("remote", "add", "origin", "https://example.invalid/app.git");
     repo.git("update-ref", "refs/remotes/origin/feature", "HEAD");
     repo.git("config", "branch.main.remote", "origin");
     repo.git("config", "branch.main.merge", "refs/heads/feature");

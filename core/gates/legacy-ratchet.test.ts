@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PRE_EXISTING_HEADING } from "../classes.ts";
-import { PLINT_LEGACY_FILES, plintRepo } from "../../testing/plint-repo.ts";
+import { DASHBOARD_LEGACY_FILES, dashboardRepo } from "../../testing/dashboard-repo.ts";
 import { makeRepo, type RepoFixture } from "../../testing/temp-repo.ts";
 import { testScript } from "../../tools/test-script.ts";
 import { ciGate } from "./ci-gate.ts";
@@ -12,7 +12,7 @@ import * as runner from "./run-tool.ts";
 
 afterEach(() => vi.restoreAllMocks());
 
-const [LEGACY_UTIL, LEGACY_CHART] = PLINT_LEGACY_FILES;
+const [LEGACY_UTIL, LEGACY_CHART] = DASHBOARD_LEGACY_FILES;
 const NEW_FILE = "apps/dashboard/src/modules/usage/components/usage.tsx";
 const inDashboard = (file: string): string => file.replace("apps/dashboard/", "");
 
@@ -44,7 +44,7 @@ const summary = (findings: { file: string; rule: string }[]): string[] => findin
 
 describe("CI with a legacy list: tool findings are judged file by file", () => {
   it("reads per-file reports, tolerates old findings on an untouched legacy file and counts them once per step", async () => {
-    const repo = plintRepo();
+    const repo = dashboardRepo();
     const { result, commands } = await ciWith(repo, [LEGACY_UTIL]);
     expect(commands.slice(0, 2)).toEqual(["prettier --list-different .", "eslint . --format json"]);
     expect(commands).toContain("tsc --noEmit --pretty false");
@@ -66,7 +66,7 @@ describe("CI with a legacy list: tool findings are judged file by file", () => {
   });
 
   it("fails on the same findings in a new file, and in a legacy file with uncommitted changes", async () => {
-    const repo = plintRepo();
+    const repo = dashboardRepo();
     repo.write(NEW_FILE, "export function Usage() { return null; }\n");
     const fresh = await ciWith(repo, [NEW_FILE]);
     expect(fresh.result.passed).toBe(false);
@@ -85,7 +85,7 @@ describe("CI with a legacy list: tool findings are judged file by file", () => {
   });
 
   it("without a remote compares with HEAD; with one, a committed change since the merge base still fails", async () => {
-    const repo = plintRepo();
+    const repo = dashboardRepo();
     const edit = () => repo.write(LEGACY_UTIL, "export const formatDate = (value: Date) => value.toISOString().slice(0, 10);\n");
     edit();
     repo.git("commit", "-qam", "touch a legacy file");
@@ -105,7 +105,7 @@ describe("CI with a legacy list: tool findings are judged file by file", () => {
   });
 
   it("fails with one finding in a shallow clone that lacks the remote default branch, instead of comparing with HEAD", async () => {
-    const repo = plintRepo();
+    const repo = dashboardRepo();
     repo.git("checkout", "-q", "-b", "work");
     repo.write(LEGACY_UTIL, "export const formatDate = (value: Date) => value.toISOString().slice(0, 10);\n");
     repo.git("commit", "-qam", "touch a legacy file");
@@ -125,7 +125,7 @@ describe("CI with a legacy list: tool findings are judged file by file", () => {
   });
 
   it("still fails a finding without a file", async () => {
-    const repo = plintRepo();
+    const repo = dashboardRepo();
     vi.spyOn(runner, "runTool").mockImplementation(async (_root, step) =>
       step.name === "eslint" ? [{ rule: "eslint-failed", file: "", message: "Oops! Something went wrong!" }] : [],
     );
@@ -138,7 +138,7 @@ describe("a configured next-modules workspace without src/", () => {
   const analysed = (run: { mock: { calls: [string, runner.ToolStep][] } }): string[] =>
     run.mock.calls.filter(([, step]) => step.name === "depcruise" || step.name === "jscpd").map(([, step]) => `${step.name} ${step.command[1] ?? ""}`);
   const withoutSrc = (app: boolean) => {
-    const repo = plintRepo();
+    const repo = dashboardRepo();
     fs.rmSync(path.join(repo.root, "apps/dashboard/src"), { recursive: true });
     if (app) repo.write("apps/dashboard/app/page.tsx", "export default function Page() { return null; }\n");
     repo.write("tooling/harness-legacy.json", `${JSON.stringify({ version: 1, files: [] })}\n`);
@@ -218,7 +218,7 @@ describe("a workspace's own test script", () => {
 
 describe("Done with a legacy list", () => {
   it("still blocks a tool finding on an edited legacy file, and prints the other old debt as counts", async () => {
-    const repo = plintRepo();
+    const repo = dashboardRepo();
     repo.write(LEGACY_UTIL, "export const formatDate = (value: Date) => value.toISOString().slice(0, 10);\n");
     const lint = toolOutput(fs.realpathSync(repo.root), [LEGACY_UTIL, LEGACY_CHART]).eslint;
     vi.spyOn(runner, "runTool").mockImplementation(async (_root, step) => (step.name === "eslint" ? step.findings(lint[0], lint[1]) : []));
