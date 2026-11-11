@@ -44,7 +44,10 @@ export function writer(file: string, text: string, mode?: number): () => void {
   };
 }
 
-/** Adds the missing scripts and, with force, replaces the differing `required` ones; `defaults` are only ever added. */
+/**
+ * Adds the missing scripts; `defaults` are only ever added. A project's own script under a `required` name stays, and
+ * the step prints the harness's line for it, since pre-push and CI call the gate directly; with force it is replaced.
+ */
 export function scriptsStep(
   root: string,
   label: string,
@@ -61,10 +64,31 @@ export function scriptsStep(
   const missing = names.filter((name) => scripts[name] === undefined);
   const different = Object.keys(required).filter((name) => scripts[name] !== undefined && scripts[name] !== required[name]);
   if (missing.length === 0 && different.length === 0) return { target: label, status: "unchanged", detail: `scripts ${names.join(", ")}` };
-  if (different.length > 0 && !force) return { target: label, status: "conflict", detail: `scripts ${different.join(", ")} differ; --force replaces them` };
-  const added = Object.fromEntries(missing.map((name) => [name, wanted[name]]));
-  const replaced = Object.fromEntries(different.map((name) => [name, required[name]]));
-  const next = { ...pkg, scripts: { ...scripts, ...added, ...replaced } };
-  const changed = [...different, ...missing].join(", ");
-  return { target: label, status: "updated", detail: `scripts ${changed}`, apply: writer(file, `${JSON.stringify(next, null, indentOf(file))}\n`) };
+  const own = force ? [] : different;
+  const lines = own.map((name) => `\n    "${name}": "${required[name] ?? ""}"`).join("");
+  const kept =
+    own.length === 0 ? "" : `your ${own.join(", ")} ${own.length === 1 ? "script stays" : "scripts stay"}; the harness's, which --force writes:${lines}`;
+  const changed = [...(force ? different : []), ...missing];
+  if (changed.length === 0) return { target: label, status: "kept", detail: kept };
+  const next = { ...pkg, scripts: { ...scripts, ...Object.fromEntries(changed.map((name) => [name, wanted[name]])) } };
+  const detail = `scripts ${changed.join(", ")}${kept === "" ? "" : `; ${kept}`}`;
+  return { target: label, status: "updated", detail, apply: writer(file, `${JSON.stringify(next, null, indentOf(file))}\n`) };
+}
+
+const STARTER = path.resolve(import.meta.dirname, "../../presets/starter");
+
+/** Copies the starter files kept under presets/starter/<set>/ as `.txt` into a folder of the repository, never over a changed file. */
+export function starterSteps(root: string, set: string, folder: string): Step[] {
+  return fs
+    .readdirSync(path.join(STARTER, set))
+    .sort()
+    .map((name) => {
+      const target = `${folder}/${name.replace(/\.txt$/, "")}`;
+      const text = fs.readFileSync(path.join(STARTER, set, name), "utf8");
+      const file = path.join(root, target);
+      if (!fs.existsSync(file)) return { target, status: "created", detail: "starter file", apply: writer(file, text) };
+      return fs.readFileSync(file, "utf8") === text
+        ? { target, status: "unchanged", detail: "starter file" }
+        : { target, status: "kept", detail: "your file stays; the harness's starter copy differs" };
+    });
 }

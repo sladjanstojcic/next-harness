@@ -24,10 +24,11 @@ export interface ToolSet {
     owned?(dir: string, files: string[]): ToolStep;
   };
   typecheck: {
-    incremental(dir: string, next: boolean): ToolStep[];
-    all(dir: string, next: boolean): ToolStep[];
+    /** `projects` are the tsconfig files to check, one tsc run each; none means the workspace's tsconfig.json. */
+    incremental(dir: string, next: boolean, projects?: readonly string[]): ToolStep[];
+    all(dir: string, next: boolean, projects?: readonly string[]): ToolStep[];
     /** The whole-workspace type check with one finding per error, where `all` judges by exit code only. */
-    report?(dir: string, next: boolean): ToolStep[];
+    report?(dir: string, next: boolean, projects?: readonly string[]): ToolStep[];
   };
   test: { related(dir: string, files: string[]): ToolStep; all(dir: string): ToolStep };
 }

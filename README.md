@@ -55,6 +55,7 @@ shape inside a workspace; [`tooling/harness/core/root-layout.ts`](tooling/harnes
 defines the repository root. An optional `harness.config.ts` adds workspaces, root entries and path
 classes; AGENTS.md describes every field. With it, a monorepo can give each folder its own shape:
 `next-modules` (below), `package` for a [shared package](#a-turborepo-or-other-monorepo),
+`electron-vite` for an [Electron app](#an-electron-project),
 `makerkit-app` and `makerkit-feature` for a Makerkit app and its feature packages, and `supabase` for
 append-only migrations. Each workspace also gets a tool set:
 `eslint-prettier`, `oxc` (oxlint and oxfmt) or `none`.
@@ -137,9 +138,10 @@ which shape.
 | New Next.js project         | clone this template                    | not needed                                        | ESLint and Prettier, ours                         |
 | Existing Next.js project    | `git subtree add`, then `init`         | not needed                                        | ESLint and Prettier, ours added                   |
 | Turborepo or other monorepo | `git subtree add`, config, then `init` | apps, shared packages, and a legacy list          | each workspace's own, ours added                  |
+| Electron project            | `git subtree add`, config, then `init` | one `electron-vite` workspace                     | ESLint and Prettier, the project's with ours      |
 | Makerkit project            | `git subtree add`, config, then `init` | the kit's folders, plus a list of the kit's files | the kit's oxlint and oxfmt, ours as a second pass |
 
-All four need Node 24. The commands below are shown for pnpm; init prints each command in the project's
+All five need Node 24. The commands below are shown for pnpm; init prints each command in the project's
 own package manager, and npm and yarn use `workspaces` in `package.json` instead of `pnpm-workspace.yaml`.
 
 ### A new Next.js project
@@ -316,6 +318,81 @@ packages/<name>/
 - create-turbo generates `packages/ui/src/button.tsx` directly in `src/`. Move such files to
   `src/components/` and export them from `src/index.ts`, or put them on the legacy list.
 
+### An Electron project
+
+A desktop app built with [electron-vite](https://electron-vite.org) has its own shape, `electron-vite`.
+Electron runs three programs with different powers, and the shape keeps them apart. The config file is
+required here; the shape is never detected.
+
+```ts
+import { defineHarness } from "./tooling/harness/config.ts";
+
+export default defineHarness({
+  workspaces: [{ path: ".", shape: "electron-vite" }],
+});
+```
+
+```text
+electron.vite.config.ts, electron-builder.yml, components.json, tsconfig*.json, the tool configs,
+build/ and resources/ (packaging assets), e2e/
+src/
+  main/                    the Node main process
+    index.ts               the entry, and nothing else at this level
+    <area>/                one level of area folders (storage/, db/, ipc/): .ts files, tests beside them
+  preload/                 flat .ts files: the bridge only
+  renderer/
+    index.html
+    src/
+      main.tsx, app.tsx, *.d.ts, *.css
+      assets/              images, fonts and CSS; no code
+      modules/<module>/    index.ts, types.ts, schemas.ts; components/, domain/, hooks/
+      shared/              ui/ (generated shadcn), components/, lib/, hooks/
+  shared/                  the contract between the three: pure .ts, flat, one optional area folder
+```
+
+- A renderer module follows the rules of a Next module without the server: no `server.ts`, `server/` or
+  `actions/`, and flat `hooks/` named `use-<name>.ts(x)`. The aliases are the project's own: whatever
+  its tsconfig projects map to `src/renderer/src/` (`@/` or `@renderer/`) and to `src/shared/`
+  (`@shared/`). Every denial ends with "(Electron layout)".
+- **Boundaries.** The renderer imports no `electron`, no Node built-in and nothing from `main/` or
+  `preload/`. `src/shared/` imports no Electron, Node or React and none of the other three. Main and
+  preload import no renderer code and no React. Preload imports only `electron` and `src/shared/`. Both
+  the ESLint preset (`layout: "electron"`) and a dependency-cruiser preset hold these, so a changed
+  ESLint config does not remove them. ESLint judges packages and aliases; dependency-cruiser resolves
+  every import, a relative one too, and alone holds cycles and a renderer module used only through its
+  `index.ts`. It gets the aliases of `tsconfig.json` and of every project that file refers to, since
+  the scaffold keeps `paths` in `tsconfig.web.json`.
+- **Content rules.** `electron-security` reports `nodeIntegration: true`, `contextIsolation: false`,
+  `sandbox: false` and `webSecurity: false` in `src/main/` and `src/shared/`, as an object property or
+  as an assignment (`prefs.sandbox = false`); test files are not read. `electron-bridge` reports
+  `ipcRenderer` or `contextBridge` outside `src/preload/`. `ipc-channel` reports a channel written where
+  it is used: a string, a template or a concatenation, or a constant of the same file that holds one, as
+  the first argument of `ipcMain.handle/handleOnce/on/once`, `ipcRenderer.invoke/send/sendSync/on/once`
+  and `webContents.send`. Name channels once in `src/shared/`.
+  `"use server"`, `"use client"` and `server-only` are reported everywhere, and `process.env` is read in
+  `src/main/` only.
+- **Type check.** The project's `tsconfig.json` names no files and refers to `tsconfig.node.json` and
+  `tsconfig.web.json`. The tsc step runs `tsc --noEmit -p` for each project it refers to, and the audit
+  judges the strictness of each of them. `*.tsbuildinfo` is git-ignored by init, since `tsc` writes one
+  beside each composite project.
+- **Gates.** ESLint, Prettier, tsc, Vitest, depcruise, knip and jscpd run as in a Next app. CI also runs
+  `electron-vite build`. There is no Next type generation and no browser smoke test; packaging with
+  electron-builder stays your step.
+- **The lock** also covers `electron.vite.config.ts`, `electron-builder.yml` and every `tsconfig*.json`.
+- **Init** keeps your ESLint, Prettier and Vitest configs. For a config that exports a call, such as
+  `defineConfig(a, b)`, it prints the spread to add as the last argument:
+  `...harnessEslint({ root: import.meta.dirname, layout: "electron", base: false })`. It writes
+  `knip.config.ts` and `.dependency-cruiser.json`, and takes `harness.config.ts` and the configs that
+  import a preset out of the project whose `include` reaches `*.config.ts`. There are no starter files.
+- Console output is allowed in a file named `log.ts` in a `src/main/` area folder, such as
+  `src/main/logging/log.ts`, and nowhere else in the app. The lint message says so.
+- jscpd writes its report to `node_modules/.cache/jscpd` here, so nothing new needs ignoring.
+
+The official scaffold (`pnpm create @quick-start/electron`) predates this layout. Give it a legacy list
+(`legacy: "tooling/harness-legacy.json"`) and run `legacy init`: it lists `App.tsx` and
+`components/Versions.tsx`, the main and preload scripts, `.vscode/`, and the two tsconfig projects whose
+base turns `noImplicitAny` off. New code is then held to the shape while those files stay where they are.
+
 ### A Makerkit project
 
 The kit's code stays the kit's. A file, `tooling/harness-upstream.json`, lists the kit's files. Every file
@@ -438,7 +515,9 @@ then you read `pnpm harness:blocks`; a rule that mostly blocks good code is a bu
 
 `node tooling/harness/cli.ts init [--starter] [--codex-user] [--force]` is safe to run again. It keeps
 other keys and hooks, refuses changed harness wiring unless `--force` is given, and never replaces a
-config the project already has.
+config the project already has. A package script of your own under a harness name, such as `check` or
+`audit`, also stays: init prints the harness's line for it, and `--force` writes it. The pre-push hook
+and CI call the gate directly, so your script changes nothing there.
 
 **Wiring, in every project.** `.claude/settings.json` hooks, `.codex/hooks.json`, `.codex/config.toml`,
 `.githooks/pre-push`, `core.hooksPath` and the package scripts. It adds
@@ -583,6 +662,7 @@ package.json        the harness's own pins (typescript for the compiler API, zod
 shapes/
   next-modules.ts   the next-modules shape: folders, names, content rules, vendored files
   package.ts        a shared package: one module's layout under src/, configuration at its top
+  electron/         an electron-vite app: paths, the content profile and the rules only Electron has
   makerkit-app.ts   a Makerkit apps/web; its content rules sit in makerkit-app-content.ts
   makerkit-feature.ts a Makerkit feature package and its package.json exports
   supabase.ts       a Supabase folder: migration, schema, seed and test names
@@ -613,7 +693,7 @@ core/
   audit/            path rules, content rules, duplicate exports, the tsconfig check
   gates/            fast, done and ci gates, the tool runner, the repair budget
   state/            tree snapshots, per-session state files and the gate lock under .git/harness/
-testing/            disposable git repositories (template, Makerkit, Plint and create-turbo miniatures), the
+testing/            disposable git repositories (template, Makerkit, dashboard, create-turbo and Electron fixtures), the
                     decision corpus, the acceptance tests on those miniatures, the lint-config and
                     server-only tests
 ```
@@ -645,6 +725,15 @@ Exact versions, no ranges; every config file is TypeScript.
   is a first measurement, not a track record; keep reading the block log, and say so rather than work
   around a wrong block. Every one of those sessions was Claude Code. The Codex hooks are covered by unit
   tests only.
+- The `electron-vite` shape was checked here against two fixtures, the official scaffold moved into the layout with a small feature, and the official
+  scaffold's, with the real ESLint, tsc, Vitest, dependency-cruiser, knip and jscpd. Electron and
+  electron-vite are not installed in this repository, so `electron-vite build` ran as a stub there, and
+  the scaffold's TypeScript 5.9 was stood in for by 6.0.
+- `electron-security` does not follow a shorthand property (`{ sandbox }`), and it reports the same key
+  in another library's options in `src/main/`. `ipc-channel` does not see a literal passed through a
+  generic bridge such as `window.api.invoke("…")`.
+- In an Electron project knip prints configuration hints for entries its electron-vite plugin also
+  finds; they do not fail the step.
 - The legacy rule is per file. Touching an old file makes all of its old lint, format and type findings
   block, which can turn a one-line change into a larger one.
 - The full lint step has a 120 s limit. On a loaded machine a large app reached it, though the lint
@@ -770,7 +859,6 @@ The harness was built against these documents, at the versions pinned above.
 - Tests and formatting: [Vitest](https://vitest.dev), [Playwright](https://playwright.dev), [Prettier](https://prettier.io)
 - Generated UI: [shadcn CLI](https://ui.shadcn.com/docs/cli)
 - Git, for the tree snapshots and the worktree case: [racy-git](https://git-scm.com/docs/racy-git), [git worktree](https://git-scm.com/docs/git-worktree)
-- The predecessor this template was ported from: [`@plintcloud/next-harness`](https://www.npmjs.com/package/@plintcloud/next-harness) 0.2.2
 
 ## License
 

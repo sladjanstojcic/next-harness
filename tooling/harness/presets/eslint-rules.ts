@@ -1,16 +1,41 @@
 /** The harness rule options the preset sets and the presence check compares; no ESLint import, so the gates can read them. */
 import { builtinModules } from "node:module";
 import { MAX_FILE_LINES } from "../shapes/limits.ts";
+import type { ElectronAliases } from "./electron-aliases.ts";
+
+export type { ElectronAliases };
+import { electronBoundaryBlocks } from "./eslint-electron.ts";
 
 /**
  * Where the workspace keeps its code: an app's src/modules/ and src/shared/, the same folders at the top of an app
- * without src/ ("app-root"), or a shared package's src/.
+ * without src/ ("app-root"), a shared package's src/, or an Electron app's src/main/, src/preload/, src/renderer/ and src/shared/.
  */
-export type PresetLayout = "app" | "app-root" | "package";
+export type PresetLayout = "app" | "app-root" | "package" | "electron";
 
 /** The folder that may hold adapter casts, as the messages name it and as the rule blocks match it. */
-const ADAPTERS: Record<PresetLayout, string> = { app: "src/modules/<module>/server/", "app-root": "modules/<module>/server/", package: "src/server/" };
-const ADAPTER_GLOBS: Record<PresetLayout, string> = { app: "src/modules/*/server/**", "app-root": "modules/*/server/**", package: "src/server/**" };
+const ADAPTERS: Record<PresetLayout, string> = {
+  app: "src/modules/<module>/server/",
+  "app-root": "modules/<module>/server/",
+  package: "src/server/",
+  electron: "src/main/ or a guard in src/shared/",
+};
+const ADAPTER_GLOBS: Record<PresetLayout, string> = {
+  app: "src/modules/*/server/**",
+  "app-root": "modules/*/server/**",
+  package: "src/server/**",
+  electron: "src/{main,shared}/**",
+};
+/** Where console output is the point: automation, and an app's own log helper. */
+const CONSOLE: Record<Exclude<PresetLayout, "package">, string[]> = {
+  app: ["tooling/**", "scripts/**", "src/shared/lib/log.ts"],
+  "app-root": ["tooling/**", "scripts/**", "shared/lib/log.ts"],
+  electron: ["tooling/**", "scripts/**", "src/main/**/log.ts"],
+};
+/** no-console has one fixed message, so in an Electron app the same ban is a rule that says where logging belongs. */
+const ELECTRON_CONSOLE = {
+  object: "console",
+  message: "Log through a file named log.ts in a src/main/ area folder (src/main/logging/log.ts), the one place console is allowed (Electron layout).",
+};
 
 const namedExports = {
   selector: "ExportAllDeclaration",
@@ -70,11 +95,17 @@ export interface RuleBlock {
   rules: Record<string, Setting>;
 }
 
+const ELECTRON_CONSOLE_BLOCK: RuleBlock = {
+  files: ["**/*.{ts,tsx}"],
+  ignores: CONSOLE.electron,
+  rules: { "no-console": "off", "no-restricted-properties": ["error", ELECTRON_CONSOLE] },
+};
+
 /**
  * The harness's own rules, block by block in the preset's order: the preset spreads them into its config, and the
  * presence check folds the blocks matching a probe path into the settings that path must have.
  */
-export function harnessRuleBlocks(layout: PresetLayout = "app"): RuleBlock[] {
+export function harnessRuleBlocks(layout: PresetLayout = "app", aliases?: ElectronAliases): RuleBlock[] {
   const [workarounds, neverCast, doubleCast] = [workaroundsIn(layout), neverCastIn(layout), doubleCastIn(layout)];
   return [
     {
@@ -115,8 +146,7 @@ export function harnessRuleBlocks(layout: PresetLayout = "app"): RuleBlock[] {
         "no-restricted-syntax": ["error", namedExports, neverCast, requireCall, doubleCast],
       },
     },
-    layout === "package"
-      ? PACKAGE_DOMAIN
-      : { files: ["tooling/**", "scripts/**", `${layout === "app" ? "src/" : ""}shared/lib/log.ts`], rules: { "no-console": "off" } },
+    layout === "package" ? PACKAGE_DOMAIN : { files: CONSOLE[layout], rules: { "no-console": "off" } },
+    ...(layout === "electron" ? [ELECTRON_CONSOLE_BLOCK, ...electronBoundaryBlocks(aliases)] : []),
   ];
 }

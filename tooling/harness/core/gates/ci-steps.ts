@@ -2,6 +2,7 @@ import { analysisOf, sourcePaths, sourceRootOf, type WorkspaceEntry } from "../.
 import { depcruise, jscpd, knip } from "../../tools/analysis.ts";
 import type { WorkspaceTools } from "../../tools/index.ts";
 import { testScript } from "../../tools/test-script.ts";
+import { typecheckProjects } from "../../tools/typescript.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
 import { importedFromPackage } from "../package-usage.ts";
 import type { Harness } from "../path-check.ts";
@@ -29,11 +30,12 @@ export const skippedLine = (name: string, workspacePath: string, reason: string)
  * finding per file, which a legacy list needs to tell old debt from new.
  */
 export function checkSteps({ tools, dir, workspace }: WorkspaceTools, perFile: boolean): { format: ToolStep; lint: ToolStep; types: ToolStep[] } {
-  if (!perFile) return { format: tools.format.check(dir), lint: tools.lint.all(dir), types: tools.typecheck.all(dir, workspace.next) };
+  const projects = typecheckProjects(dir, workspace);
+  if (!perFile) return { format: tools.format.check(dir), lint: tools.lint.all(dir), types: tools.typecheck.all(dir, workspace.next, projects) };
   return {
     format: tools.format.report?.(dir) ?? tools.format.check(dir),
     lint: tools.lint.report?.(dir) ?? tools.lint.all(dir),
-    types: tools.typecheck.report?.(dir, workspace.next) ?? tools.typecheck.all(dir, workspace.next),
+    types: tools.typecheck.report?.(dir, workspace.next, projects) ?? tools.typecheck.all(dir, workspace.next, projects),
   };
 }
 

@@ -108,7 +108,9 @@ export function checkPath(file: string, harness: Harness = DEFAULT_HARNESS): Pat
   if (scope.kebabFolders.includes(top)) {
     for (const [index, part] of parts.entries()) {
       if (scope.entries.has(part) || shape?.isNameExempt(parts, index)) continue;
-      if (!KEBAB.test(part.split(".")[0] ?? "")) return nameDenial(scope.shape?.sourceRoot);
+      if (KEBAB.test(part.split(".")[0] ?? "")) continue;
+      const advice = scope.shape?.nameAdvice;
+      return advice === undefined ? nameDenial(scope.shape?.sourceRoot) : deny("file-name", advice);
     }
   }
   return shape ? shape.checkPath(scope.path) : { ok: true };

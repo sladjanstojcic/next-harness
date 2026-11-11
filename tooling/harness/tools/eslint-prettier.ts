@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Finding } from "../core/audit/finding.ts";
 import { eslintPreset } from "./eslint-preset.ts";
 import { bin, CHECK_TIMEOUT_MS, relativePath, type ToolSet } from "./tool-set.ts";
-import { fullTypecheck, incrementalTypecheck, reportTypecheck } from "./typescript.ts";
+import { aliasesOf, fullTypecheck, incrementalTypecheck, reportTypecheck } from "./typescript.ts";
 import { vitest } from "./vitest.ts";
 
 const lintOutput = z.array(
@@ -75,7 +75,8 @@ export const eslintPrettier: ToolSet = {
       findings: (stdout) => eslintFindings(dir, stdout),
       explain,
     }),
-    preset: eslintPreset,
+    // The boundaries of an Electron project name its own aliases, read from its tsconfig projects.
+    preset: (dir, workspace) => eslintPreset(dir, workspace, undefined, workspace.shape === "electron-vite" ? aliasesOf(dir) : undefined),
   },
   typecheck: { incremental: incrementalTypecheck, all: fullTypecheck, report: reportTypecheck },
   test: vitest,

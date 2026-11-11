@@ -29,7 +29,7 @@ tooling/harness/
   cli.ts                     hook, check, audit, blocks, legacy init, init, lock, unlock
   config.ts                  reads harness.config.ts; workspaces and their defaults
   core/                      guards, audit, gates, state, root layout, path classes
-  shapes/                    a workspace's paths, names, content rules, size limits
+  shapes/                    a workspace's paths, names, content rules, size limits; electron/ for an Electron app
   tools/                     a workspace's formatter, linter, type checker, tests
 scripts/                     repository automation
 e2e/                         Playwright browser tests
@@ -139,7 +139,7 @@ export default defineHarness({
   with the longest matching path, and its shape sees the path inside that workspace.
   A file in no workspace gets only the root layout rules from `core/root-layout.ts`.
   In a configured workspace `next` defaults to false and `tools` follows the shape:
-  `eslint-prettier` for next-modules and package, `oxc` for the Makerkit shapes, `none` for supabase.
+  `eslint-prettier` for next-modules, package and electron-vite, `oxc` for the Makerkit shapes, `none` for supabase.
 - Each file has a path class. Vendored files are the shape's generated code, such as
   `src/shared/ui/`. Legacy files are listed in the legacy file. Owned files match an
   `owned` prefix, or every file when `owned` is absent. All other files are upstream.
@@ -188,7 +188,8 @@ export default defineHarness({
 ### Shapes, tool sets and the other config fields
 
 - Shapes: `next-modules` (the layout above, at any workspace root), `package` (a shared
-  package such as `packages/*` in a Turborepo, described below), `makerkit-app`
+  package such as `packages/*` in a Turborepo, described below), `electron-vite` (an Electron
+  app built with electron-vite, described below), `makerkit-app`
   (a Makerkit `apps/web`: `app/[locale]`, `_components/`, `_lib/server/`, `config/`,
   `lib/`), `makerkit-feature` (a package under `packages/features/*` with
   `components`, `hooks`, `schema`, `server/{actions,services,policies}`, `shared`) and
@@ -210,13 +211,47 @@ export default defineHarness({
   tool runs there and init writes nothing into it. JavaScript is denied everywhere in a
   package but for the tool config names; JavaScript that predates the harness, such as
   create-turbo's `packages/eslint-config/*.js`, goes on the legacy list or is converted.
+- An `electron-vite` workspace needs the config file (`{ path: ".", shape: "electron-vite" }`); it is
+  never detected. Its top takes `electron.vite.config.ts`, `electron-builder.yml`, `components.json`,
+  every `tsconfig*.json`, the tool configs, `build/` and `resources/` (packaging assets) and `e2e/`.
+  Under `src/`: `main/` holds `index.ts` and one level of area folders with `.ts` files
+  (`main/storage/client.ts`); `preload/` is flat `.ts`, the bridge only; `renderer/` holds `index.html`
+  and `src/` with `main.tsx`, `app.tsx`, `*.d.ts`, CSS, `assets/` (no code), `modules/<module>/`
+  (`index.ts`, `types.ts`, `schemas.ts`, `components/`, `domain/`, flat `hooks/` named
+  `use-<name>.ts(x)`; no `server.ts`, `server/` or `actions/`) and `shared/{ui,components,lib,hooks}/`;
+  `shared/` is the contract between the three, pure `.ts`, flat with one optional area folder. The
+  aliases are the project's own `paths` into `src/renderer/src/` (`@/`, `@renderer/`) and `src/shared/`; `src/renderer/src/shared/ui/` and
+  `shared/lib/utils.ts` there are vendored. Denials say "(Electron layout)".
+- Electron boundaries, in the ESLint preset (`layout: "electron"`) and in the dependency-cruiser preset:
+  (ESLint judges packages and the project's aliases, dependency-cruiser also every relative import,
+  with the aliases of `tsconfig.json` and of each project it refers to)
+  the renderer imports no `electron`, no Node built-in and nothing from `main/` or `preload/`;
+  `src/shared/` imports no Electron, Node or React and none of the other three; main and preload import
+  no renderer code and no React; preload imports only `electron` and `src/shared/`. Dependency-cruiser
+  also forbids cycles, a renderer module used past its `index.ts`, renderer `shared/` importing a
+  module, and an impure `domain/`, which has a test beside each file.
+- Electron content rules: `electron-security` (`nodeIntegration: true`, `contextIsolation: false`,
+  `sandbox: false` or `webSecurity: false` in `src/main/` and `src/shared/`, as a property or an
+  assignment; not in tests), `electron-bridge` (`ipcRenderer` or `contextBridge` outside
+  `src/preload/`) and `ipc-channel` (a string, template or concatenation, or a same-file constant
+  holding one, as the channel of `ipcMain.handle/handleOnce/on/once`,
+  `ipcRenderer.invoke/send/sendSync/on/once` or `webContents.send`; name channels in `src/shared/`).
+  `"use server"`, `"use client"` and `server-only` are reported anywhere, and `process.env` is read in
+  `src/main/` only. Console output belongs in a file named `log.ts` in a `src/main/` area folder
+  (`src/main/logging/log.ts`); the `electron-vite` shape takes no `next: true`.
+- Electron tools: the workspace's `tsconfig.json` names no files, so the tsc step runs
+  `tsc --noEmit -p` for each project it refers to, and `tsconfig-strict` judges each of those. CI also
+  runs `electron-vite build`; there is no Next type generation and no browser smoke. Knip's entries are
+  `electron.vite.config.ts`, `src/main/index.ts`, `src/preload/index.ts`, `src/renderer/index.html`
+  and `src/renderer/src/main.tsx`. The code index lists the exports of `src/shared/`, each renderer
+  module's `index.ts` and the renderer's `shared/lib/`. There are no starter files.
 - Tool sets: `eslint-prettier` (ESLint, Prettier, tsc and Vitest, as without a config),
   `oxc` (`oxlint -f json`, `oxfmt --list-different`, project `tsc`, Vitest) and `none`.
 - `env: "local"` denies only `.env*.local` and allows the committed `.env`,
   `.env.development`, `.env.production` and `.env.test`. Without it every `.env*`
   but `.env.example` is denied.
 - `analysis` lists which of `depcruise`, `knip` and `jscpd` run in Done and CI, in each
-  next-modules and package workspace's folder: all three unless listed, never in the
+  next-modules, package and electron-vite workspace's folder: all three unless listed, never in the
   Makerkit and supabase shapes.
 - An applied migration under a supabase workspace's `migrations/` cannot be edited,
   deleted or moved, by tool or by shell; add a new one with
@@ -284,13 +319,14 @@ export default defineHarness({
 - The harness is locked: `tooling/harness/`, the hook settings, `.githooks/`, `.github/`,
   the tool configs (`tsconfig.json`, `next.config.ts`, ESLint, Prettier, knip, Vitest,
   Playwright, dependency-cruiser, jscpd), `harness.config.ts`, its legacy list and the
-  paths in its `locked` list cannot be edited, by tool or by shell, until the
+  paths in its `locked` list, and in an electron-vite workspace `electron.vite.config.ts`,
+  `electron-builder.yml` and every `tsconfig*.json`, cannot be edited, by tool or by shell, until the
   user runs `pnpm harness:unlock` in their own terminal (valid four hours; `pnpm
 harness:lock` ends it). Running the unlock yourself is denied. One exception: in a
   workspace folder that no commit has ever held a file in, a new package or app, the workspace's own tool
   configs and `tsconfig.json` may be created and changed, by tool, by shell and by plain
   `node tooling/harness/cli.ts init`; they are locked from the commit that adds the
-  workspace. The audit holds every next-modules and package `tsconfig.json` to
+  workspace. The audit holds every next-modules, package and electron-vite `tsconfig.json` to
   `strict: true` with `noImplicitAny` and `strictNullChecks` left on, no `noCheck`, and
   sources to check (`tsconfig-strict`). When a harness rule is
   wrong, say so in the handoff instead of working around it.

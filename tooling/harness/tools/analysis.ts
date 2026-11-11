@@ -4,9 +4,11 @@ import { z } from "zod";
 import { sourcePaths, sourceRootOf, type WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import { ALL_NAMES } from "../core/package-usage.ts";
+import { shapeOf } from "../shapes/index.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
 import { presetImport } from "./eslint-preset.ts";
 import { bin, CHECK_TIMEOUT_MS, relativePath } from "./tool-set.ts";
+import { cruiserAliases } from "./typescript.ts";
 
 const dependencyOutput = z.object({
   modules: z.array(
@@ -22,6 +24,7 @@ const dependencyOutput = z.object({
     }),
   ),
   summary: z.object({
+    ruleSetUsed: z.object({ forbidden: z.array(z.object({ name: z.string(), comment: z.string().optional() })).optional() }).optional(),
     violations: z.array(
       z.object({
         rule: z.object({ name: z.string(), comment: z.string().optional() }),
@@ -80,10 +83,13 @@ function dependencyResult(root: string, workspace: WorkspaceEntry, stdout: strin
   // The preset's comments name src/ paths; a workspace without src/ reads them with its own.
   const advice = (comment = "Keep imports within the module or use its public API; cross-cutting code belongs in src/shared/lib/."): string =>
     sourceRootOf(workspace) === "" ? comment.replaceAll("src/", "") : comment;
+  // A violation names its rule without the rule's comment; the Electron preset's comments say which part may import what.
+  const rules = workspace.shape === "electron-vite" ? (result.summary.ruleSetUsed?.forbidden ?? []) : [];
+  const comments = new Map(rules.map(({ name, comment }) => [name, comment]));
   const findings = result.summary.violations.map(({ rule, from, to }) => ({
     rule: rule.name,
     file: relativePath(root, from),
-    message: `${from} → ${to}. ${advice(rule.comment)}`,
+    message: `${from} → ${to}. ${advice(rule.comment ?? comments.get(rule.name))}`,
   }));
   return { findings, affected };
 }
@@ -162,24 +168,30 @@ const check = (dir: string, name: string, tool: string, args: string[], timeoutM
   findings: () => [],
 });
 
-const sharedLib = (workspace: WorkspaceEntry): string => `${sourceRootOf(workspace)}shared/lib/`;
+const sharedLib = (workspace: WorkspaceEntry): string =>
+  `${shapeOf(workspace.shape, sourceRootOf(workspace)).moduleRoot ?? sourceRootOf(workspace)}shared/lib/`;
 /** What depcruise and jscpd read: src/, or the areas and the files beside app/ that exist at the top of a workspace without src/. */
 const sources = (dir: string, workspace: WorkspaceEntry): string[] => (sourceRootOf(workspace) === "" ? sourcePaths(dir, "") : ["src"]);
 
+const cruised = (dir: string, workspace: WorkspaceEntry): string[] => [
+  ...sources(dir, workspace),
+  "--config",
+  ".dependency-cruiser.json",
+  ...cruiserAliases(dir, workspace),
+];
 /** Done reads JSON reports and maps findings to files; CI judges each tool by its exit code. */
 export const depcruise = {
   // JSON depcruise exits zero even when its summary contains violations.
   report: (dir: string, workspace: WorkspaceEntry, changed: Set<string>, onResult: (affected: Set<string>) => void): ToolStep => ({
     name: "depcruise",
-    command: [bin(dir, "depcruise"), ...sources(dir, workspace), "--config", ".dependency-cruiser.json", "--output-type", "json"],
+    command: [bin(dir, "depcruise"), ...cruised(dir, workspace), "--output-type", "json"],
     findings: (stdout) => {
       const result = dependencyResult(dir, workspace, stdout, changed);
       onResult(result.affected);
       return result.findings;
     },
   }),
-  check: (dir: string, workspace: WorkspaceEntry): ToolStep =>
-    check(dir, "depcruise", "depcruise", [...sources(dir, workspace), "--config", ".dependency-cruiser.json"]),
+  check: (dir: string, workspace: WorkspaceEntry): ToolStep => check(dir, "depcruise", "depcruise", cruised(dir, workspace)),
 };
 
 export const knip = {
@@ -195,6 +207,9 @@ export const knip = {
   }),
   check: (dir: string): ToolStep => check(dir, "knip", "knip", []),
 };
+
+/** Where an Electron project's jscpd report goes: a folder every project ignores, since it has no .next/ for the preset's. */
+export const JSCPD_CACHE = "node_modules/.cache/jscpd";
 
 /** The workspace's own .jscpd.json, or the harness preset; jscpd has no `extends`. */
 function jscpdConfig(dir: string, workspacePath: string): string {
@@ -220,10 +235,14 @@ export const jscpd = {
   check: (dir: string, workspace: WorkspaceEntry): ToolStep => {
     const folders =
       sourceRootOf(workspace) === "" ? [...sources(dir, workspace), "tooling"].filter((file) => fs.existsSync(path.join(dir, file))) : ["src", "tooling"];
-    return check(dir, "jscpd", "jscpd", [...folders, "--config", jscpdConfig(dir, workspace.path)]);
+    const output = workspace.shape === "electron-vite" ? ["--output", JSCPD_CACHE] : [];
+    return check(dir, "jscpd", "jscpd", [...folders, "--config", jscpdConfig(dir, workspace.path), ...output]);
   },
 };
 
 export const build = (dir: string): ToolStep => check(dir, "build", "next", ["build"], 600_000);
+
+/** An Electron app's production build of main, preload and renderer; packaging with electron-builder is the user's step. */
+export const electronBuild = (dir: string): ToolStep => check(dir, "build", "electron-vite", ["build"], 600_000);
 
 export const playwright = (dir: string): ToolStep => check(dir, "playwright", "playwright", ["test"], 300_000);

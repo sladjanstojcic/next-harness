@@ -110,6 +110,12 @@ function preparesHooks(root: string): boolean {
   return typeof prepare === "string" && prepare.includes(PREPARE);
 }
 
+/** Whether the root `check` script is the project's own rather than the harness gate. */
+function ownCheck(root: string): boolean {
+  const scripts = readJson(path.join(root, "package.json"), "package.json")?.scripts;
+  return isObject(scripts) && scripts.check !== PACKAGE_SCRIPTS.check;
+}
+
 /** The config line that makes the gates run a workspace's own test script; the config file is the user's to edit. */
 function ownTestsItem(harness: Harness, workspace: WorkspaceEntry): string {
   const where = workspace.path === "" ? "." : workspace.path;
@@ -161,7 +167,8 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
       ? []
       : [`List the files with findings today, which the gates then tolerate until someone touches them: node ${HARNESS_PACKAGE}/cli.ts legacy init`]),
     'Commit the result: git add -A && git commit -m "Add the harness"',
-    `Run the full gate: ${run} check`,
+    // A project that kept its own `check` script reaches the gate the way pre-push and CI do.
+    `Run the full gate: ${ownCheck(root) ? `node ${HARNESS_PACKAGE}/cli.ts check ci` : `${run} check`}`,
   ];
   return ["Next steps, in this order:", ...items.map((item, index) => `  ${String(index + 1)}. ${item}`)];
 }

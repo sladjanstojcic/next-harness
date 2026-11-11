@@ -153,6 +153,25 @@ export function harnessKnip(dir = process.cwd()): KnipWorkspace | KnipWorkspaces
   };
 }
 
+/** What the electron-vite build starts from, and the generated shadcn code beside the renderer's own. */
+const ELECTRON_ENTRY = ["electron.vite.config.ts", "src/main/index.ts", "src/preload/index.ts", "src/renderer/index.html", "src/renderer/src/main.tsx"];
+const ELECTRON_IGNORE = ["src/renderer/src/shared/ui/**", "src/renderer/src/shared/lib/utils.ts"];
+
+type KnipElectron = Omit<KnipWorkspace, "next">;
+
+/**
+ * Knip for an electron-vite workspace, run from its folder: the entries of the three processes and the build config,
+ * vendored code ignored. Only paths that exist and dependencies the workspace declares are listed, as in an app.
+ */
+export function harnessKnipElectron(dir = process.cwd()): KnipElectron | { ignoreWorkspaces: string[]; workspaces: Record<string, KnipElectron> } {
+  const exists = (pattern: string) => fs.existsSync(path.join(dir, pattern.replace(/\/\*\*$/, "")));
+  const { configs, lists } = fromManifest(dir);
+  // harness.config.ts sits at this workspace's top, where an Electron project has no other workspace, and no file imports it.
+  const workspace = { entry: ELECTRON_ENTRY.filter(exists), ignore: [...[...ELECTRON_IGNORE, "harness.config.ts"].filter(exists), ...configs], ...lists };
+  if (harnessIsWorkspace(dir)) return { ignoreWorkspaces: [HARNESS_PACKAGE], workspaces: { ".": workspace } };
+  return { ...workspace, ignore: [...workspace.ignore, `${HARNESS_PACKAGE}/**`] };
+}
+
 /** The Knip settings for a package: no Next plugin, and the exports of its entry files are judged too. */
 interface KnipPackage {
   entry: string[];
