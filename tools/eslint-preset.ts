@@ -7,16 +7,19 @@ import type { WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
 import { harnessRuleBlocks, type PresetLayout, type RuleBlock } from "../presets/eslint-rules.ts";
-import { SOURCE_PROBES } from "../shapes/next-modules.ts";
+import { sourceProbes } from "../shapes/next-modules.ts";
 import { PACKAGE_PROBES } from "../shapes/package.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import { bin, CHECK_TIMEOUT_MS } from "./tool-set.ts";
 
 type Options = readonly unknown[];
 /** What the preset and its check read of a workspace. */
-export type PresetWorkspace = Pick<WorkspaceEntry, "path" | "shape" | "next">;
+export type PresetWorkspace = Pick<WorkspaceEntry, "path" | "shape" | "next" | "sourceRoot">;
 
-const layoutOf = (workspace: PresetWorkspace): PresetLayout => (workspace.shape === "package" ? "package" : "app");
+function layoutOf(workspace: PresetWorkspace): PresetLayout {
+  if (workspace.shape === "package") return "package";
+  return workspace.shape === "next-modules" && workspace.sourceRoot === "" ? "app-root" : "app";
+}
 type Setting = RuleBlock["rules"][string];
 
 const severity = z.union([z.number(), z.string()]);
@@ -94,7 +97,7 @@ const bringsBase = (ownConfig: string): boolean => OWN_BASE.test(ownConfig.repla
 
 /** The preset call for a workspace; a project's own config that brings the base configs takes only the harness's blocks. */
 export function presetCall(workspace: PresetWorkspace, ownConfig = ""): string {
-  const layout = workspace.shape === "package" ? ', layout: "package"' : "";
+  const layout = layoutOf(workspace) === "app" ? "" : `, layout: "${layoutOf(workspace)}"`;
   const base = bringsBase(ownConfig) ? ", base: false" : workspace.next ? ", next: true" : "";
   return `harnessEslint({ root: import.meta.dirname${layout}${base} })`;
 }
@@ -142,7 +145,7 @@ export const CONFIG_RUNNER = path.join(import.meta.dirname, "eslint-config-runne
  * the probes out by name: its effective ESLint config must hold every rule the preset sets there, with its options.
  */
 export function eslintPreset(dir: string, workspace: PresetWorkspace, token: () => string = probeToken): ToolStep {
-  const templates = workspace.shape === "package" ? PACKAGE_PROBES : SOURCE_PROBES;
+  const templates = workspace.shape === "package" ? PACKAGE_PROBES : sourceProbes(layoutOf(workspace) === "app-root" ? "" : "src/");
   const probes = templates.map((template) => template.replaceAll("{name}", token()));
   return {
     name: "eslint-preset",

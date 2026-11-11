@@ -3,11 +3,13 @@ import path from "node:path";
 import { HARNESS_PACKAGE, harnessIsWorkspace } from "../core/init/bootstrap.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 
-const ENTRY = ["src/shared/lib/env.ts", "src/shared/lib/user-error.ts", "src/shared/lib/format.ts", "src/shared/lib/define-action.ts", "src/shared/lib/log.ts"];
-const IGNORE = ["src/shared/ui/**", "src/shared/lib/utils.ts"];
+/** Under src/, or at the top of a workspace without it; only the paths that exist are listed. */
+const inSources = (paths: string[]): string[] => ["src/", ""].flatMap((root) => paths.map((file) => `${root}${file}`));
+const ENTRY = inSources(["shared/lib/env.ts", "shared/lib/user-error.ts", "shared/lib/format.ts", "shared/lib/define-action.ts", "shared/lib/log.ts"]);
+const IGNORE = inSources(["shared/ui/**", "shared/lib/utils.ts"]);
 const IGNORE_DEPENDENCIES = [
   "server-only", // Imported by server.ts and server/ files; Vitest aliases it, so it may have no static importer yet.
-  "cn", // Used only by the vendored src/shared/lib/utils.ts helper.
+  "cn", // Used only by the vendored shared/lib/utils.ts helper.
   "@base-ui/react", // Used by vendored shadcn primitives.
   "class-variance-authority", // Used by vendored shadcn variants.
   "lucide-react", // Used by vendored shadcn icons.

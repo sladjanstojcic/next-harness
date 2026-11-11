@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import type { WorkspaceEntry } from "../../config.ts";
+import { sourceRootOf, type WorkspaceEntry } from "../../config.ts";
 import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { writer, type Step } from "./files.ts";
 
@@ -9,7 +9,7 @@ export const IGNORED = [".next/", "test-results/"];
 /** pnpm links the harness's own dependencies here once it is a workspace package; create-next-app ignores only `/node_modules`. */
 export const HARNESS_MODULES = "tooling/harness/node_modules/";
 /** Files the format check must skip: pnpm's own lockfile style, the vendored shadcn primitives and the build output. */
-export const PRETTIER_IGNORED = ["pnpm-lock.yaml", "src/shared/ui", ".next"];
+export const prettierIgnored = (workspace: WorkspaceEntry): string[] => ["pnpm-lock.yaml", `${sourceRootOf(workspace)}shared/ui`, ".next"];
 /**
  * The vendored harness and its locked config. A project's `prettier --write .`, `oxfmt` or `oxlint --fix` would rewrite
  * them in the project's style, which the lock then reports; formatting harness.config.ts is the user's, during an unlock.
@@ -57,7 +57,8 @@ export function developsHarness(root: string): boolean {
  */
 export function rootIgnoreSteps(root: string, workspaces: readonly WorkspaceEntry[]): Step[] {
   const harness = developsHarness(root) ? [] : HARNESS_IGNORED;
-  const formatted = workspaces.some((workspace) => workspace.path === "" && workspace.tools === "eslint-prettier") ? PRETTIER_IGNORED : [];
+  const atRoot = workspaces.find((workspace) => workspace.path === "" && workspace.tools === "eslint-prettier");
+  const formatted = atRoot === undefined ? [] : prettierIgnored(atRoot);
   const prettier = [...formatted, ...harness];
   const oxlint = workspaces.some((workspace) => workspace.tools === "oxc") ? harness : [];
   return [

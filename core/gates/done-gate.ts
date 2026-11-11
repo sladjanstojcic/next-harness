@@ -86,13 +86,13 @@ async function runDoneGate(directory: string, changed: string[], applied: Applie
   const skipped: string[] = [];
   for (const { workspace, dir, files } of groups) {
     const analysis = new Set(analysisOf(harness.config, workspace));
-    if (lacksSources(harness, dir)) {
+    if (lacksSources(harness, dir, workspace)) {
       for (const name of ["depcruise", "jscpd"] as const) if (analysis.delete(name)) skipped.push(skippedLine(name, workspace.path, "no src/"));
     }
     if (analysis.has("depcruise"))
       await run(
         workspace.path,
-        depcruise.report(dir, new Set(files), (result) => {
+        depcruise.report(dir, workspace, new Set(files), (result) => {
           for (const file of result) affected.add(path.posix.join(workspace.path, file));
         }),
       );
@@ -100,7 +100,7 @@ async function runDoneGate(directory: string, changed: string[], applied: Applie
     if (analysis.has("jscpd")) {
       const output = fs.mkdtempSync(path.join(stateDir(directory), "jscpd-"));
       try {
-        await run(workspace.path, jscpd.report(dir, output, workspace.path));
+        await run(workspace.path, jscpd.report(dir, output, workspace));
       } finally {
         fs.rmSync(output, { recursive: true, force: true });
       }

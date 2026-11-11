@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
+import { sourcePaths, sourceRootOf, type WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
 import { presetImport } from "./eslint-preset.ts";
@@ -49,7 +50,7 @@ function installedPackages(root: string): Set<string> {
   );
 }
 
-function dependencyResult(root: string, stdout: string, changed: Set<string>): { findings: Finding[]; affected: Set<string> } {
+function dependencyResult(root: string, workspace: WorkspaceEntry, stdout: string, changed: Set<string>): { findings: Finding[]; affected: Set<string> } {
   const value: unknown = JSON.parse(stdout);
   const result = dependencyOutput.parse(value);
   const installed = installedPackages(root);
@@ -75,10 +76,13 @@ function dependencyResult(root: string, stdout: string, changed: Set<string>): {
   for (const file of affected) {
     for (const importer of dependents.get(file) ?? []) affected.add(importer);
   }
+  // The preset's comments name src/ paths; a workspace without src/ reads them with its own.
+  const advice = (comment = "Keep imports within the module or use its public API; cross-cutting code belongs in src/shared/lib/."): string =>
+    sourceRootOf(workspace) === "" ? comment.replaceAll("src/", "") : comment;
   const findings = result.summary.violations.map(({ rule, from, to }) => ({
     rule: rule.name,
     file: relativePath(root, from),
-    message: `${from} → ${to}. ${rule.comment ?? "Keep imports within the module or use its public API; cross-cutting code belongs in src/shared/lib/."}`,
+    message: `${from} → ${to}. ${advice(rule.comment)}`,
   }));
   return { findings, affected };
 }
@@ -105,20 +109,20 @@ function knipFindings(root: string, stdout: string): Finding[] {
   );
 }
 
-function duplicateFindings(root: string, reportFile: string): Finding[] {
+function duplicateFindings(root: string, shared: string, reportFile: string): Finding[] {
   const value: unknown = JSON.parse(fs.readFileSync(reportFile, "utf8"));
   return duplicateOutput.parse(value).duplicates.flatMap(({ firstFile, secondFile }) => [
     {
       rule: "jscpd",
       file: relativePath(root, firstFile.name),
       line: firstFile.start,
-      message: `Duplicates ${relativePath(root, secondFile.name)}:${secondFile.start}; share the implementation within the module or in src/shared/lib/.`,
+      message: `Duplicates ${relativePath(root, secondFile.name)}:${secondFile.start}; share the implementation within the module or in ${shared}.`,
     },
     {
       rule: "jscpd",
       file: relativePath(root, secondFile.name),
       line: secondFile.start,
-      message: `Duplicates ${relativePath(root, firstFile.name)}:${firstFile.start}; share the implementation within the module or in src/shared/lib/.`,
+      message: `Duplicates ${relativePath(root, firstFile.name)}:${firstFile.start}; share the implementation within the module or in ${shared}.`,
     },
   ]);
 }
@@ -130,19 +134,24 @@ const check = (dir: string, name: string, tool: string, args: string[], timeoutM
   findings: () => [],
 });
 
+const sharedLib = (workspace: WorkspaceEntry): string => `${sourceRootOf(workspace)}shared/lib/`;
+/** What depcruise and jscpd read: src/, or the areas and the files beside app/ that exist at the top of a workspace without src/. */
+const sources = (dir: string, workspace: WorkspaceEntry): string[] => (sourceRootOf(workspace) === "" ? sourcePaths(dir, "") : ["src"]);
+
 /** Done reads JSON reports and maps findings to files; CI judges each tool by its exit code. */
 export const depcruise = {
   // JSON depcruise exits zero even when its summary contains violations.
-  report: (dir: string, changed: Set<string>, onResult: (affected: Set<string>) => void): ToolStep => ({
+  report: (dir: string, workspace: WorkspaceEntry, changed: Set<string>, onResult: (affected: Set<string>) => void): ToolStep => ({
     name: "depcruise",
-    command: [bin(dir, "depcruise"), "src", "--config", ".dependency-cruiser.json", "--output-type", "json"],
+    command: [bin(dir, "depcruise"), ...sources(dir, workspace), "--config", ".dependency-cruiser.json", "--output-type", "json"],
     findings: (stdout) => {
-      const result = dependencyResult(dir, stdout, changed);
+      const result = dependencyResult(dir, workspace, stdout, changed);
       onResult(result.affected);
       return result.findings;
     },
   }),
-  check: (dir: string): ToolStep => check(dir, "depcruise", "depcruise", ["src", "--config", ".dependency-cruiser.json"]),
+  check: (dir: string, workspace: WorkspaceEntry): ToolStep =>
+    check(dir, "depcruise", "depcruise", [...sources(dir, workspace), "--config", ".dependency-cruiser.json"]),
 };
 
 export const knip = {
@@ -156,22 +165,26 @@ function jscpdConfig(dir: string, workspacePath: string): string {
 }
 
 export const jscpd = {
-  report: (dir: string, output: string, workspacePath: string): ToolStep => ({
+  report: (dir: string, output: string, workspace: WorkspaceEntry): ToolStep => ({
     name: "jscpd",
     command: [
       bin(dir, "jscpd"),
-      ...["src", "tooling"].filter((file) => fs.existsSync(path.join(dir, file))),
+      ...[...sources(dir, workspace), "tooling"].filter((file) => fs.existsSync(path.join(dir, file))),
       "--config",
-      jscpdConfig(dir, workspacePath),
+      jscpdConfig(dir, workspace.path),
       "--reporters",
       "json",
       "--output",
       output,
       "--absolute",
     ],
-    findings: () => duplicateFindings(dir, path.join(output, "jscpd-report.json")),
+    findings: () => duplicateFindings(dir, sharedLib(workspace), path.join(output, "jscpd-report.json")),
   }),
-  check: (dir: string, workspacePath: string): ToolStep => check(dir, "jscpd", "jscpd", ["src", "tooling", "--config", jscpdConfig(dir, workspacePath)]),
+  check: (dir: string, workspace: WorkspaceEntry): ToolStep => {
+    const folders =
+      sourceRootOf(workspace) === "" ? [...sources(dir, workspace), "tooling"].filter((file) => fs.existsSync(path.join(dir, file))) : ["src", "tooling"];
+    return check(dir, "jscpd", "jscpd", [...folders, "--config", jscpdConfig(dir, workspace.path)]);
+  },
 };
 
 export const build = (dir: string): ToolStep => check(dir, "build", "next", ["build"], 600_000);

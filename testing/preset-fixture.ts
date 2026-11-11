@@ -28,6 +28,11 @@ export const APP: Record<string, string> = {
   "pnpm-lock.yaml": PNPM_LOCK,
 };
 
+/** The same project as create-next-app writes it without --src-dir: app/ at the root and "@/*" on "./*". */
+export const APP_WITHOUT_SRC: Record<string, string> = Object.fromEntries(
+  Object.entries(APP).map(([file, text]) => [file.replace(/^src\//, ""), file === "tsconfig.json" ? text.replace('"./src/*"', '"./*"') : text]),
+);
+
 /** A kept config with the lines init printed for it: the import first, the spread as the last entry of the exported array. */
 export function withPresetLines(config: string, report: string): string {
   const [importLine, spread] = report

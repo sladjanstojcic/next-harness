@@ -2,10 +2,15 @@
 import { builtinModules } from "node:module";
 import { MAX_FILE_LINES } from "../shapes/limits.ts";
 
-/** Where the workspace keeps its code: an app's src/modules/ and src/shared/, or a shared package's src/. */
-export type PresetLayout = "app" | "package";
+/**
+ * Where the workspace keeps its code: an app's src/modules/ and src/shared/, the same folders at the top of an app
+ * without src/ ("app-root"), or a shared package's src/.
+ */
+export type PresetLayout = "app" | "app-root" | "package";
 
-const ADAPTERS: Record<PresetLayout, string> = { app: "src/modules/<module>/server/", package: "src/server/" };
+/** The folder that may hold adapter casts, as the messages name it and as the rule blocks match it. */
+const ADAPTERS: Record<PresetLayout, string> = { app: "src/modules/<module>/server/", "app-root": "modules/<module>/server/", package: "src/server/" };
+const ADAPTER_GLOBS: Record<PresetLayout, string> = { app: "src/modules/*/server/**", "app-root": "modules/*/server/**", package: "src/server/**" };
 
 const namedExports = {
   selector: "ExportAllDeclaration",
@@ -94,7 +99,7 @@ export function harnessRuleBlocks(layout: PresetLayout = "app"): RuleBlock[] {
     },
     {
       files: ["**/*.{ts,tsx}"],
-      ignores: [layout === "package" ? "src/server/**" : "src/modules/*/server/**"],
+      ignores: [ADAPTER_GLOBS[layout]],
       rules: {
         "@typescript-eslint/consistent-type-assertions": ["error", { assertionStyle: "as", objectLiteralTypeAssertions: "never" }],
         "@typescript-eslint/no-unsafe-type-assertion": "error",
@@ -110,6 +115,8 @@ export function harnessRuleBlocks(layout: PresetLayout = "app"): RuleBlock[] {
         "no-restricted-syntax": ["error", namedExports, neverCast, requireCall, doubleCast],
       },
     },
-    layout === "package" ? PACKAGE_DOMAIN : { files: ["tooling/**", "scripts/**", "src/shared/lib/log.ts"], rules: { "no-console": "off" } },
+    layout === "package"
+      ? PACKAGE_DOMAIN
+      : { files: ["tooling/**", "scripts/**", `${layout === "app" ? "src/" : ""}shared/lib/log.ts`], rules: { "no-console": "off" } },
   ];
 }
