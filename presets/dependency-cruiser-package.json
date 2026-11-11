@@ -1,0 +1,51 @@
+{
+  "forbidden": [
+    {
+      "name": "no-circular",
+      "comment": "Break cycles by moving the shared rule to src/domain/ or src/lib/, or keep the dependency in one direction.",
+      "severity": "error",
+      "from": {},
+      "to": { "circular": true }
+    },
+    {
+      "name": "domain-pure-core",
+      "comment": "Put Node I/O in src/server/; keep src/domain/ functions pure.",
+      "severity": "error",
+      "from": { "path": "^src/domain/", "pathNot": "\\.test\\.tsx?$" },
+      "to": { "dependencyTypes": ["core"] }
+    },
+    {
+      "name": "domain-pure-path",
+      "comment": "Put React UI in src/components/ and Next or I/O code in src/server/; keep src/domain/ functions pure.",
+      "severity": "error",
+      "from": { "path": "^src/domain/", "pathNot": "\\.test\\.tsx?$" },
+      "to": { "path": ["(^|/)(react|react-dom|next)(/|$)", "^src/(components|hooks|server)/", "^src/server\\.ts$"] }
+    },
+    {
+      "name": "server-public-api",
+      "comment": "Import server code through src/server.ts; files in src/server/ are its internals.",
+      "severity": "error",
+      "from": { "pathNot": ["^src/server/", "^src/server\\.ts$"] },
+      "to": { "path": "^src/server/" }
+    },
+    {
+      "name": "index-client-safe",
+      "comment": "Keep src/index.ts client-safe: it may not reach src/server.ts or src/server/, also through another file; expose server code through src/server.ts.",
+      "severity": "error",
+      "from": { "path": "^src/index\\.ts$" },
+      "to": { "path": "^src/server(\\.ts$|/)", "reachable": true }
+    },
+    {
+      "name": "not-to-test",
+      "comment": "Keep test fixtures and assertions in colocated *.test.ts(x) files; move reusable production logic to src/domain/ or src/lib/.",
+      "severity": "error",
+      "from": { "pathNot": "\\.test\\.tsx?$" },
+      "to": { "path": "\\.test\\.tsx?$" }
+    }
+  ],
+  "options": {
+    "tsConfig": { "fileName": "tsconfig.json" },
+    "tsPreCompilationDeps": true,
+    "doNotFollow": { "path": "node_modules" }
+  }
+}

@@ -60,12 +60,17 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   );
 }
 `;
-const PAGE = `import styles from "./page.module.css";
-
+/** The web app uses the billing package's two public entries, as an app in a Turborepo uses a shared package. */
+const BILLING_USE = `import type { Price } from "@repo/billing";
+import { getPrices } from "@repo/billing/server";
+`;
+const page = (name: string): string => `${name === "web" ? BILLING_USE : ""}import styles from "./page.module.css";
+${name === "web" ? "\nconst first: Price = { cents: getPrices()[0] ?? 0 };\n" : ""}
 export default function Home() {
   return (
     <div className={styles.page}>
-${Array.from({ length: 60 }, (_, index) => `      <p>${String(index)}</p>\n`).join("")}    </div>
+${Array.from({ length: 60 }, (_, index) => `      <p>${String(index)}</p>\n`).join("")}      <p>${name === "web" ? "{first.cents}" : name}</p>
+    </div>
   );
 }
 `;
@@ -79,7 +84,7 @@ function app(name: string): Record<string, string> {
       type: "module",
       private: true,
       scripts: { dev: "next dev", build: "next build", lint: "eslint --max-warnings 0", "check-types": "next typegen && tsc --noEmit" },
-      dependencies: { next: "16.4.5", react: "19.3.0", "react-dom": "19.3.0" },
+      dependencies: { ...(name === "web" ? { "@repo/billing": "workspace:*" } : {}), next: "16.4.5", react: "19.3.0", "react-dom": "19.3.0" },
       devDependencies: { ...WORKSPACE_CONFIGS, "@types/react": "19.2.2", eslint: "^10.9.1", typescript: "7.0.2" },
     }),
     "tsconfig.json": json({
@@ -93,7 +98,7 @@ function app(name: string): Record<string, string> {
     "README.md": "This is a Next.js project bootstrapped with create-next-app.\n",
     ".gitignore": "/node_modules\n/.next/\n*.tsbuildinfo\nnext-env.d.ts\n",
     "app/layout.tsx": LAYOUT,
-    "app/page.tsx": PAGE,
+    "app/page.tsx": page(name),
     "app/page.module.css": ".page {\n  display: grid;\n}\n",
     "app/globals.css": ":root {\n  --background: #ffffff;\n}\n",
     "app/fonts/GeistVF.woff": "",
@@ -183,7 +188,7 @@ export const TURBO_FILES: Readonly<Record<string, string>> = {
     version: "0.0.0",
     private: true,
     exports: { "./*": "./src/*.tsx" },
-    devDependencies: WORKSPACE_CONFIGS,
+    devDependencies: { ...WORKSPACE_CONFIGS, eslint: "^10.9.1", typescript: "7.0.2" },
   }),
   "packages/ui/tsconfig.json": LIBRARY_TSCONFIG,
   "packages/ui/eslint.config.mjs": TURBO_UI_ESLINT,
@@ -194,19 +199,21 @@ export const TURBO_FILES: Readonly<Record<string, string>> = {
     name: "@repo/billing",
     type: "module",
     exports: { ".": "./src/index.ts", "./server": "./src/server.ts" },
-    devDependencies: WORKSPACE_CONFIGS,
+    dependencies: { "server-only": "0.0.1" },
+    devDependencies: { "@repo/typescript-config": "workspace:*", typescript: "7.0.2" },
   }),
   "packages/billing/tsconfig.json": LIBRARY_TSCONFIG,
   "packages/billing/src/index.ts": "export type Price = { cents: number };\n",
   "packages/billing/src/server.ts": 'import "server-only";\n\nexport function getPrices(): number[] {\n  return [];\n}\n',
 };
 
-/** Links the two config packages into each workspace that depends on them, as the package manager's install does. */
+/** Links the workspace packages into each workspace that depends on them, as the package manager's install does. */
 export function linkWorkspacePackages(root: string): void {
   for (const workspace of [...TURBO_APPS, "packages/ui", "packages/billing"]) {
     const scope = path.join(root, workspace, "node_modules/@repo");
     fs.mkdirSync(scope, { recursive: true });
-    for (const name of CONFIG_PACKAGES) fs.symlinkSync(path.join(root, "packages", name), path.join(scope, name), "dir");
+    for (const name of [...CONFIG_PACKAGES, ...(workspace === "apps/web" ? ["billing"] : [])])
+      fs.symlinkSync(path.join(root, "packages", name), path.join(scope, name), "dir");
   }
 }
 

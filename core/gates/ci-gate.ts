@@ -107,7 +107,7 @@ async function runCiGate(directory: string, harness: Harness, ratchet: boolean, 
     if (split.preExisting.length > 0) old.set("audit", split.preExisting);
     return [...split.blocking, ...lintConfigFindings(directory, harness)];
   });
-  for (const group of groups) await run(group.workspace.path, analysisSteps(harness, group, ratchet, output));
+  for (const group of groups) await run(group.workspace.path, analysisSteps(directory, harness, group, ratchet, output));
   for (const group of groups) await run(group.workspace.path, [testStep(directory, group)], true);
   if (groups.some(({ workspace }) => workspace.path === "" && workspace.next)) {
     await run("", [build(directory)]);

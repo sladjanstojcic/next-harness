@@ -84,6 +84,39 @@ describe("a new workspace: its tool configs may be created, not changed once com
       expect(await hooks.write(file, "{}\n"), file).toMatchObject({ kind: "deny", guard: "harness-lock" });
   });
 
+  it("does not take a workspace for new because a commit removed it: its history holds its files", async () => {
+    const repo = turboRepo();
+    vi.spyOn(runner, "runTool").mockResolvedValue([]);
+    const hooks = session(repo);
+    await hooks.prompt();
+    const drop = await hooks.shell("git rm -rq packages/ui && git commit -qm 'drop ui'", () => {
+      repo.git("rm", "-rq", "packages/ui");
+      repo.git("commit", "-qm", "drop ui");
+    });
+    const locked = ["harness-lock packages/ui/eslint.config.mjs", "harness-lock packages/ui/tsconfig.json"];
+    expect(drop.findings?.map(({ rule, file }) => `${rule} ${file}`)).toEqual(locked);
+    const restore = await hooks.shell("git checkout HEAD~1 -- packages/ui", () => repo.git("checkout", "HEAD~1", "--", "packages/ui"));
+    expect(restore.findings?.map(({ rule, file }) => `${rule} ${file}`)).toEqual(locked);
+    for (const [file, text] of [
+      ["tsconfig.json", '{ "compilerOptions": { "strict": false } }\n'],
+      ["vitest.config.ts", "export default {};\n"],
+    ] as const)
+      expect(await hooks.write(`packages/ui/${file}`, text), file).toMatchObject({ kind: "deny", guard: "harness-lock" });
+  });
+
+  it("lets the agent reopen its own package by undoing its own first commit", async () => {
+    const repo = turboRepo();
+    vi.spyOn(runner, "runTool").mockResolvedValue([]);
+    const hooks = session(repo);
+    await hooks.prompt();
+    await hooks.write(`${NEW}/tsconfig.json`, STRICT);
+    repo.git("add", "-A");
+    repo.git("commit", "-qm", "a new package");
+    expect(await hooks.write(`${NEW}/tsconfig.json`, STRICT)).toMatchObject({ kind: "deny", guard: "harness-lock" });
+    repo.git("reset", "-q", "--soft", "HEAD~1");
+    expect(await hooks.write(`${NEW}/tsconfig.json`, STRICT)).toEqual({ kind: "allow" });
+  });
+
   it("blocks a new package whose tsconfig switches the type check off", async () => {
     const repo = turboRepo();
     vi.spyOn(runner, "runTool").mockResolvedValue([]);
@@ -125,8 +158,20 @@ describe("the tsconfig check", () => {
       "apps/c/tsconfig.json": '{ "extends": "@repo/not-installed/base.json" }\n',
       "packages/d/tsconfig.json": '{ "extends": "../../base.json", "compilerOptions": { "noImplicitAny": true, "skipLibCheck": true } }\n',
       "packages/e/package.json": "{}\n",
+      "packages/f/tsconfig.json": '{ "compilerOptions": { "strict": true, "noCheck": true } }\n',
+      "packages/g/tsconfig.json": '{ "files": [], "references": [{ "path": "./tsconfig.app.json" }] }\n',
+      "packages/g/tsconfig.app.json": '{ "compilerOptions": { "strict": true }, "include": ["src"] }\n',
+      "packages/h/tsconfig.json": '{ "extends": "../../base.json", "compilerOptions": { "noImplicitAny": true }, "files": [], "include": ["src"] }\n',
     });
-    expect(strictness(repo.root)).toEqual(["apps/a/tsconfig.json compilerOptions.noImplicitAny", "apps/b/tsconfig.json compilerOptions.strict"]);
+    expect(strictness(repo.root)).toEqual([
+      "apps/a/tsconfig.json compilerOptions.noImplicitAny",
+      "apps/b/tsconfig.json compilerOptions.strict",
+      "packages/f/tsconfig.json compilerOptions.noCheck",
+      "packages/g/tsconfig.json This",
+    ]);
+    const solution = audit(repo.root).find(({ file }) => file === "packages/g/tsconfig.json");
+    expect(solution?.message).toContain("This tsconfig.json checks no files");
+    expect(solution?.message).toContain("the harness's tsc step reads this file");
   });
 });
 
