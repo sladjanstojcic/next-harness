@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { ToolSetName } from "../config.ts";
+import type { ToolSetName, WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
 
@@ -19,7 +19,7 @@ export interface ToolSet {
     /** The whole-workspace lint with one finding per message, where `all` judges by exit code only. */
     report?(dir: string): ToolStep;
     /** Checks the harness's rules are active in the workspace's own lint config; the message names the workspace path. */
-    preset?(dir: string, workspacePath: string, next: boolean): ToolStep;
+    preset?(dir: string, workspace: WorkspaceEntry): ToolStep;
     /** Lints owned files with the harness's own rules on top of the project's untouched config; workspace-relative paths. */
     owned?(dir: string, files: string[]): ToolStep;
   };

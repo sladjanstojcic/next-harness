@@ -68,13 +68,13 @@ function auditDirectives({ file, path, profile }: ContentTarget, source: ts.Sour
   const findings: Finding[] = [];
   if (profile === undefined) return findings;
   const directives: { node: ts.Node; text: string }[] = [];
-  const imports: { node: ts.Node; target: string }[] = [];
+  const imports: { node: ts.Node; target: string; relative: boolean }[] = [];
   let hasServerOnly = false;
   let hasBuilder = false;
   const visit = (node: ts.Node): void => {
     if (ts.isExpressionStatement(node) && ts.isStringLiteral(node.expression)) directives.push({ node, text: node.expression.text });
     const target = importTarget(node);
-    if (target !== undefined) imports.push({ node, target: resolveTarget(profile, path, target) });
+    if (target !== undefined) imports.push({ node, target: resolveTarget(profile, path, target), relative: target.startsWith(".") });
     if (ts.isImportDeclaration(node) && target === "server-only" && !node.importClause?.isTypeOnly) hasServerOnly = true;
     if (ts.isCallExpression(node) && profile.actionBuilders.includes(calleeRoot(node.expression) ?? "")) hasBuilder = true;
     ts.forEachChild(node, visit);
@@ -96,12 +96,14 @@ function auditDirectives({ file, path, profile }: ContentTarget, source: ts.Sour
   for (const directive of clientDirectives) {
     if (profile.clientFile && !profile.clientFile.test(path)) add("use-client-placement", "useClient", directive.node);
   }
-  for (const { node, target } of imports) {
-    const isServer = /(?:^|\/)server(?:\.tsx?$|\/|$)/.test(target);
+  const { sourceRoot } = profile;
+  for (const { node, target, relative } of imports) {
+    const isServer = /(?:^|\/)server(?:\.(?:js|ts)x?$|\/|$)/.test(target);
+    const leavesSource = relative && sourceRoot !== undefined && path.startsWith(sourceRoot) && !target.startsWith(sourceRoot);
     if (clientDirectives.length > 0 && isServer && !isTypeOnlyImport(node) && profile.actionImport?.test(target) !== true)
       add("client-imports-server", "clientImportsServer", node);
     if (profile.publicIndex?.test(path) && (isServer || profile.actionImport?.test(target))) add("index-exports", "indexExports", node);
-    if (profile.packageBoundary !== undefined && (target === ".." || target.startsWith("../"))) {
+    if (profile.packageBoundary !== undefined && (target === ".." || target.startsWith("../") || leavesSource)) {
       findings.push({
         file,
         rule: "package-boundary",

@@ -12,6 +12,9 @@ export interface Shape {
   /** Top-level file names the shape accepts beyond topEntries, such as README-<topic>.md. */
   topEntryPattern?: RegExp;
   topFolders: readonly string[];
+  /** The reason for an entry the workspace top does not take, and for a JavaScript file, in this shape's words; the core's own otherwise. */
+  topAdvice?: string;
+  jsAdvice?: string;
   kebabFolders: readonly string[];
   checkHidden(path: string): PathVerdict;
   isNameExempt(parts: readonly string[], index: number): boolean;
@@ -101,6 +104,8 @@ export interface ContentProfile {
   inlineDisable?: string;
   /** The message for a relative import that leaves the workspace folder; absent allows it. */
   packageBoundary?: string;
+  /** With packageBoundary: a relative import from a file under this folder must also stay under it. */
+  sourceRoot?: string;
   messages: Record<ContentMessage, string>;
 }
 

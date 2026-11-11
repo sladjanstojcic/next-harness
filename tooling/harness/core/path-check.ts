@@ -75,18 +75,19 @@ export function checkPath(file: string, harness: Harness = DEFAULT_HARNESS): Pat
   const name = parts.at(-1) ?? "";
   const patternEntry = parts.length === 1 && scope.shape?.topEntryPattern?.test(top) === true;
   if ((!scope.entries.has(top) && !patternEntry) || (parts.length > 1 && !scope.folders.has(top))) {
-    return deny("unknown-root", "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/.");
+    return deny(
+      "unknown-root",
+      scope.shape?.topAdvice ?? "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/.",
+    );
   }
   const shape = scope.shape?.topEntries.includes(top) ? scope.shape : undefined;
   const hidden = shape?.checkHidden(scope.path);
   if (hidden && !hidden.ok) return hidden;
   if (/\.(?:js|mjs|cjs|jsx)$/i.test(name) && !harness.root.jsExceptions.has(file) && !scope.shape?.jsExceptions.includes(scope.path)) {
-    return deny(
-      "js-file",
-      harness.configured
-        ? CONFIGURED_JS_ADVICE
-        : "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry.",
-    );
+    const advice = harness.configured
+      ? CONFIGURED_JS_ADVICE
+      : "Use TypeScript (.ts/.tsx) in src/, tooling/ or scripts/; unsupported tool configs need an explicit JS_EXCEPTIONS entry.";
+    return deny("js-file", scope.shape?.jsAdvice ?? advice);
   }
   if (scope.kebabFolders.includes(top)) {
     for (const [index, part] of parts.entries()) {

@@ -127,7 +127,7 @@ export default defineHarness({
   with the longest matching path, and its shape sees the path inside that workspace.
   A file in no workspace gets only the root layout rules from `core/root-layout.ts`.
   In a configured workspace `next` defaults to false and `tools` follows the shape:
-  `eslint-prettier` for next-modules, `oxc` for the Makerkit shapes, `none` for supabase.
+  `eslint-prettier` for next-modules and package, `oxc` for the Makerkit shapes, `none` for supabase.
 - Each file has a path class. Vendored files are the shape's generated code, such as
   `src/shared/ui/`. Legacy files are listed in the legacy file. Owned files match an
   `owned` prefix, or every file when `owned` is absent. All other files are upstream.
@@ -172,12 +172,26 @@ export default defineHarness({
 
 ### Shapes, tool sets and the other config fields
 
-- Shapes: `next-modules` (the layout above, at any workspace root), `makerkit-app`
+- Shapes: `next-modules` (the layout above, at any workspace root), `package` (a shared
+  package such as `packages/*` in a Turborepo, described below), `makerkit-app`
   (a Makerkit `apps/web`: `app/[locale]`, `_components/`, `_lib/server/`, `config/`,
   `lib/`), `makerkit-feature` (a package under `packages/features/*` with
   `components`, `hooks`, `schema`, `server/{actions,services,policies}`, `shared`) and
   `supabase` (`migrations/` named `<14 digits>_<name>.sql`, `schemas/NN-name.sql`,
   seeds, tests, templates). Denials in the Makerkit shapes say "(Makerkit layout)".
+- A `package` is one module moved out of the app: `src/index.ts` (client-safe) and
+  `src/server.ts` (server-only) are its public entries, beside `schemas.ts`, `types.ts`,
+  `components/`, `server/`, `domain/` (one area subfolder each) and flat `hooks/`
+  (`use-<name>.ts(x)`) and `lib/`. It holds no `actions/`, no `"use server"` and no
+  `process.env`: Server Actions and environment values stay in the app, which calls the
+  package's `server.ts` and passes values in. Its top level takes configuration only
+  (`package.json`, `tsconfig.json`, tool configs, `.json`, `.md`) and no folder but `src/`.
+  A relative import from `src/` stays inside `src/`, and `domain/` takes `.ts` only.
+  Denials say "(package layout)". ESLint, Prettier, tsc and Vitest run in the package
+  folder; depcruise, knip and jscpd do not. A package without `src/` is config-only: no
+  tool runs there and init writes nothing into it. JavaScript is denied everywhere in a
+  package but for the tool config names; JavaScript that predates the harness, such as
+  create-turbo's `packages/eslint-config/*.js`, goes on the legacy list or is converted.
 - Tool sets: `eslint-prettier` (ESLint, Prettier, tsc and Vitest, as without a config),
   `oxc` (`oxlint -f json`, `oxfmt --list-different`, project `tsc`, Vitest) and `none`.
 - `env: "local"` denies only `.env*.local` and allows the committed `.env`,
@@ -224,7 +238,10 @@ export default defineHarness({
   dependency install and say so; run `pnpm install --frozen-lockfile` first. Only a
   lone `pnpm` or `npm` `install`, `i` or `ci` passes, optionally after `cd <dir> &&`
   or `corepack`, with a short list of flags such as `--frozen-lockfile`. Package
-  names, chained commands, pipes, redirects and substitutions are denied.
+  names, chained commands, pipes, redirects and substitutions are denied. When the
+  missing module is one of the harness's own files, the denial names that file instead:
+  an install does not bring it back, so the user restores or creates it. During a harness
+  change, create a new file before any file imports it.
 - Stop runs the Done gate on changes since the user prompt: Next type generation, types,
   lint, preset check, audit, imports, unused code, duplicates and related tests. Findings
   outside the blocking scope are reported separately; changed files and affected

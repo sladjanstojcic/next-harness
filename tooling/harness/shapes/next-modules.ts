@@ -82,25 +82,45 @@ function checkApp(parts: string[]): PathVerdict {
   return deny("app-file", "move it into a module's components/ and import it from the module's index.ts");
 }
 
+/** Where a module keeps its code, and the words of each denial: an app's module and a shared package share the rule, not the text. */
+export interface ModuleLayout {
+  areaFolders: readonly string[];
+  flatFolders: readonly string[];
+  shapeAdvice: string;
+  nestingAdvice: string;
+  name(): PathVerdict;
+  generic(folder: string): PathVerdict;
+}
+
+/** One module's files, relative to its folder: the entry files, then code in the layout's folders with at most one area subfolder. */
+export function checkModuleFiles(inside: readonly string[], layout: ModuleLayout): PathVerdict {
+  const file = (inside.at(-1) ?? "").replace(TEST_FILE, ".ts");
+  if (inside.length === 1 && MODULE_ENTRIES.includes(file)) return { ok: true };
+  const folder = inside[0] ?? "";
+  const flat = layout.flatFolders.includes(folder);
+  if ((!flat && !layout.areaFolders.includes(folder)) || inside.length < 2) return deny("module-shape", layout.shapeAdvice);
+  if (inside.length > (flat ? 2 : 3)) return deny("nesting", layout.nestingAdvice);
+  if (inside.slice(0, -1).some((part) => !KEBAB.test(part))) return layout.name();
+  if (inside.length === 3 && GENERIC_FOLDERS.includes(inside[1] ?? "")) return layout.generic(folder);
+  return { ok: true };
+}
+
+const MODULE_LAYOUT: ModuleLayout = {
+  areaFolders: moduleFolders.filter((folder) => folder !== "actions"),
+  flatFolders: ["actions"],
+  shapeAdvice: "Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts.",
+  nestingAdvice: "Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth.",
+  name: nameDenial,
+  generic: genericDenial,
+};
+
 function checkModule(parts: string[]): PathVerdict {
   if (parts.length === 1 && parts[0] === ".gitkeep") return { ok: true };
   const [module, ...inside] = parts;
   if (module && !KEBAB.test(module)) return nameDenial();
-  const file = (inside.at(-1) ?? "").replace(TEST_FILE, ".ts");
-  if (inside.length === 1 && MODULE_ENTRIES.includes(file)) return { ok: true };
-  const folder = inside[0] ?? "";
-  if (!moduleFolders.includes(folder) || inside.length < 2) {
-    return deny(
-      "module-shape",
-      "Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts.",
-    );
-  }
-  if (inside.length > (folder === "actions" ? 2 : 3)) {
-    return deny("nesting", "Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new src/modules/<module>/ for more depth.");
-  }
-  if (inside.slice(0, -1).some((part) => !KEBAB.test(part))) return nameDenial();
-  if (inside.length === 3 && GENERIC_FOLDERS.includes(inside[1] ?? "")) return genericDenial(folder);
-  if (folder === "actions" && !/^[a-z0-9]+(?:-[a-z0-9]+)*-action\.ts$/.test(file)) {
+  const verdict = checkModuleFiles(inside, MODULE_LAYOUT);
+  if (!verdict.ok) return verdict;
+  if (inside[0] === "actions" && !/^[a-z0-9]+(?:-[a-z0-9]+)*-action\.ts$/.test((inside.at(-1) ?? "").replace(TEST_FILE, ".ts"))) {
     return deny("module-shape", "Put Server Actions in actions/<kebab>-action.ts and their tests beside them as <kebab>-action.test.ts(x).");
   }
   return { ok: true };

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { WorkspaceEntry } from "../../config.ts";
 import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
-import { eslintPresetLines, presetImport } from "../../tools/eslint-preset.ts";
+import { eslintPresetLines, presetCall, presetImport } from "../../tools/eslint-preset.ts";
 import { isObject, readJson, writer, type Step } from "./files.ts";
 import { developsHarness, gitignoreStep, HARNESS_MODULES, IGNORED, PRETTIER_IGNORED, ignoreEntriesStep } from "./ignore-files.ts";
 import { tsconfigStep } from "./tsconfig-step.ts";
@@ -27,10 +27,9 @@ interface ToolConfig {
 const ESLINT: ToolConfig = {
   names: TOOL_CONFIG_NAMES.eslint,
   marker: "harnessEslint(",
-  text: (workspace) =>
-    `import { harnessEslint } from "${presetImport(workspace.path, "eslint.ts")}";\n\nexport default harnessEslint({ root: import.meta.dirname${workspace.next ? ", next: true" : ""} });\n`,
+  text: (workspace) => `import { harnessEslint } from "${presetImport(workspace.path, "eslint.ts")}";\n\nexport default ${presetCall(workspace)};\n`,
   placement: "the import at the top of the file, the spread as the last element of the exported array",
-  lines: (workspace, own) => eslintPresetLines(workspace.path, workspace.next, own),
+  lines: (workspace, own) => eslintPresetLines(workspace, own),
 };
 
 /** A project's formatting style is its own: a kept Prettier config, in any form, needs nothing from the preset. */
@@ -122,10 +121,14 @@ function toolConfigStep(root: string, workspace: WorkspaceEntry, tool: ToolConfi
   };
 }
 
+/** depcruise, knip and jscpd do not run in a package, so it gets neither their configs nor their scripts. */
+const analysed = (workspace: WorkspaceEntry): boolean => workspace.shape !== "package";
+
 /** The tools whose config a workspace gets: Vitest only where the gates run it, Playwright only for a Next workspace at the git root. */
 function toolsOf(root: string, workspace: WorkspaceEntry): ToolConfig[] {
   const browser = workspace.path === "" && workspace.next;
-  return [ESLINT, PRETTIER, ...(runsOwnTests(root, workspace) === undefined ? [VITEST] : []), KNIP, ...(browser ? [PLAYWRIGHT] : [])];
+  const vitest = runsOwnTests(root, workspace) === undefined ? [VITEST] : [];
+  return [ESLINT, PRETTIER, ...vitest, ...(analysed(workspace) ? [KNIP] : []), ...(browser ? [PLAYWRIGHT] : [])];
 }
 
 /** Whether the workspace formats with the harness's Prettier preset rather than a style of its own. */
@@ -166,13 +169,16 @@ function dependencyCruiserStep(root: string, workspace: WorkspaceEntry, force: b
 
 /** Scripts a workspace gets when it has none of that name; the root's harness scripts come from the wiring. */
 export function toolScripts(workspace: WorkspaceEntry): Record<string, string> {
+  const analysis = {
+    depcruise: "depcruise src --config .dependency-cruiser.json",
+    knip: "knip",
+    jscpd: `jscpd src --config ${presetImport(workspace.path, "jscpd.json")}`,
+  };
   return {
     lint: "eslint . --max-warnings 0",
     typecheck: workspace.next ? "next typegen && tsc --noEmit" : "tsc --noEmit",
     test: "vitest run",
-    depcruise: "depcruise src --config .dependency-cruiser.json",
-    knip: "knip",
-    jscpd: `jscpd src --config ${presetImport(workspace.path, "jscpd.json")}`,
+    ...(analysed(workspace) ? analysis : {}),
     format: "prettier --write .",
   };
 }
@@ -196,13 +202,15 @@ function starterSteps(root: string, workspace: WorkspaceEntry, set: string, fold
 /** Tool config, ignore and starter steps of every eslint-prettier workspace; package scripts are the caller's, since the root file also takes the wiring scripts. */
 export function toolConfigSteps(root: string, workspace: WorkspaceEntry, force: boolean, starter: boolean): Step[] {
   const browser = workspace.path === "" && workspace.next;
+  // The ignore entries are an app's build output and vendored UI; a package has neither.
+  const app = analysed(workspace);
   return [
     ...toolsOf(root, workspace).map((tool) => toolConfigStep(root, workspace, tool)),
     ...ownTestsStep(root, workspace),
-    dependencyCruiserStep(root, workspace, force),
+    ...(app ? [dependencyCruiserStep(root, workspace, force)] : []),
     tsconfigStep(root, workspace, force, developsHarness(root) ? [] : presetConfigs(root, workspace)),
-    gitignoreStep(root, workspace.path, workspace.path === "" ? [...IGNORED, HARNESS_MODULES] : IGNORED),
-    ...(workspace.path === "" ? [] : [ignoreEntriesStep(root, label(workspace, ".prettierignore"), PRETTIER_IGNORED)]),
+    ...(app ? [gitignoreStep(root, workspace.path, workspace.path === "" ? [...IGNORED, HARNESS_MODULES] : IGNORED)] : []),
+    ...(workspace.path === "" || !app ? [] : [ignoreEntriesStep(root, label(workspace, ".prettierignore"), PRETTIER_IGNORED)]),
     ...(starter && workspace.shape === "next-modules" ? starterSteps(root, workspace, "next-modules", "src/shared/lib") : []),
     ...(starter && browser ? starterSteps(root, workspace, "e2e", "e2e") : []),
   ];

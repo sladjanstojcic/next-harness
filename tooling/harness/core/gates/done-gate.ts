@@ -73,8 +73,7 @@ async function runDoneGate(directory: string, changed: string[], applied: Applie
     if (tools.lint.owned !== undefined && owned.length > 0) await run(workspace.path, tools.lint.owned(dir, owned));
   }
   for (const { workspace, tools, dir } of toolWorkspaces(directory, harness.workspaces)) {
-    if (tools.lint.preset !== undefined && presetInputChanged(changedPaths, workspace.path))
-      await run(workspace.path, tools.lint.preset(dir, workspace.path, workspace.next));
+    if (tools.lint.preset !== undefined && presetInputChanged(changedPaths, workspace.path)) await run(workspace.path, tools.lint.preset(dir, workspace));
   }
   all.push(
     ...audit(directory),

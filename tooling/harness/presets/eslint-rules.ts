@@ -1,15 +1,21 @@
 /** The harness rule options the preset sets and the presence check compares; no ESLint import, so the gates can read them. */
+import { builtinModules } from "node:module";
 import { MAX_FILE_LINES } from "../shapes/limits.ts";
+
+/** Where the workspace keeps its code: an app's src/modules/ and src/shared/, or a shared package's src/. */
+export type PresetLayout = "app" | "package";
+
+const ADAPTERS: Record<PresetLayout, string> = { app: "src/modules/<module>/server/", package: "src/server/" };
 
 const namedExports = {
   selector: "ExportAllDeclaration",
   message: "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/.",
 };
 
-const neverCast = {
+const neverCastIn = (layout: PresetLayout) => ({
   selector: "TSAsExpression > TSNeverKeyword.typeAnnotation",
-  message: "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/modules/<module>/server/.",
-};
+  message: `Fix the type instead of casting to never; an unavoidable adapter cast belongs in ${ADAPTERS[layout]}.`,
+});
 const computedImport = {
   selector: "ImportExpression[source.type!='Literal']",
   message: "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports.",
@@ -18,11 +24,36 @@ const requireCall = {
   selector: "CallExpression[callee.name='require']",
   message: "Use import; require() hides the dependency from the import boundaries.",
 };
-export const doubleCast = {
+const doubleCastIn = (layout: PresetLayout) => ({
   selector: "TSAsExpression > TSAsExpression",
-  message: "Validate unknown data before using it; unavoidable adapter casts belong in src/modules/<module>/server/.",
+  message: `Validate unknown data before using it; unavoidable adapter casts belong in ${ADAPTERS[layout]}.`,
+});
+const workaroundsIn = (layout: PresetLayout) => [namedExports, neverCastIn(layout), computedImport, requireCall];
+export const doubleCast = doubleCastIn("app");
+export const workarounds = workaroundsIn("app");
+
+/**
+ * A package runs no dependency-cruiser, so its domain purity is a lint rule: no React, Next, Node built-in, server-only,
+ * components/ or server code in src/domain/. Tests are exempt, as in an app.
+ */
+const PACKAGE_DOMAIN: RuleBlock = {
+  files: ["src/domain/**/*.ts"],
+  ignores: ["**/*.test.ts"],
+  rules: {
+    "no-restricted-imports": [
+      "error",
+      {
+        paths: [...builtinModules, "server-only"],
+        patterns: [
+          {
+            regex: "^(?:node:|(?:react|react-dom|next)(?:/|$))|(?:^|/)(?:components|server)(?:/|\\.(?:js|ts)x?$|$)",
+            message: "Keep src/domain/ pure: put React UI in src/components/ and Node, Next or I/O code in src/server/ (package layout).",
+          },
+        ],
+      },
+    ],
+  },
 };
-export const workarounds = [namedExports, neverCast, computedImport, requireCall];
 
 const BAN_TS_COMMENT = { "ts-check": true, "ts-ignore": true, "ts-expect-error": true, "ts-nocheck": true };
 
@@ -38,7 +69,8 @@ export interface RuleBlock {
  * The harness's own rules, block by block in the preset's order: the preset spreads them into its config, and the
  * presence check folds the blocks matching a probe path into the settings that path must have.
  */
-export function harnessRuleBlocks(): RuleBlock[] {
+export function harnessRuleBlocks(layout: PresetLayout = "app"): RuleBlock[] {
+  const [workarounds, neverCast, doubleCast] = [workaroundsIn(layout), neverCastIn(layout), doubleCastIn(layout)];
   return [
     {
       files: ["**/*.{ts,tsx}"],
@@ -62,7 +94,7 @@ export function harnessRuleBlocks(): RuleBlock[] {
     },
     {
       files: ["**/*.{ts,tsx}"],
-      ignores: ["src/modules/*/server/**"],
+      ignores: [layout === "package" ? "src/server/**" : "src/modules/*/server/**"],
       rules: {
         "@typescript-eslint/consistent-type-assertions": ["error", { assertionStyle: "as", objectLiteralTypeAssertions: "never" }],
         "@typescript-eslint/no-unsafe-type-assertion": "error",
@@ -78,6 +110,6 @@ export function harnessRuleBlocks(): RuleBlock[] {
         "no-restricted-syntax": ["error", namedExports, neverCast, requireCall, doubleCast],
       },
     },
-    { files: ["tooling/**", "scripts/**", "src/shared/lib/log.ts"], rules: { "no-console": "off" } },
+    layout === "package" ? PACKAGE_DOMAIN : { files: ["tooling/**", "scripts/**", "src/shared/lib/log.ts"], rules: { "no-console": "off" } },
   ];
 }
