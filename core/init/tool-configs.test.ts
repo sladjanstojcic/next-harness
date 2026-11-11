@@ -104,10 +104,10 @@ describe("init tool configs", () => {
   it("adds .ts imports and the harness exclude to tsconfig.json, refusing a false setting without --force", () => {
     const added = consumer({ "tsconfig.json": '{\n  "compilerOptions": { "strict": true }\n}\n' });
     expect(initHarness(added.root, OFF).report).toContain(
-      `updated tsconfig.json: compilerOptions.allowImportingTsExtensions: true, exclude tooling/harness, ${THIN.join(", ")}`,
+      `updated tsconfig.json: compilerOptions.allowImportingTsExtensions: true, compilerOptions.paths "@/*": ["./src/*"], exclude tooling/harness, ${THIN.join(", ")}`,
     );
     expect(JSON.parse(added.read("tsconfig.json"))).toEqual({
-      compilerOptions: { strict: true, allowImportingTsExtensions: true },
+      compilerOptions: { strict: true, allowImportingTsExtensions: true, paths: { "@/*": ["./src/*"] } },
       exclude: ["node_modules", "tooling/harness", ...THIN],
     });
     const refused = consumer({ "tsconfig.json": JSON.stringify({ compilerOptions: { allowImportingTsExtensions: false } }) });
@@ -116,7 +116,7 @@ describe("init tool configs", () => {
     );
     expect(initHarness(refused.root, { force: true, starter: false }).ok).toBe(true);
     expect(JSON.parse(refused.read("tsconfig.json"))).toEqual({
-      compilerOptions: { allowImportingTsExtensions: true },
+      compilerOptions: { allowImportingTsExtensions: true, paths: { "@/*": ["./src/*"] } },
       exclude: ["node_modules", "tooling/harness", ...THIN],
     });
   });

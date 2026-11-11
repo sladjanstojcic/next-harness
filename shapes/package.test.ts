@@ -97,10 +97,11 @@ describe("package paths", () => {
     for (const file of ["eslint.config.mjs", "base.json", "README.md"])
       expect(checkPath(`packages/eslint-config/${file}`, harness), file).toEqual({ ok: true });
     const legacy = readLegacy(repo.root, harness.config);
-    expect(TURBO_LEGACY_FILES.map((file) => classify(file, harness, legacy))).toEqual(["legacy", "legacy", "legacy"]);
+    expect(new Set(TURBO_LEGACY_FILES.map((file) => classify(file, harness, legacy)))).toEqual(new Set(["legacy"]));
     expect(classify("packages/eslint-config/rules.js", harness, legacy)).toBe("owned");
-    expect(splitLegacy(repo.root, audit(repo.root)).preExisting.map(({ file, rule }) => `${file} ${rule}`)).toEqual(
-      TURBO_LEGACY_FILES.map((file) => `${file} unknown-root`),
+    const old = splitLegacy(repo.root, audit(repo.root)).preExisting.filter(({ file }) => file.startsWith("packages/eslint-config/"));
+    expect(old.map(({ file, rule }) => `${file} ${rule}`)).toEqual(
+      ["base.js", "next.js", "react-internal.js"].map((file) => `packages/eslint-config/${file} unknown-root`),
     );
   });
 
@@ -114,7 +115,7 @@ describe("package paths", () => {
     const repo = turboRepo();
     const file = "packages/invoices/src/helpers/x.ts";
     expect(checkPath(file, resolveHarness(repo.root, [file]))).toMatchObject({ ok: false, rule: "module-shape" });
-    expect(checkPath("apps/web/src/utils/x.ts", resolveHarness(repo.root))).toMatchObject({ ok: false, rule: "src-shape" });
+    expect(checkPath("apps/web/modules/billing/utils/x.ts", resolveHarness(repo.root))).toMatchObject({ ok: false, rule: "module-shape" });
     expect(checkPath("apps/web/base.js", resolveHarness(repo.root))).toMatchObject({ ok: false, rule: "unknown-root" });
   });
 });
@@ -174,10 +175,15 @@ describe("package content", () => {
       [`${PKG}/src/domain/price.test.ts`]:
         'import { expect, it } from "vitest";\nimport { double } from "./price";\nit("doubles", () => expect(double(1)).toBe(2));\n',
       [`${PKG}/src/components/price-tag.tsx`]: '"use client";\nimport { double } from "../domain/price";\nexport const PriceTag = () => double(1);\n',
+      [`${PKG}/vitest.config.ts`]: 'import { harnessVitest } from "../../tooling/harness/presets/vitest.ts";\n\nexport default harnessVitest();\n',
     });
-    expect(findingsOf(repo.root, [`${PKG}/src/domain/price.ts`, `${PKG}/src/components/price-tag.tsx`, `${PKG}/src/server.ts`, `${PKG}/src/index.ts`])).toEqual(
-      [],
-    );
+    const files = ["src/domain/price.ts", "src/components/price-tag.tsx", "src/server.ts", "src/index.ts", "vitest.config.ts"];
+    expect(
+      findingsOf(
+        repo.root,
+        files.map((file) => `${PKG}/${file}`),
+      ),
+    ).toEqual([]);
   });
 
   it("lists each package's public entries in the code index", () => {

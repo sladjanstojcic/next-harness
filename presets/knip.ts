@@ -17,6 +17,48 @@ const IGNORE_DEPENDENCIES = [
 /** Loaded by the harness's ESLint preset from the workspace, with no import knip can see. */
 const PRESET_DEPENDENCIES = ["@eslint/js", "eslint-config-next", "eslint-config-prettier", "typescript-eslint"];
 
+/** The package that brings each tool whose config or binary init adds to a workspace. */
+const CONFIG_PACKAGES: readonly [keyof typeof TOOL_CONFIG_NAMES, string][] = [
+  ["eslint", "eslint"],
+  ["prettier", "prettier"],
+  ["vitest", "vitest"],
+  ["knip", "knip"],
+  ["playwright", "@playwright/test"],
+];
+const BINARY_PACKAGES: Readonly<Record<string, string>> = {
+  eslint: "eslint",
+  prettier: "prettier",
+  tsc: "typescript",
+  vitest: "vitest",
+  depcruise: "dependency-cruiser",
+  knip: "knip",
+  jscpd: "jscpd",
+};
+
+/** Whether a folder above the workspace installs the binary. */
+function installedAbove(dir: string, binary: string): boolean {
+  for (let current = path.dirname(path.resolve(dir)); ; current = path.dirname(current)) {
+    if (fs.existsSync(path.join(current, "node_modules/.bin", binary))) return true;
+    if (current === path.dirname(current)) return false;
+  }
+}
+
+/**
+ * A monorepo installs a tool once, at its root. Knip reads a tool's config and binary through the workspace's own
+ * package.json, so there it would call the config an unused file and the script's binary unlisted: both are named here.
+ */
+function installedElsewhere(dir: string, packages: ReadonlySet<string>): { configs: string[]; binaries: string[] } {
+  const manifest: unknown = fs.existsSync(path.join(dir, "package.json")) ? JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")) : {};
+  const scripts = typeof manifest === "object" && manifest !== null && "scripts" in manifest ? manifest.scripts : undefined;
+  const commands = typeof scripts === "object" && scripts !== null ? Object.values(scripts).filter((script) => typeof script === "string") : [];
+  const runs = (binary: string): boolean => commands.some((command) => command.split(/[\s;&|]+/).includes(binary));
+  const configs = (tool: keyof typeof TOOL_CONFIG_NAMES): string[] => TOOL_CONFIG_NAMES[tool].filter((name) => fs.existsSync(path.join(dir, name)));
+  return {
+    configs: CONFIG_PACKAGES.filter(([, name]) => !packages.has(name)).flatMap(([tool]) => configs(tool)),
+    binaries: Object.keys(BINARY_PACKAGES).filter((binary) => !packages.has(BINARY_PACKAGES[binary] ?? "") && runs(binary) && installedAbove(dir, binary)),
+  };
+}
+
 /** The preset's packages the workspace's own ESLint config does not import itself; knip would call an ignored used one a stale entry. */
 function presetOnly(dir: string): string[] {
   const file = TOOL_CONFIG_NAMES.eslint.find((name) => fs.existsSync(path.join(dir, name)));
@@ -35,6 +77,7 @@ export interface KnipWorkspace {
   entry: string[];
   ignore: string[];
   ignoreDependencies: string[];
+  ignoreBinaries?: string[];
 }
 
 interface KnipWorkspaces {
@@ -56,11 +99,13 @@ function declared(dir: string): Set<string> {
 export function harnessKnipWorkspace({ harness = "ignore" }: HarnessKnipOptions = {}, dir = process.cwd()): KnipWorkspace {
   const packages = declared(dir);
   const exists = (pattern: string) => fs.existsSync(path.join(dir, pattern.replace(/\/\*\*$/, "")));
+  const { configs, binaries } = installedElsewhere(dir, packages);
   return {
     next: true,
     entry: ENTRY.filter(exists),
-    ignore: [...IGNORE.filter(exists), ...(harness === "ignore" ? [`${HARNESS_PACKAGE}/**`] : [])],
+    ignore: [...IGNORE.filter(exists), ...configs, ...(harness === "ignore" ? [`${HARNESS_PACKAGE}/**`] : [])],
     ignoreDependencies: [...IGNORE_DEPENDENCIES, ...presetOnly(dir)].filter((name) => packages.has(name)),
+    ...(binaries.length === 0 ? {} : { ignoreBinaries: binaries }),
   };
 }
 

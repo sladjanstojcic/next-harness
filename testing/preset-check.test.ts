@@ -93,7 +93,7 @@ describe("the preset presence check", () => {
       .flatMap((block) => Object.keys(block.rules))
       .filter((rule) => rule !== "@typescript-eslint/no-explicit-any");
     expect(new Set(missing.map(({ message }) => message.split(" ")[0]))).toEqual(new Set([...rules, "linterOptions.noInlineConfig"]));
-    const lines = `  ${IMPORT}\n  ...harnessEslint({ root: import.meta.dirname, base: false }),`;
+    const lines = `  ${IMPORT}\n  export default [...[eslintConfig].flat(), ...harnessEslint({ root: import.meta.dirname, base: false })];`;
     expect(missing[0]?.message).toContain(lines);
     expect(repo.report).toContain(lines.replaceAll("  ", "    "));
     repo.write("eslint.config.mjs", withPresetLines(CNA_ESLINT, repo.report));

@@ -99,11 +99,13 @@ function auditDirectives({ file, path, profile }: ContentTarget, source: ts.Sour
   const { sourceRoot } = profile;
   for (const { node, target, relative } of imports) {
     const isServer = /(?:^|\/)server(?:\.(?:js|ts)x?$|\/|$)/.test(target);
-    const leavesSource = relative && sourceRoot !== undefined && path.startsWith(sourceRoot) && !target.startsWith(sourceRoot);
     if (clientDirectives.length > 0 && isServer && !isTypeOnlyImport(node) && profile.actionImport?.test(target) !== true)
       add("client-imports-server", "clientImportsServer", node);
     if (profile.publicIndex?.test(path) && (isServer || profile.actionImport?.test(target))) add("index-exports", "indexExports", node);
-    if (profile.packageBoundary !== undefined && (target === ".." || target.startsWith("../") || leavesSource)) {
+    // With a source root only the files under it are judged, and their relative imports stay under it too.
+    const judged = sourceRoot === undefined || path.startsWith(sourceRoot);
+    const leavesSource = relative && sourceRoot !== undefined && !target.startsWith(sourceRoot);
+    if (profile.packageBoundary !== undefined && judged && (target === ".." || target.startsWith("../") || leavesSource)) {
       findings.push({
         file,
         rule: "package-boundary",

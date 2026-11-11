@@ -98,10 +98,10 @@ describe("init in an existing app", () => {
     const repo = dashboard({ "apps/dashboard/eslint.config.mjs": OWN_ESLINT, "apps/dashboard/.prettierrc": "{}\n" });
     const { report } = initHarness(repo.root, OFF);
     expect(report).toContain(
-      "updated apps/dashboard/tsconfig.json: compilerOptions.allowImportingTsExtensions: true, exclude eslint.config.mjs, knip.config.ts",
+      'updated apps/dashboard/tsconfig.json: compilerOptions.allowImportingTsExtensions: true, compilerOptions.paths "@/*": ["./src/*"], exclude eslint.config.mjs, knip.config.ts',
     );
     expect(JSON.parse(repo.read("apps/dashboard/tsconfig.json"))).toEqual({
-      compilerOptions: { allowJs: true, allowImportingTsExtensions: true },
+      compilerOptions: { allowJs: true, allowImportingTsExtensions: true, paths: { "@/*": ["./src/*"] } },
       include: ["**/*.ts", "**/*.tsx"],
       exclude: ["node_modules", "eslint.config.mjs", "knip.config.ts"],
     });

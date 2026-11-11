@@ -108,7 +108,7 @@ export interface ContentProfile {
   inlineDisable?: string;
   /** The message for a relative import that leaves the workspace folder; absent allows it. */
   packageBoundary?: string;
-  /** With packageBoundary: a relative import from a file under this folder must also stay under it. */
+  /** With packageBoundary: only files under this folder are judged, and their relative imports must also stay under it. */
   sourceRoot?: string;
   messages: Record<ContentMessage, string>;
 }

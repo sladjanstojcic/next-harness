@@ -33,15 +33,19 @@ export const APP_WITHOUT_SRC: Record<string, string> = Object.fromEntries(
   Object.entries(APP).map(([file, text]) => [file.replace(/^src\//, ""), file === "tsconfig.json" ? text.replace('"./src/*"', '"./*"') : text]),
 );
 
-/** A kept config with the lines init printed for it: the import first, the spread as the last entry of the exported array. */
+/**
+ * A kept config with the lines init printed for it: the import first, then the spread as the last entry of the exported
+ * array, or the printed `export default` in place of the config's own when it exports a variable.
+ */
 export function withPresetLines(config: string, report: string): string {
-  const [importLine, spread] = report
+  const [importLine, second] = report
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.includes("harnessEslint"));
-  if (importLine === undefined || spread === undefined) throw new Error(`init printed no ESLint lines:\n${report}`);
+  if (importLine === undefined || second === undefined) throw new Error(`init printed no ESLint lines:\n${report}`);
+  if (second.startsWith("export default")) return `${importLine}\n${config.replace(/^export default [\w$]+;?[ \t]*$/m, second)}`;
   const end = config.lastIndexOf("]");
-  return `${importLine}\n${config.slice(0, end)}  ${spread}\n${config.slice(end)}`;
+  return `${importLine}\n${config.slice(0, end)}  ${second}\n${config.slice(end)}`;
 }
 
 export function run(cwd: string, tool: string, args: string[]): { status: number | null; output: string } {
