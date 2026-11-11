@@ -1,5 +1,5 @@
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
-import { harnessRuleBlocks } from "./eslint-rules.ts";
+import { harnessRuleBlocks, type PresetLayout } from "./eslint-rules.ts";
 import { call, defaultOf, isRecord, list, member, toolLoader } from "./load-tool.ts";
 
 const VENDORED = ["src/shared/ui/**", "src/shared/lib/utils.ts"];
@@ -12,6 +12,8 @@ const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
 export interface HarnessEslintOptions {
   /** The workspace folder holding tsconfig.json, for typed rules; ESLint and its plugins load from there. */
   root: string;
+  /** "package" for a shared package (src/server/, src/domain/ at its top); an app's src/modules/ layout by default. */
+  layout?: PresetLayout;
   /** Adds the Next.js core-web-vitals and TypeScript configs. */
   next?: boolean;
   /**
@@ -33,8 +35,9 @@ export interface EslintEntry {
 
 const isEntry = (value: unknown): value is EslintEntry => isRecord(value) && (value.plugins === undefined || isRecord(value.plugins));
 
-/** The harness's ESLint rules for a next-modules workspace; a project with its own config appends these after its entries. */
-export function harnessEslint({ root, next = false, base = true, vendored = VENDORED, harness = "ignore" }: HarnessEslintOptions): EslintEntry[] {
+/** The harness's ESLint rules for a next-modules or package workspace; a project with its own config appends these after its entries. */
+export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
+  const { root, layout = "app", next = false, base = true, vendored = VENDORED, harness = "ignore" } = options;
   const tool = toolLoader(root);
   const eslint = tool("eslint/config");
   const tseslint = defaultOf(tool("typescript-eslint"));
@@ -50,7 +53,7 @@ export function harnessEslint({ root, next = false, base = true, vendored = VEND
   const entries = [
     call(member(eslint, "globalIgnores"), [[...ignored, ".next/**", "next-env.d.ts", "out/**", "build/**", ".superpowers/**", ".serena/**"]]),
     ...(base ? recommended() : []),
-    ...harnessRuleBlocks().map((block, index) =>
+    ...harnessRuleBlocks(layout).map((block, index) =>
       index === 0
         ? {
             ...block,

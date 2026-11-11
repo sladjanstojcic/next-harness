@@ -1,5 +1,5 @@
 import path from "node:path";
-import { workspaceOf, type ToolSetName, type WorkspaceEntry } from "../config.ts";
+import { isConfigOnly, workspaceOf, type ToolSetName, type WorkspaceEntry } from "../config.ts";
 import { eslintPrettier } from "./eslint-prettier.ts";
 import { oxc } from "./oxc.ts";
 import type { ToolSet } from "./tool-set.ts";
@@ -20,10 +20,10 @@ export interface WorkspaceTools {
   files: string[];
 }
 
-/** Every workspace whose tool set has steps, in config order; `tools: "none"` workspaces run no tool steps. */
+/** Every workspace whose tool set has steps, in config order; `tools: "none"` workspaces and config-only packages run no tool steps. */
 export function toolWorkspaces(gitRoot: string, workspaces: readonly WorkspaceEntry[]): WorkspaceTools[] {
   return workspaces.flatMap((workspace) => {
-    const tools = toolSetOf(workspace.tools);
+    const tools = isConfigOnly(gitRoot, workspace) ? undefined : toolSetOf(workspace.tools);
     return tools === undefined ? [] : [{ workspace, tools, dir: path.join(gitRoot, workspace.path), files: [] }];
   });
 }

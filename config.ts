@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { z } from "zod";
 
-const SHAPE_NAMES = ["next-modules", "makerkit-app", "makerkit-feature", "supabase"] as const;
+const SHAPE_NAMES = ["next-modules", "package", "makerkit-app", "makerkit-feature", "supabase"] as const;
 const TOOL_SET_NAMES = ["eslint-prettier", "oxc", "none"] as const;
 const ANALYSIS_NAMES = ["depcruise", "knip", "jscpd"] as const;
 
@@ -13,6 +13,7 @@ export type AnalysisName = (typeof ANALYSIS_NAMES)[number];
 
 const DEFAULT_TOOLS: Record<ShapeName, ToolSetName> = {
   "next-modules": "eslint-prettier",
+  package: "eslint-prettier",
   "makerkit-app": "oxc",
   "makerkit-feature": "oxc",
   supabase: "none",
@@ -171,7 +172,11 @@ export function workspaceOf<T extends WorkspaceEntry>(entries: readonly T[], fil
   return { entry: match, path: match.path === "" ? file : file.slice(match.path.length + 1) };
 }
 
-/** depcruise, knip and jscpd run in next-modules workspaces only; the Makerkit and supabase shapes do not install them. */
+/** A package without src/ holds only configuration, such as create-turbo's typescript-config: no tool runs there. */
+export const isConfigOnly = (gitRoot: string, workspace: WorkspaceEntry): boolean =>
+  workspace.shape === "package" && !fs.existsSync(path.join(gitRoot, workspace.path, "src"));
+
+/** depcruise, knip and jscpd run in next-modules workspaces only; the package, Makerkit and supabase shapes do not run them. */
 export function analysisOf(config: HarnessConfig, entry: WorkspaceEntry): AnalysisName[] {
   return entry.shape === "next-modules" ? (config.analysis ?? [...ANALYSIS_NAMES]) : [];
 }

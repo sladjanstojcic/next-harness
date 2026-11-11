@@ -11,7 +11,7 @@ import { bin } from "../../tools/tool-set.ts";
 import { gitignoreStep, HARNESS_MODULES, rootIgnoreSteps } from "./ignore-files.ts";
 import { peerInstall, starterInstall } from "./peers.ts";
 import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
-import { CONFIG_FILE, type WorkspaceEntry } from "../../config.ts";
+import { CONFIG_FILE, isConfigOnly, type WorkspaceEntry } from "../../config.ts";
 import { ciSteps, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH, PREPARE } from "./wiring.ts";
 
 function hooksStep(root: string, label: string, wanted: HooksBlock, force: boolean): Step {
@@ -165,13 +165,13 @@ export interface InitOptions {
 }
 
 /**
- * Writes the harness wiring every consumer shares and each eslint-prettier workspace's tool configs; nothing is written
+ * Writes the harness wiring every consumer shares and each eslint-prettier workspace's tool configs, but a config-only package's; nothing is written
  * while a step conflicts and force is off. The git config step applies first, so a git failure precedes any file write.
  */
 export function initHarness(root: string, { force, starter }: InitOptions): { report: string; ok: boolean } {
   const harness = resolveHarness(root);
   const all = harness.workspaces;
-  const workspaces = all.filter((workspace) => workspace.tools === "eslint-prettier");
+  const workspaces = all.filter((workspace) => workspace.tools === "eslint-prettier" && !isConfigOnly(root, workspace));
   const atRoot = workspaces.find((workspace) => workspace.path === "");
   const steps = [
     hooksPathStep(root, force),

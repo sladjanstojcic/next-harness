@@ -98,7 +98,7 @@ async function runCiGate(directory: string, harness: Harness, ratchet: boolean, 
       format,
       lint,
       ...(tools.lint.owned === undefined || owned.length === 0 ? [] : [tools.lint.owned(dir, owned)]),
-      ...(tools.lint.preset === undefined ? [] : [tools.lint.preset(dir, workspace.path, workspace.next)]),
+      ...(tools.lint.preset === undefined ? [] : [tools.lint.preset(dir, workspace)]),
       ...types,
     ]);
   }

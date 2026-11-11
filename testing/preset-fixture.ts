@@ -54,9 +54,11 @@ export function initialised(files: Record<string, string>, starter = false) {
   return { ...repo, report: result.report };
 }
 
+export const ROOT_APP = { path: "", shape: "next-modules", next: true } as const;
+
 /** Every presence-check finding of the workspace at the git root, its probes named by `token` when given. */
 export async function presetFindings(root: string, token?: () => string): Promise<Finding[]> {
-  return runTool(root, eslintPreset(root, "", true, token));
+  return runTool(root, eslintPreset(root, ROOT_APP, token));
 }
 
 const PROBES = SOURCE_PROBES.map((template) => {
