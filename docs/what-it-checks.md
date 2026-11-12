@@ -8,7 +8,8 @@ nav_order: 3
 Six families of rule. Each one below has the rule, the reason for it, and the message the agent gets
 when it breaks the rule. Every message says what to do instead, so the agent can correct itself.
 
-The examples use a module named `billing`.
+The examples use a module named `billing`. In a project without `src/`, read every path on this page
+without the `src/` prefix.
 
 ## One shape
 

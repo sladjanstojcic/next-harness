@@ -6,8 +6,52 @@ parent: Adopt it
 
 # A Turborepo or other monorepo
 
-Write `harness.config.ts` at the repository root before running init. Each app is a workspace with its
-own shape; folders outside every workspace get only the root layout rules.
+A monorepo gets one file, `harness.config.ts`, that says which folder has which shape. Each app is a
+workspace with its own shape; folders outside every workspace get only the root layout rules.
+
+The steps below were run on a fresh create-turbo project: two Next.js apps and three packages. It
+reached a passing check in the eleven steps below, which are sixteen commands and edits, with one
+file written and four edited by hand.
+
+## Before you start
+
+- The repository has at least one commit and a clean working tree.
+- You have Node 24 and pnpm.
+
+Starting from nothing? Create the monorepo first, then `cd my-repo`:
+
+```sh
+pnpm dlx create-turbo@latest my-repo --package-manager pnpm --example basic
+```
+
+create-turbo makes the repository and the first commit itself.
+
+## 1. Add the harness folder
+
+```sh
+git subtree add --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
+```
+
+Do this before writing the config, because the config imports from that folder.
+
+## 2. Write harness.config.ts
+
+At the repository root. For a fresh create-turbo project this is the whole file:
+
+```ts
+import { defineHarness } from "./tooling/harness/config.ts";
+
+export default defineHarness({
+  workspaces: [
+    { path: "apps/*", shape: "next-modules", next: true },
+    { path: "packages/*", shape: "package" },
+  ],
+  legacy: "tooling/harness-legacy.json",
+  root: { entries: ["apps", "packages", "turbo.json"] },
+});
+```
+
+An older monorepo names its workspaces one by one:
 
 ```ts
 import { defineHarness } from "./tooling/harness/config.ts";
@@ -25,49 +69,114 @@ export default defineHarness({
 - `path: "apps/*"` makes every folder under `apps/` a workspace of that shape. An app that create-turbo
   wrote has `app/` at its top and no `src/`; it keeps that layout, with `modules/` and `shared/` beside
   `app/`.
-- `{ path: "packages/*", shape: "package" }` puts the shared packages under the harness too; see below.
+- `{ path: "packages/*", shape: "package" }` puts the shared packages under the harness too; see
+  [Shared packages](packages.md).
 - `test: "test"` runs the app's own `test` package script instead of Vitest. Leave it out for a Vitest app.
 - `legacy` names the file that lists old code. Leave it out for a monorepo with no old code.
 - `root.entries` names what may sit at the repository root besides the defaults.
 
+## 3. Run init, install, run init again
+
 ```sh
-git subtree add --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
-# write harness.config.ts
-node tooling/harness/cli.ts init    # first run adds tooling/harness to the workspace packages and stops
+node tooling/harness/cli.ts init             # adds tooling/harness to the workspace packages and stops
 pnpm install
-node tooling/harness/cli.ts init    # second run: writes the wiring, prints the next steps
+node tooling/harness/cli.ts init --starter   # writes the wiring, prints the next steps
 ```
 
-For a fresh `create-turbo` project the whole config is two workspace entries and a legacy list:
+The first run prints `node tooling/harness/cli.ts init` as its own next step. Add `--starter` to it, as
+shown here, if you want the `shared/lib/` helpers in each app. With it init
+prints eleven steps for a create-turbo project. Without it init prints eight and writes no starter
+files; running it again with `--starter` later is safe.
 
-```ts
-export default defineHarness({
-  workspaces: [
-    { path: "apps/*", shape: "next-modules", next: true },
-    { path: "packages/*", shape: "package" },
-  ],
-  legacy: "tooling/harness-legacy.json",
-  root: { entries: ["apps", "packages", "turbo.json"] },
-});
+Init also prints the steps for a CI job. They are optional for the local check; add them when the
+repository has GitHub Actions.
+
+The eleven printed steps are steps 4 to 11 here. **Run each printed line from the repository root.**
+Some lines start with `cd apps/docs && ...` and do not return, so the next one fails if you stay
+there. Wrap such a line in brackets: `(cd apps/docs && pnpm add -D ...)`.
+
+## 4. Install the harness's tools in each workspace
+
+Three printed lines, one each for `apps/docs`, `apps/web` and `packages/ui`. Copy them from your
+terminal; they name exact versions.
+
+create-turbo ships TypeScript 7, so each line ends with the
+[TypeScript 6 alias](init.md#your-own-eslint-config). The config-only packages get no line.
+
+## 5. Install the packages the starter files import
+
+Two printed lines, one per app:
+
+```sh
+(cd apps/docs && pnpm add zod@4.6.7 server-only@0.0.1)
+(cd apps/web && pnpm add zod@4.6.7 server-only@0.0.1)
 ```
 
-`init --starter` then prints eleven steps for it, and after them all 27 gate steps pass:
+## 6. Add the harness's rules to the three ESLint configs
 
-- **Steps 1 to 3.** Install the harness's tools in `apps/docs`, `apps/web` and `packages/ui`, one
-  printed `pnpm add -D` line each. create-turbo ships TypeScript 7, so each line ends with the
-  [TypeScript 6 alias](init.md#your-own-eslint-config). The config-only packages get no line.
-- **Steps 4 and 5.** Install `zod` and `server-only` in each app, for the starter files.
-- **Step 6.** Replace `export default …` in the three kept ESLint configs with the two printed lines.
-- **Step 7.** Declare `NODE_ENV` in `globalEnv` of `turbo.json`.
-- **Step 8.** Format each workspace once with the printed `prettier --write .` commands.
-- **Step 9.** `node tooling/harness/cli.ts legacy init`, which lists what create-turbo wrote outside
-  the shapes: each app's fonts, `page.module.css`, long `page.tsx` and `next.config.js`, the three
-  `packages/eslint-config/*.js` and the three components directly in `packages/ui/src/`.
-- **Step 10.** Commit.
-- **Step 11.** `pnpm run check`.
+Init names the files and prints the lines for each. In `apps/docs/eslint.config.js` and
+`apps/web/eslint.config.js` the `export default nextJsConfig;` becomes:
 
-An older Turborepo with one Next.js app and its own tools needed six steps and a legacy list of 710
-files.
+```js
+import { harnessEslint } from "../../tooling/harness/presets/eslint.ts";
+import { nextJsConfig } from "@repo/eslint-config/next-js";
+
+const harnessConfig = [...[nextJsConfig].flat(), ...harnessEslint({ root: import.meta.dirname, layout: "app-root", toolsFrom: "@repo/eslint-config" })];
+export default harnessConfig;
+```
+
+`packages/ui/eslint.config.mjs` gets the same change with its own `config` variable and
+`layout: "package"`. Keep or delete the `@type` comment above the export; the check does not read it. Paste what init
+printed for your project, not this example.
+
+## 7. Declare NODE_ENV in turbo.json
+
+The starter `shared/lib/env.ts` reads `NODE_ENV`, and Turborepo's lint rule reports a variable that
+`turbo.json` does not list. create-turbo's file has no such key yet. Add it at the top level, beside
+`"tasks"`:
+
+```json
+"globalEnv": ["NODE_ENV"],
+```
+
+## 8. Format each workspace once
+
+```sh
+(cd apps/docs && pnpm exec prettier --write .); (cd apps/web && pnpm exec prettier --write .); (cd packages/ui && pnpm exec prettier --write .)
+```
+
+Prettier prints a `MODULE_TYPELESS_PACKAGE_JSON` warning for `packages/ui`. It is harmless; do not
+add `"type": "module"` for it.
+
+## 9. Write the legacy list
+
+```sh
+node tooling/harness/cli.ts legacy init
+```
+
+It lists the 17 files create-turbo wrote outside the shapes: each app's fonts, `page.module.css`, long
+`page.tsx` and `next.config.js`, the three `packages/eslint-config/*.js`, the three components directly
+in `packages/ui/src/`, and `packages/ui/package.json` for two dependencies knip finds unused.
+
+## 10. Commit
+
+```sh
+git add -A && git commit -m "Add the harness"
+```
+
+## 11. Run the full check
+
+```sh
+pnpm run check
+```
+
+Every tool runs once per workspace, so the output has 27 lines for this project, each ending in
+`passed`. Below them, under "Pre-existing in legacy
+files (not blocking)", the old findings are printed as a count per tool, followed by the first few in
+full.
+
+An older Turborepo with one Next.js app and its own tools needed six printed steps and a legacy list
+of 710 files.
 
 ## The legacy list
 
@@ -87,47 +196,5 @@ such an app and does not downgrade its tools.
 
 ## Shared packages
 
-Without a workspace entry, code under `packages/` gets only the root layout rules.
-The `package` shape gives each package the layout of one module of the app, so moving
-`apps/<app>/src/modules/<m>/` to `packages/<m>/src/` is a folder move:
-
-```text
-packages/<name>/
-  package.json          exports "." -> src/index.ts and "./server" -> src/server.ts
-  tsconfig.json, README.md, tool configs
-  src/
-    index.ts            client-safe public entry, named exports only
-    server.ts           server-only public entry
-    schemas.ts, types.ts
-    components/         UI; one optional area subfolder
-    server/             queries and I/O; one optional area subfolder; "server-only"
-    domain/             pure rules with a test beside each file; one optional area subfolder
-    hooks/              flat; use-<name>.ts(x)
-    lib/                flat helpers
-```
-
-- A package holds no `actions/` and no `"use server"`. A Server Action stays in the app's module and
-  calls the package's `server.ts`.
-- A package does not read `process.env`. The app reads it in `src/shared/lib/env.ts` and passes the value in.
-- A relative import that leaves the package, or leaves `src/` from inside it, is `package-boundary`;
-  import the other package by its name.
-- The package's top level takes configuration only: the tool configs, `.json` and `.md` files, and no
-  folder but `src/`. A package without `src/`, such as create-turbo's `typescript-config`, is
-  config-only: no tool runs there and init writes nothing into it.
-- The harness requires TypeScript, so JavaScript is denied everywhere in a package but for the tool
-  config names. create-turbo's `packages/eslint-config/{base,next,react-internal}.js` predate the
-  harness: `legacy init` puts them on the legacy list, or convert the package to TypeScript under
-  `src/`. `root.jsExceptions` cannot name them, since it covers the repository root only. Name such a
-  file in `locked` when agents should not edit it.
-- `src/domain/` takes `.ts` files only.
-- depcruise, knip and jscpd run in each package with `src/`, as in an app. dependency-cruiser uses a
-  package preset: no cycles, a pure `src/domain/`, `src/server/` internals reached only through
-  `src/server.ts`, and `src/index.ts` never reaching server code. Knip takes the files the package's
-  `exports` point at as entries and reports one of their exports that no workspace imports.
-- ESLint, Prettier, tsc and Vitest run in each package's folder. Init writes
-  `harnessEslint({ root: import.meta.dirname, layout: "package" })` there, or prints that line for a
-  config the package already has, as create-turbo's `packages/ui/eslint.config.mjs`. With that layout the
-  preset allows adapter casts in `src/server/` and keeps `src/domain/` free of React, Next, Node
-  built-ins and server code.
-- create-turbo generates `packages/ui/src/button.tsx` directly in `src/`. Move such files to
-  `src/components/` and export them from `src/index.ts`, or put them on the legacy list.
+The `package` shape, and the steps for adding a new package after adoption, are on their own page:
+[Shared packages](packages.md).

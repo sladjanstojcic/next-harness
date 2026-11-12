@@ -18,14 +18,24 @@ pnpm install --frozen-lockfile
 The install must come first. Until `node_modules` exists, the hooks refuse every agent tool call
 except the install itself, and say so.
 
+The clone still points at the template and carries its history. Before your first push, point it at
+your own repository:
+
+```sh
+git remote set-url origin <your repository>
+```
+
+For a clean history instead, run `rm -rf .git && git init`, and repeat step 2 afterwards.
+
 ## 2. Enable the pre-push hook
 
 ```sh
 pnpm run prepare
 ```
 
-This points git at the `.githooks/` folder. From now on `git push` runs the full check first. Do not
-rely on the install to do this for you; run it once by hand.
+This points git at the `.githooks/` folder. From now on `git push` runs the full check first. pnpm
+usually runs `prepare` during the install, as you may have seen above. Running it by hand costs
+nothing and covers an install done with `--ignore-scripts`.
 
 ## 3. Give the project its name
 
@@ -39,6 +49,13 @@ The script changes three files and nothing else:
 - `src/app/layout.tsx` gets the title as its metadata title and description.
 - `README.md` gets the title as its first heading.
 
+It prints nothing when it succeeds; `git status` shows the three files.
+
+Still yours to change by hand, because they describe the template and not your product: the heading
+in `src/app/page.tsx`, the body of `README.md`, the name in `LICENSE`, the first section of
+`AGENTS.md`, and the `docs/` folder. That folder is the harness's own documentation site; delete it or
+replace it with your own.
+
 ## 4. Install the test browser and start
 
 ```sh
@@ -46,8 +63,9 @@ pnpm exec playwright install chromium
 pnpm dev
 ```
 
-The app answers on the port you chose. No secrets are needed; `.env.example` documents the starting
-environment.
+The browser install prints nothing when that browser is already downloaded. Open
+`http://localhost:3100` to see the app on the port you chose, then stop the server with Ctrl-C before
+the next step. No secrets are needed; `.env.example` documents the starting environment.
 
 ## 5. Check that everything holds
 
@@ -58,6 +76,13 @@ pnpm check
 Every step should pass on a fresh clone: format, lint, types, audit, boundaries, unused code, copies,
 unit tests, the production build and the browser smoke test. This is the same command the pre-push
 hook and CI run.
+
+Expect several minutes and no output until it finishes. Most of that time is the harness running its
+own tests; on a four-core server the whole check took about seven minutes.
+
+If a step fails before you have changed anything, the template is at fault, not you. Look at the
+Check badge in the README, and run the failing step on its own to see the cause, for example
+`pnpm test` for vitest. Each step is also a script in `package.json`.
 
 ## 6. Let the agent in
 

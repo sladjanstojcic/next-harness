@@ -1,6 +1,6 @@
 ---
 title: What init writes
-nav_order: 6
+nav_order: 7
 parent: Adopt it
 ---
 
@@ -45,7 +45,7 @@ package; they load each tool from the workspace that calls them.
 ## Your own ESLint config
 
 A project's own ESLint, Prettier, Vitest, Knip or Playwright config is never replaced, even with
-`--force`. The file stays where it is, init prints the two lines that add the preset to it, and the file
+`--force`. The file stays where it is, init prints the lines that add the preset to it, and the file
 is locked like init's own:
 
 ```js
