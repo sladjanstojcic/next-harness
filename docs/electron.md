@@ -1,6 +1,6 @@
 ---
 title: An Electron project
-nav_order: 4
+nav_order: 5
 parent: Adopt it
 ---
 
@@ -17,6 +17,72 @@ export default defineHarness({
   workspaces: [{ path: ".", shape: "electron-vite" }],
 });
 ```
+
+## Adopt it, step by step
+
+Run on a fresh project from the official scaffold. It reached a passing check in twelve steps from
+the committed scaffold, with three files edited by hand.
+
+**Before you start.** The project is a git repository with a commit and a clean tree. Starting from
+nothing? Create and commit the app first:
+
+```sh
+pnpm create @quick-start/electron my-app --template react-ts --skip
+cd my-app && git init -b main && git add -A && git commit -m "Scaffold"
+```
+
+The scaffold does not make a repository, and you do not need to install yet: step 4 does it.
+
+1. Add the harness folder:
+
+   ```sh
+   git subtree add --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
+   ```
+
+2. Write `harness.config.ts` at the root. The scaffold predates this layout, so give it a legacy list:
+
+   ```ts
+   import { defineHarness } from "./tooling/harness/config.ts";
+
+   export default defineHarness({
+     workspaces: [{ path: ".", shape: "electron-vite" }],
+     legacy: "tooling/harness-legacy.json",
+   });
+   ```
+
+3. `node tooling/harness/cli.ts init`, without `--starter`: this shape has no starter files. It adds
+   `tooling/harness` to `pnpm-workspace.yaml` and stops.
+4. `pnpm install`. On pnpm 11 or newer it stops at `ERR_PNPM_IGNORED_BUILDS` for
+   `electron-winstaller`. Under `allowBuilds` in `pnpm-workspace.yaml`, set `electron-winstaller: false`
+   (`true` if you build Windows installers on this machine) and run `pnpm install` again.
+5. `node tooling/harness/cli.ts init` again. It writes the wiring and prints seven steps, which are
+   steps 6 to 12 here. It also prints steps for a CI job; leave its Playwright line out, since an
+   Electron project has no browser smoke test.
+6. Run the printed `pnpm add -D` line. Copy it from your terminal; it names exact versions.
+7. In `eslint.config.mjs`, add the printed import, and the printed spread as the last argument of
+   `defineConfig(...)`, after a comma. For the scaffold the line is:
+
+   ```js
+   ...harnessEslint({ root: import.meta.dirname, layout: "electron", base: false, toolsFrom: "@electron-toolkit/eslint-config-ts" }),
+   ```
+
+8. In `electron.vite.config.ts`, change `preload: {},` to:
+
+   ```ts
+   preload: { build: { externalizeDeps: false } },
+   ```
+
+   The reason is under "Preload bundle" below.
+
+9. `pnpm exec prettier --write eslint.config.mjs`, to put the edited file back in the project's style.
+10. `node tooling/harness/cli.ts legacy init`. For the scaffold it lists eleven files: three in
+    `.vscode/`, `src/main/index.ts`, `src/preload/index.ts` and `index.d.ts`, `App.tsx`, `main.tsx`,
+    `components/Versions.tsx`, `tsconfig.node.json` and `tsconfig.web.json`.
+11. `git add -A && git commit -m "Add the harness"`
+12. `pnpm run check`. Ten steps, each ending in `passed`: prettier, eslint, eslint-preset, tsc, audit,
+    depcruise, knip, jscpd, vitest and build. The old findings follow as a count.
+
+## The shape
 
 ```text
 electron.vite.config.ts, electron-builder.yml, components.json, tsconfig*.json, the tool configs,
@@ -92,7 +158,37 @@ src/
   `src/main/logging/log.ts`, and nowhere else in the app. The lint message says so.
 - jscpd writes its report to `node_modules/.cache/jscpd` here, so nothing new needs ignoring.
 
-The official scaffold (`pnpm create @quick-start/electron`) predates this layout. Give it a legacy list
-(`legacy: "tooling/harness-legacy.json"`) and run `legacy init`: it lists `App.tsx` and
-`components/Versions.tsx`, the main and preload scripts, `.vscode/`, the two tsconfig projects whose
-base turns `noImplicitAny` off, and `electron.vite.config.ts` with its empty preload section. New code is then held to the shape while those files stay where they are.
+## The first feature with a channel
+
+Run on the same project: a `notes` module in the renderer that asks the main process for a list. On
+the scaffold this is more work than one channel, because it touches three legacy files, and a legacy
+file you touch must clear its old tool findings.
+
+1. **Let both tsconfig projects read `src/shared/`.** Add `"src/shared/**/*"` to `include` in
+   `tsconfig.node.json` and in `tsconfig.web.json`. The scaffold's projects do not read that folder,
+   and the first contract file fails with `TS6307` and an ESLint parsing error otherwise. Both files
+   are locked for agents, so this step is yours.
+2. **Write the contract** in `src/shared/`: the channel name as a constant, and the types both sides
+   use. The scaffold maps no `@shared/` alias; a relative import of `src/shared/` is allowed.
+3. **Write the handler** in a main area folder, such as `src/main/notes/register-notes-ipc.ts`, with
+   `ipcMain.handle(NOTES_LIST_CHANNEL, ...)`. A test beside it is allowed, not required.
+4. **Write the module** in `src/renderer/src/modules/notes/`: `index.ts`, the component in
+   `components/`, and pure logic in `domain/` with a test beside each file.
+5. **Clean `src/main/index.ts`**, which you touch to register the handler. Mark its four floating
+   promises with `void`, and move its `console.log` into `src/main/logging/log.ts`.
+6. **Replace the scaffold's bridge.** `src/preload/index.ts` imports `@electron-toolkit/preload`, and
+   a preload script may import only `electron` and `src/shared/`. Expose one `api` object of your own,
+   typed in `src/shared/`, update `index.d.ts`, read `window.api` in `App.tsx` and `Versions.tsx`, and
+   run `pnpm remove @electron-toolkit/preload`. The preload does not log: let an error throw.
+7. `pnpm run check`, then commit.
+
+The messages that lead through steps 5 and 6 name the rule and the fix, for example:
+
+```text
+src/preload/index.ts:2 no-restricted-imports — '@electron-toolkit/preload' import is restricted from
+being used by a pattern. A preload script is the bridge and nothing more: it imports electron and the
+contract in src/shared/ (Electron layout)
+```
+
+Not checked in this run: the app window was never opened, because the test machine has no screen.
+The build passed and the built preload exposes the new channel.

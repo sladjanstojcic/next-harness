@@ -1,10 +1,13 @@
 ---
 title: A Makerkit project
-nav_order: 5
+nav_order: 6
 parent: Adopt it
 ---
 
 # A Makerkit project
+
+This page describes the configuration and what an agent meets. A numbered walkthrough, run from a
+fresh kit clone like the ones for the other project kinds, is not written yet and will follow.
 
 The kit's code stays the kit's. A file, `tooling/harness-upstream.json`, lists the kit's files. Every file
 that is not on it is yours and gets the harness rules, so a new feature package or route is judged without

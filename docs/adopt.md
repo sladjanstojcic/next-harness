@@ -18,6 +18,11 @@ There are two ways in. A new project starts from this template. An existing proj
 | Electron app (electron-vite) | [An Electron project](electron.md)         |
 | Makerkit project             | [A Makerkit project](makerkit.md)          |
 
+Each guide also starts from nothing: it names the command that creates such a project, and then the
+numbered steps, as they were run on a fresh one. A Makerkit walkthrough is not written yet.
+[Shared packages](packages.md) covers adding a package to a monorepo afterwards.
+
+Start from a git repository with a commit and a clean working tree.
 Every guide for an existing project follows the same three moves. Add the harness folder with
 `git subtree`. Run `init`, which writes the wiring and prints the steps that are yours. Finish with
 `pnpm run check`. Init installs nothing itself and never replaces a config you already have;
@@ -29,8 +34,8 @@ An existing project breaks the rules on its first day. You do not fix all of it 
 
 You run `legacy init` once. It writes a legacy list: the files that have a finding today. Those
 files are tolerated. New files are held to every rule, and an old file you touch must clear its
-type, lint and format findings. The list may only shrink, so the debt goes down as work passes
-through the old code. See
+tool findings: types, lint, format and import boundaries. The list may only shrink, so the debt goes
+down as work passes through the old code. See
 [the legacy list](monorepo.md#the-legacy-list).
 
 ## Let the agent in
