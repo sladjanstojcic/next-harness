@@ -1,4 +1,4 @@
-import type { ContentProfile } from "./shape.ts";
+import type { ContentProfile } from "../shape.ts";
 
 export const ROUTE_ACTION_FILE = /(?:^|\/)_lib\/server\/(?:[a-z0-9-]+-)?server-actions\.ts$/;
 export const MAKERKIT_INLINE_DISABLE = "Remove the {directive} comment and fix the code it silences; owned code may not turn off lint rules or type checks.";

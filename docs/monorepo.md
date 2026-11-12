@@ -73,6 +73,10 @@ export default defineHarness({
 - `{ path: "packages/*", shape: "package" }` puts the shared packages under the harness too; see
   [Shared packages](packages.md).
 - `test: "test"` runs the app's own `test` package script instead of Vitest. Leave it out for a Vitest app.
+- `{ path: "apps/e2e", shape: "e2e", tools: "none" }` puts a folder of Playwright tests under the
+  harness: `tests/<suite>/` with kebab-case names and at most two levels of area folders. Its lint and
+  type check run only with the `oxc` tool set, which is the default for this shape; there is no
+  ESLint preset for it yet.
 - `legacy` names the file that lists old code. Leave it out for a monorepo with no old code.
 - `root.entries` names what may sit at the repository root besides the defaults.
 

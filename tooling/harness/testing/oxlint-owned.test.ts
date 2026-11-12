@@ -32,7 +32,8 @@ describe("the owned oxlint preset", () => {
     const [all, , tests] = harnessRuleBlocks();
     for (const [rule, setting] of Object.entries(preset().rules)) expect(setting, rule).toEqual(all?.rules[eslintName(rule)]);
     const [override] = preset().overrides;
-    expect(override?.files).toEqual(["**/*.test.ts", "**/*.test.tsx"]);
+    // Vitest test files, and the spec and setup files of Playwright in an e2e workspace.
+    expect(override?.files).toEqual(["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.setup.ts"]);
     const offInTests = Object.keys(preset().rules).filter((rule) => tests?.rules[eslintName(rule)] === "off");
     expect(override?.rules).toEqual(Object.fromEntries(offInTests.map((rule) => [rule, "off"])));
     expect(offInTests).toEqual(["typescript/no-non-null-assertion"]);

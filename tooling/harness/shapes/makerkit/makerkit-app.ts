@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { MAX_FILE_LINES, MAX_FOLDER_FILES, MAX_PAGE_LINES } from "./limits.ts";
+import { MAX_FILE_LINES, MAX_FOLDER_FILES, MAX_PAGE_LINES } from "../limits.ts";
 import { makerkitAppContent, ROUTE_ACTION_FILE } from "./makerkit-app-content.ts";
 import {
   deny,
@@ -14,7 +14,7 @@ import {
   type PathVerdict,
   type Shape,
   testsFolderDenial,
-} from "./shape.ts";
+} from "../shape.ts";
 
 const CODE_FOLDERS = ["app", "components", "config", "lib", "i18n", "styles", "content"];
 const topFolders = [...CODE_FOLDERS, "public", "supabase"];

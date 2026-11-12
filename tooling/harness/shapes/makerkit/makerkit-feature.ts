@@ -13,7 +13,7 @@ import {
   type PathVerdict,
   type Shape,
   testsFolderDenial,
-} from "./shape.ts";
+} from "../shape.ts";
 
 const LAYOUT = "(Makerkit layout)";
 const topEntries = ["src", "package.json", "tsconfig.json", "README.md", "AGENTS.md", "CLAUDE.md", "vitest.config.ts"];

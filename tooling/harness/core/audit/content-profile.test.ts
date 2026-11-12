@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makerkitApp } from "../../shapes/makerkit-app.ts";
+import { makerkitApp } from "../../shapes/makerkit/makerkit-app.ts";
 import { nextModules } from "../../shapes/next-modules.ts";
 import type { ContentProfile } from "../../shapes/shape.ts";
 import { makeRepo } from "../../testing/temp-repo.ts";

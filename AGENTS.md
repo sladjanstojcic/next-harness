@@ -29,7 +29,7 @@ tooling/harness/
   cli.ts                     hook, check, audit, blocks, legacy init and prune, init, lock, unlock
   config.ts                  reads harness.config.ts; workspaces and their defaults
   core/                      guards, audit, gates, state, root layout, path classes
-  shapes/                    a workspace's paths, names, content rules, size limits; electron/ for an Electron app
+  shapes/                    a workspace's paths, names, content rules, size limits; electron/ and makerkit/ hold those shapes
   tools/                     a workspace's formatter, linter, type checker, tests
 scripts/                     repository automation
 e2e/                         Playwright browser tests
@@ -146,7 +146,7 @@ export default defineHarness({
   with the longest matching path, and its shape sees the path inside that workspace.
   A file in no workspace gets only the root layout rules from `core/root-layout.ts`.
   In a configured workspace `next` defaults to false and `tools` follows the shape:
-  `eslint-prettier` for next-modules, package and electron-vite, `oxc` for the Makerkit shapes, `none` for supabase.
+  `eslint-prettier` for next-modules, package and electron-vite, `oxc` for the Makerkit shapes and e2e, `none` for supabase.
 - Each file has a path class. Vendored files are the shape's generated code, such as
   `src/shared/ui/`. Legacy files are listed in the legacy file. Owned files match an
   `owned` prefix, or every file when `owned` is absent. All other files are upstream.
@@ -205,7 +205,20 @@ export default defineHarness({
   `lib/`), `makerkit-feature` (a package under `packages/features/*` with
   `components`, `hooks`, `schema`, `server/{actions,services,policies}`, `shared`) and
   `supabase` (`migrations/` named `<14 digits>_<name>.sql`, `schemas/NN-name.sql`,
-  seeds, tests, templates). Denials in the Makerkit shapes say "(Makerkit layout)".
+  seeds, tests, templates) and `e2e` (a folder of Playwright tests beside the apps, described below).
+  Denials in the Makerkit shapes say "(Makerkit layout)".
+- An `e2e` workspace, such as `apps/e2e`, holds Playwright tests: browser tests and tests through the
+  real API. Its top takes `package.json`, `playwright.config.ts`, `tsconfig.json`, `.gitignore`, the
+  `.env` files, `README*.md`, `AGENTS.md`, `CLAUDE.md` and one folder, `tests/`. Directly in `tests/`
+  sit only `<name>.spec.ts` and `<name>.setup.ts`; everything else goes in a suite folder
+  (`tests/checkout/`, `tests/access-api/`), which may hold two levels of area folders
+  (`tests/access-api/matrix/calls/`). Names are kebab-case with one optional role before the extension
+  (`account.po.ts`), and `utils/`, `helpers/` and the like are denied. Files and folders keep the size
+  limits, and a spec file counts towards its folder. The tool set is `oxc` or `none` (with `none` the line limit, a lint rule, is not checked); the type check
+  needs the workspace's own `tsconfig.json`. The tests themselves run in the gates only with
+  `test: "<package script>"`. Its `*.spec.ts` and `*.setup.ts` files may use non-null assertions, as
+  `*.test.ts` files may; helpers may not. Denials say "(e2e layout)". Application tests do not belong in
+  `tooling/`, where no shape judges them.
 - A `package` is one module moved out of the app: `src/index.ts` (client-safe) and
   `src/server.ts` (server-only) are its public entries, beside `schemas.ts`, `types.ts`,
   `components/`, `server/`, `domain/` (one area subfolder each) and flat `hooks/`
@@ -273,7 +286,7 @@ export default defineHarness({
   but `.env.example` is denied.
 - `analysis` lists which of `depcruise`, `knip` and `jscpd` run in Done and CI, in each
   next-modules, package and electron-vite workspace's folder: all three unless listed, never in the
-  Makerkit and supabase shapes.
+  Makerkit, supabase and e2e shapes.
 - An applied migration under a supabase workspace's `migrations/` cannot be edited,
   deleted or moved, by tool or by shell; add a new one with
   `supabase migration new <name>`. Applied means the branch's upstream or the remote

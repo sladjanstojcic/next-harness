@@ -73,8 +73,8 @@ shapes/
   next-modules.ts   the next-modules shape: folders, names, content rules, vendored files
   package.ts        a shared package: one module's layout under src/, configuration at its top
   electron/         an electron-vite app: paths, the content profile and the rules only Electron has
-  makerkit-app.ts   a Makerkit apps/web; its content rules sit in makerkit-app-content.ts
-  makerkit-feature.ts a Makerkit feature package and its package.json exports
+    makerkit/         a Makerkit apps/web with its content rules, and a Makerkit feature package
+  e2e.ts            a folder of Playwright tests beside the apps: tests/<suite>/ and its names
   supabase.ts       a Supabase folder: migration, schema, seed and test names
   limits.ts         file, folder and page size limits
   shape.ts          the contract every shape implements
