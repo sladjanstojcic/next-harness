@@ -103,10 +103,10 @@ try {
       if (!markFalseBlock(root, id, note.join(" "))) throw new Error(`No block ${id}; run \`pnpm harness:blocks\` to list them.`);
       process.stdout.write(`Marked ${id} as a false block.\n`);
     }
-  } else if (command === "legacy" && mode === "init" && paths.length === 0) {
-    const { initLegacy } = await import("./core/legacy.ts");
+  } else if (command === "legacy" && (mode === "init" || mode === "prune") && paths.length === 0) {
+    const { initLegacy, pruneLegacy } = await import("./core/legacy.ts");
     const { resolveHarness } = await import("./core/path-check.ts");
-    process.stdout.write(`${await initLegacy(root, resolveHarness(root))}\n`);
+    process.stdout.write(`${await (mode === "init" ? initLegacy : pruneLegacy)(root, resolveHarness(root))}\n`);
   } else if (command === "upstream" && mode === "sync" && paths.length <= 1) {
     const { syncUpstream } = await import("./core/upstream.ts");
     const { loadConfig } = await import("./config.ts");
@@ -144,7 +144,7 @@ try {
     }
   } else {
     throw new Error(
-      "Usage: hook <claude|codex> | check <fast|done|ci> [paths…] | audit | blocks [--false <id> [note…]] | legacy init | upstream sync [<git ref>] | init [--force] [--codex-user] [--starter] | lock | unlock",
+      "Usage: hook <claude|codex> | check <fast|done|ci> [paths…] | audit | blocks [--false <id> [note…]] | legacy <init|prune> | upstream sync [<git ref>] | init [--force] [--codex-user] [--starter] | lock | unlock",
     );
   }
 } catch (error) {

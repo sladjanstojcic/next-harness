@@ -84,7 +84,7 @@ describe("init in an existing app", () => {
     const own = { "apps/dashboard/eslint.config.mjs": OWN_ESLINT, "apps/dashboard/.prettierrc": "{}\n" };
     const newer = dashboard(own, { eslint: "10.14.0", "eslint-config-next": "16.3.4", prettier: "3.9.6" });
     expect(installLine(initHarness(newer.root, OFF).report)).toBe(
-      "  1. Install the harness's tools (init does not install): cd apps/dashboard && pnpm add -D dependency-cruiser@18.7.2 eslint-config-prettier@10.1.8 eslint-plugin-react-hooks@7.1.1 jscpd@5.4.2 knip@6.44.1 typescript-eslint@8.72.1",
+      "  1. Install the harness's tools (init does not install): (cd apps/dashboard && pnpm add -D dependency-cruiser@18.7.2 eslint-config-prettier@10.1.8 eslint-plugin-react-hooks@7.1.1 jscpd@5.4.2 knip@6.44.1 typescript-eslint@8.72.1)",
     );
     const old = dashboard(own, { eslint: "9.21.0", "eslint-config-prettier": "10.1.8", "typescript-eslint": "8.72.1", prettier: "3.9.6" });
     const line = installLine(initHarness(old.root, OFF).report);

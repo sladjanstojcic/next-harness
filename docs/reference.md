@@ -66,7 +66,7 @@ up to five minutes.
 ## Inside `tooling/harness/`
 
 ```text
-cli.ts              hook <claude|codex> · check <fast|done|ci> · audit · blocks · legacy init · upstream sync · init · lock · unlock
+cli.ts              hook <claude|codex> · check <fast|done|ci> · audit · blocks · legacy init · legacy prune · upstream sync · init · lock · unlock
 config.ts           defineHarness, loading harness.config.ts, workspaces and the longest-path match
 package.json        the harness's own pins (typescript for the compiler API, zod), so the folder works as a subtree
 shapes/
@@ -94,7 +94,7 @@ core/
   root-layout.ts    what may sit at the repository root, and JS_EXCEPTIONS
   path-check.ts     one path check: the root layout, then the file's workspace shape
   classes.ts        owned, upstream, legacy and vendored files, and what each one blocks
-  legacy.ts         the shrink-only legacy list and `legacy init`
+  legacy.ts         the shrink-only legacy list, `legacy init` and `legacy prune`
   upstream.ts       the list of kit files and `upstream sync`
   lock.ts           what is locked, and the four-hour unlock
   telemetry.ts      the block log and the false-block marker

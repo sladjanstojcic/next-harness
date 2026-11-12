@@ -1669,20 +1669,6 @@
         "reason": "tooling/harness/x.js is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
       }
     },
-    "tooling/Harness/x.ts": {
-      "write": {
-        "guard": "harness-lock",
-        "reason": "tooling/harness/x.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
-      },
-      "edit": {
-        "guard": "harness-lock",
-        "reason": "tooling/harness/x.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
-      },
-      "patch": {
-        "guard": "harness-lock",
-        "reason": "tooling/harness/x.ts is part of the harness and is locked. Ask the user to run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with them, then `pnpm harness:lock`."
-      }
-    },
     "tooling/harness/hooks/fixtures/claude/stop.json": {
       "write": {
         "guard": "harness-lock",

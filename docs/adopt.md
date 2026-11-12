@@ -35,7 +35,8 @@ An existing project breaks the rules on its first day. You do not fix all of it 
 You run `legacy init` once. It writes a legacy list: the files that have a finding today. Those
 files are tolerated. New files are held to every rule, and an old file you touch must clear its
 tool findings: types, lint, format and import boundaries. The list may only shrink, so the debt goes
-down as work passes through the old code. See
+down as work passes through the old code. `node tooling/harness/cli.ts legacy prune` takes the
+files that have no finding left off the list. See
 [the legacy list](monorepo.md#the-legacy-list).
 
 ## Let the agent in

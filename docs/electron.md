@@ -57,9 +57,9 @@ The scaffold does not make a repository, and you do not need to install yet: ste
    placeholder text. Replace the text with `false` (`true` if you build Windows installers on this
    machine) and run `pnpm install` again.
 5. `node tooling/harness/cli.ts init` again. It writes the wiring and prints seven steps, which are
-   steps 6 to 12 here. It also prints steps for a CI job. Writing that workflow is optional and
-   not one of the twelve steps; if you do, leave its Playwright line out, since an Electron project has
-   no browser smoke test.
+   steps 6 to 12 here. It adds `src/shared/**/*` to the `include` of `tsconfig.node.json` and
+   `tsconfig.web.json`, so the first contract file is type-checked. It also prints steps for a CI job;
+   writing that workflow is optional and not one of the twelve steps.
 6. Run the printed `pnpm add -D` line. Copy it from your terminal; it names exact versions.
 7. In `eslint.config.mjs`, add the printed import, and the printed spread as the last argument of
    `defineConfig(...)`, after a comma. For the scaffold the line is:
@@ -146,8 +146,9 @@ src/
   `tsconfig.web.json`. The tsc step runs `tsc --noEmit -p` for each project it refers to, and the audit
   judges the strictness of each of them. `*.tsbuildinfo` is git-ignored by init, since `tsc` writes one
   beside each composite project. Init adds `scripts/**/*.ts` and `e2e/**/*.ts` to the `include` of the
-  project that reads the workspace's top (`tsconfig.node.json`), so the first automation script or browser
-  test is type-checked and linted without a change to a locked file.
+  project that reads the workspace's top (`tsconfig.node.json`), and `src/shared/**/*` to every project that
+  does not read that folder yet. The first automation script, browser test or contract file is then
+  type-checked and linted without a change to a locked file.
 - **Gates.** ESLint, Prettier, tsc, Vitest, depcruise, knip and jscpd run as in a Next app. CI also runs
   `electron-vite build`. There is no Next type generation and no browser smoke test; packaging with
   electron-builder stays your step.
@@ -164,39 +165,36 @@ src/
 ## The first feature with a channel
 
 Run on the same project: a `notes` module in the renderer that asks the main process for a list. On
-the scaffold this is more work than one channel. It touches seven files of the legacy list, and a
+the scaffold this is more work than one channel. It touches five files of the legacy list, and a
 legacy file you touch must clear its old lint, type and import findings. Three of them have such
 findings: `src/main/index.ts`, `src/preload/index.ts` and `src/preload/index.d.ts`. Findings of the
 harness's own rules on those files, such as the file name `App.tsx` or `sandbox: false`, stay listed
 as pre-existing and do not block.
 
-1. **Let both tsconfig projects read `src/shared/`.** Add `"src/shared/**/*"` to `include` in
-   `tsconfig.node.json` and in `tsconfig.web.json`. The scaffold's projects do not read that folder,
-   and the first contract file fails with `TS6307` and an ESLint parsing error otherwise. Both files
-   are locked for agents, so this step is yours.
-2. **Write the contract** in `src/shared/`: the channel name as a constant, and the types both sides
+1. **Write the contract** in `src/shared/`: the channel name as a constant, and the types both sides
    use. The scaffold maps no `@shared/` alias; a relative import of `src/shared/` is allowed. Export
    only what another file imports: knip reports an unused exported type.
-3. **Write the handler** in a main area folder, such as `src/main/notes/register-notes-ipc.ts`, with
+2. **Write the handler** in a main area folder, such as `src/main/notes/register-notes-ipc.ts`, with
    `ipcMain.handle(NOTES_LIST_CHANNEL, ...)`. A test beside it is allowed, not required.
-4. **Write the module** in `src/renderer/src/modules/notes/`: `index.ts`, the component in
+3. **Write the module** in `src/renderer/src/modules/notes/`: `index.ts`, the component in
    `components/`, and pure logic in `domain/` with a test beside each file.
-5. **Clean `src/main/index.ts`**, which you touch to register the handler. Mark its four floating
+4. **Clean `src/main/index.ts`**, which you touch to register the handler. Mark its four floating
    promises with `void`, and move its `console.log` into `src/main/logging/log.ts`. Its
    `sandbox: false` and `shell.openExternal` findings stay as legacy; clearing them is a separate
    change.
-6. **Replace the scaffold's bridge.** `src/preload/index.ts` imports `@electron-toolkit/preload`, and
+5. **Replace the scaffold's bridge.** `src/preload/index.ts` imports `@electron-toolkit/preload`, and
    a preload script may import only `electron` and `src/shared/`. Expose one `api` object of your own,
    typed in `src/shared/`, update `index.d.ts`, read `window.api` in `App.tsx` and `Versions.tsx`, and
    run `pnpm remove @electron-toolkit/preload`. Drop the `process.contextIsolated` branch with its
-   `@ts-ignore` lines and expose with `contextBridge` only. The preload does not log: let an error
-   throw. `ipcRenderer.invoke` returns `any`, and a cast is refused
-   (`no-unsafe-type-assertion`): check the value with a guard function kept in `src/shared/`. For the
+   `@ts-ignore` lines and expose with `contextBridge` only. Neither the preload nor the renderer
+   logs: let an error throw, or send it to main over a channel, as the lint message says.
+   `ipcRenderer.invoke` returns `any`, and a cast is refused (`no-unsafe-type-assertion`): check the
+   value with a guard function kept in `src/shared/`. For the
    scaffold's `'ping'`, either delete the button and its handler, or name the channel in `src/shared/`
    and add a `ping()` to your `api` object.
-7. `pnpm run check`, then commit.
+6. `pnpm run check`, then commit.
 
-If you run the check before steps 5 and 6, the messages name the rule and the fix, for example:
+If you run the check before steps 4 and 5, the messages name the rule and the fix, for example:
 
 ```text
 src/preload/index.ts:2 no-restricted-imports — '@electron-toolkit/preload' import is restricted from

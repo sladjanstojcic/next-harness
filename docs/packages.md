@@ -81,8 +81,7 @@ from `apps/web`.
 3. `node tooling/harness/cli.ts init`. It writes the package's tool configs and scripts and prints an
    install line for it. A new package folder is not locked until the commit that adds it, so an agent
    can do this step too.
-4. Run the printed `pnpm add -D` line from the repository root, in brackets so the `cd` does not
-   stick: `(cd packages/pricing && pnpm add -D ...)`. It names the versions the presets are
+4. Run the printed line from the repository root: `(cd packages/pricing && pnpm add -D ...)`. It names the versions the presets are
    tested with, which can differ from the versions the other workspaces already have: pnpm warns that
    `eslint@9` is deprecated, and the check passes with it. The line also replaces the `typescript`
    entry with the TypeScript 6 alias; `tsc` stays the project's TypeScript 7.
