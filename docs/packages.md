@@ -70,16 +70,24 @@ from `apps/web`.
    }
    ```
 
-   `tsconfig.json` extends `@repo/typescript-config/base.json` and includes `src`. `src/index.ts` lists
-   the exports by name.
+   `tsconfig.json`:
+
+   ```json
+   {
+     "extends": "@repo/typescript-config/base.json",
+     "include": ["src"]
+   }
+   ```
+
+   `src/index.ts` lists the exports by name; its one line is in the next step.
 
 2. Put the function in `src/domain/price-with-tax.ts`, with a Vitest test `price-with-tax.test.ts`
-   beside it. With create-turbo's `base.json`, which
+   beside it. The test runs once step 4 has installed Vitest. With create-turbo's `base.json`, which
    sets `NodeNext`, write relative imports with the extension:
    `export { priceWithTax } from "./domain/price-with-tax.ts";`. Without it the type check fails with
    `TS2835`.
-3. `node tooling/harness/cli.ts init`. It writes the package's tool configs and scripts and prints an
-   install line for it. A new package folder is not locked until the commit that adds it, so an agent
+3. `node tooling/harness/cli.ts init`. It writes the package's tool configs and scripts and prints four
+   next steps: install, format, commit and check. They are steps 4 and 7 here. A new package folder is not locked until the commit that adds it, so an agent
    can do this step too.
 4. Run the printed line from the repository root: `(cd packages/pricing && pnpm add -D ...)`. It names the versions the presets are
    tested with, which can differ from the versions the other workspaces already have: pnpm warns that
@@ -89,8 +97,15 @@ from `apps/web`.
 6. Import it in the app, in a new file such as `apps/web/app/pricing/page.tsx`:
    `import { priceWithTax } from "@repo/pricing";`. A file on the legacy list, such as the scaffold's
    `page.tsx`, would have to clear its old findings first.
-7. Format the new package with `(cd packages/pricing && pnpm exec prettier --write .)`, commit, and
-   run `pnpm run check`. The printed format step names every
+7. Format the new package and the app that uses it, commit, and run the check:
+
+   ```sh
+   (cd packages/pricing && pnpm exec prettier --write .); (cd apps/web && pnpm exec prettier --write .)
+   git add -A && git commit -m "Add the pricing package"
+   pnpm run check
+   ```
+
+   The printed format step names every
    workspace, and the printed commit message still says "Add the harness"; use your own.
 
 The check then has 35 lines, eight of them for `packages/pricing`.
