@@ -39,6 +39,12 @@ parent: Reference
   block, which can turn a one-line change into a larger one.
 - The full lint step has a 120 s limit. On a loaded machine a large app reached it, though the lint
   alone took 33 s.
+- The test step has a ten-minute limit. In this template most of that time is the harness's own tests:
+  about four minutes alone, and past the limit on a machine that was busy with something else. The
+  message then starts with "Tool timed out".
+- The numbered steps in the guides were run by agents on one Linux server, each on a fresh scaffold. The
+  Electron app's window was never opened there, and the browser for the smoke test was already
+  downloaded. The Makerkit guide has not been run this way.
 - The shadcn rule sees only the seven listed elements. A hand-made layout built from `div` and `nav` passes
   lint; the session-start text and your plan are what hold it. An element made through
   `React.createElement` , a tag kept in a variable or a namespaced tag such as `<motion.button>` is not seen either.
