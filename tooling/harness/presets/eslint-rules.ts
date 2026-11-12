@@ -1,5 +1,7 @@
 /** The harness rule options the preset sets and the presence check compares; no ESLint import, so the gates can read them. */
+import fs from "node:fs";
 import { builtinModules } from "node:module";
+import path from "node:path";
 import { MAX_FILE_LINES } from "../shapes/limits.ts";
 import type { ElectronAliases } from "./electron-aliases.ts";
 
@@ -58,6 +60,26 @@ const doubleCastIn = (layout: PresetLayout) => ({
   selector: "TSAsExpression > TSAsExpression",
   message: `Validate unknown data before using it; unavoidable adapter casts belong in ${ADAPTERS[layout]}.`,
 });
+/** Whether a workspace is set up for shadcn: `components.json` at its top. The preset, its check and the code index all ask here. */
+export const usesShadcn = (workspaceDir: string): boolean => fs.existsSync(path.join(workspaceDir, "components.json"));
+
+/** Where the generated shadcn components live, by layout; a package holds none. */
+const UI: Record<Exclude<PresetLayout, "package">, string> = {
+  app: "src/shared/ui/",
+  "app-root": "shared/ui/",
+  electron: "src/renderer/src/shared/ui/",
+};
+/** The raw elements shadcn has a component for under the same name. */
+export const RAW_CONTROLS: readonly string[] = ["button", "input", "select", "textarea", "label", "table", "dialog"];
+/** One selector per element, so the message names the component to use; none in a workspace without shadcn. */
+const rawControlsIn = (layout: PresetLayout, shadcn: boolean): { selector: string; message: string }[] =>
+  !shadcn || layout === "package"
+    ? []
+    : RAW_CONTROLS.map((element) => ({
+        selector: `JSXOpeningElement[name.type='JSXIdentifier'][name.name='${element}']`,
+        message: `Use the shadcn component from ${UI[layout]} instead of a raw <${element}>; add a missing one with \`pnpm dlx shadcn add ${element}\`. If shadcn has no component for this, say so in the handoff before building it by hand.`,
+      }));
+
 const workaroundsIn = (layout: PresetLayout) => [namedExports, neverCastIn(layout), computedImport, requireCall];
 export const doubleCast = doubleCastIn("app");
 export const workarounds = workaroundsIn("app");
@@ -103,10 +125,12 @@ const ELECTRON_CONSOLE_BLOCK: RuleBlock = {
 
 /**
  * The harness's own rules, block by block in the preset's order: the preset spreads them into its config, and the
- * presence check folds the blocks matching a probe path into the settings that path must have.
+ * presence check folds the blocks matching a probe path into the settings that path must have. Each block that sets
+ * no-restricted-syntax replaces the earlier one's options, so with `shadcn` every one of them carries the raw controls.
  */
-export function harnessRuleBlocks(layout: PresetLayout = "app", aliases?: ElectronAliases): RuleBlock[] {
+export function harnessRuleBlocks(layout: PresetLayout = "app", aliases?: ElectronAliases, shadcn = false): RuleBlock[] {
   const [workarounds, neverCast, doubleCast] = [workaroundsIn(layout), neverCastIn(layout), doubleCastIn(layout)];
+  const controls = rawControlsIn(layout, shadcn);
   return [
     {
       files: ["**/*.{ts,tsx}"],
@@ -125,7 +149,7 @@ export function harnessRuleBlocks(layout: PresetLayout = "app", aliases?: Electr
         "no-eval": "error",
         "no-new-func": "error",
         "max-lines": ["error", { max: MAX_FILE_LINES, skipBlankLines: false, skipComments: false }],
-        "no-restricted-syntax": ["error", ...workarounds],
+        "no-restricted-syntax": ["error", ...workarounds, ...controls],
       },
     },
     {
@@ -134,7 +158,7 @@ export function harnessRuleBlocks(layout: PresetLayout = "app", aliases?: Electr
       rules: {
         "@typescript-eslint/consistent-type-assertions": ["error", { assertionStyle: "as", objectLiteralTypeAssertions: "never" }],
         "@typescript-eslint/no-unsafe-type-assertion": "error",
-        "no-restricted-syntax": ["error", ...workarounds, doubleCast],
+        "no-restricted-syntax": ["error", ...workarounds, doubleCast, ...controls],
       },
     },
     {
@@ -143,7 +167,7 @@ export function harnessRuleBlocks(layout: PresetLayout = "app", aliases?: Electr
       rules: {
         "@typescript-eslint/no-non-null-assertion": "off",
         "@typescript-eslint/no-unsafe-type-assertion": "off",
-        "no-restricted-syntax": ["error", namedExports, neverCast, requireCall, doubleCast],
+        "no-restricted-syntax": ["error", namedExports, neverCast, requireCall, doubleCast, ...controls],
       },
     },
     layout === "package" ? PACKAGE_DOMAIN : { files: CONSOLE[layout], rules: { "no-console": "off" } },

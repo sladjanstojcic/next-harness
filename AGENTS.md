@@ -75,6 +75,9 @@ rule must change.
   Domain code has no React or I/O dependencies and has a test beside each file.
 - Generated `shared/ui/` and `shared/lib/utils.ts` are vendored and exempt from size
   limits. Use the shadcn CLI to generate primitives; put custom code in shared/components.
+- In a workspace with `components.json` at its top, lint reports a raw `button`, `input`, `select`,
+  `textarea`, `label`, `table` or `dialog` element outside `shared/ui/`: use the shadcn component, or add
+  it with `pnpm dlx shadcn add <name>`. Session start adds an "Interface" section on building from shadcn.
 - `proxy.ts`, `instrumentation.ts` and `instrumentation-client.ts` may live beside app/.
   Keep other non-route code out of app/.
 

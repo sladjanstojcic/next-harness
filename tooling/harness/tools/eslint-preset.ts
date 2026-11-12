@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
-import { harnessRuleBlocks, type ElectronAliases as Aliases, type PresetLayout, type RuleBlock } from "../presets/eslint-rules.ts";
+import { harnessRuleBlocks, usesShadcn, type ElectronAliases as Aliases, type PresetLayout, type RuleBlock } from "../presets/eslint-rules.ts";
 import { ELECTRON_PROBES } from "../shapes/electron/electron-vite.ts";
 import { sourceProbes } from "../shapes/next-modules.ts";
 import { PACKAGE_PROBES } from "../shapes/package.ts";
@@ -23,6 +23,7 @@ function layoutOf(workspace: PresetWorkspace): PresetLayout {
   return workspace.shape === "next-modules" && workspace.sourceRoot === "" ? "app-root" : "app";
 }
 type Setting = RuleBlock["rules"][string];
+type Expected = (probe: string) => Record<string, Setting>;
 
 const severity = z.union([z.number(), z.string()]);
 const ruleSetting = z.union([severity, z.tuple([severity], z.unknown())]);
@@ -39,10 +40,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const selectors = (options: Options): unknown[] => options.map((option) => (isRecord(option) ? option.selector : option));
 
 /** The settings the preset gives a path: every block whose files match it and whose ignores do not, later blocks winning. */
-export function expectedRules(probe: string, layout: PresetLayout = "app", aliases?: Aliases): Record<string, Setting> {
+export function expectedRules(probe: string, layout: PresetLayout = "app", aliases?: Aliases, shadcn = false): Record<string, Setting> {
   const matches = (globs: readonly string[] = []): boolean => globs.some((glob) => path.posix.matchesGlob(probe, glob));
   const settings: Record<string, Setting> = {};
-  for (const block of harnessRuleBlocks(layout, aliases)) if (matches(block.files) && !matches(block.ignores)) Object.assign(settings, block.rules);
+  for (const block of harnessRuleBlocks(layout, aliases, shadcn)) if (matches(block.files) && !matches(block.ignores)) Object.assign(settings, block.rules);
   return settings;
 }
 
@@ -202,15 +203,13 @@ export const bringsOwnNext = (dir: string): boolean => brings(NEXT_RULES, eslint
 /** The tools the package behind the workspace's own ESLint config already brings; the preset loads them from there. */
 export const broughtByBase = (dir: string): string[] => baseProvider(eslintConfigText(dir), dir)?.dependencies ?? [];
 
-function missingRules(printed: unknown, probe: string, layout: PresetLayout, defaults: Record<string, Options>, aliases?: Aliases): string[] {
+function missingRules(printed: unknown, expected: Record<string, Setting>, defaults: Record<string, Options>): string[] {
   const config = printedConfig.parse(printed ?? {});
-  const missing = Object.entries(expectedRules(probe, layout, aliases))
-    .filter(([rule, expected]) => !holds(rule, expected, config.rules?.[rule], defaults[rule] ?? []))
-    .map(([rule]) => rule);
+  const missing = Object.entries(expected).flatMap(([rule, setting]) => (holds(rule, setting, config.rules?.[rule], defaults[rule] ?? []) ? [] : [rule]));
   return config.linterOptions?.noInlineConfig === true ? missing : [...missing, "linterOptions.noInlineConfig"];
 }
 
-function presetFindings(stdout: string, probes: string[], workspace: PresetWorkspace, presetLines: string[], own: string, aliases?: Aliases): Finding[] {
+function presetFindings(stdout: string, probes: string[], workspace: PresetWorkspace, presetLines: string[], own: string, expected: Expected): Finding[] {
   const exported = exportedName(own);
   const last = exportsCall(own) ? "the second as the last argument of the exported call" : "the second as the last entry of the exported array";
   const rest = exported === undefined ? last : `the other two in place of \`export default ${exported}\``;
@@ -218,7 +217,7 @@ function presetFindings(stdout: string, probes: string[], workspace: PresetWorks
   const where = workspace.path === "" ? "the root" : workspace.path;
   const lines = presetLines.map((line) => `  ${line}`).join("\n");
   return probes.flatMap((probe) =>
-    missingRules(configs[probe], probe, layoutOf(workspace), defaults, aliases).map((rule) => ({
+    missingRules(configs[probe], expected(probe), defaults).map((rule) => ({
       rule: "preset-missing",
       file: "",
       message: `${rule} is not active as the harness sets it for ${probe} in the ESLint config of ${where}. Keep your config and add the harness preset: put the first line at the top and ${rest}, with no later entry weakening these rules.\n${lines}`,
@@ -244,7 +243,8 @@ export function eslintPreset(dir: string, workspace: PresetWorkspace, token: () 
     timeoutMs: CHECK_TIMEOUT_MS,
     findings: (stdout) => {
       const own = eslintConfigText(dir);
-      return presetFindings(stdout, probes, workspace, eslintPresetLines(workspace, own, dir), own, aliases);
+      const shadcn = usesShadcn(dir);
+      return presetFindings(stdout, probes, workspace, eslintPresetLines(workspace, own, dir), own, (probe) => expectedRules(probe, layout, aliases, shadcn));
     },
   };
 }

@@ -97,6 +97,14 @@ never imports a module. No cycles. dependency-cruiser checks it.
 no `as never`, no narrowing `as` outside a module's `server/`, no computed `import()` or `require()`,
 no inline disables, no `@ts-ignore`.
 
+**shadcn, where the project uses it.** In a workspace with `components.json` at its top, lint reports a
+raw `<button>`, `<input>`, `<select>`, `<textarea>`, `<label>`, `<table>` or `<dialog>` outside the
+generated `shared/ui/`, in tests too, and names the way out: the shadcn component, or
+`pnpm dlx shadcn add <name>` for a missing one. Session start then also tells the agent to build the
+interface from shadcn's components, layouts and blocks. Without `components.json` nothing changes. When
+you write a plan, name the shadcn layout and components in it; "follow the mockup" alone gets a
+hand-made copy.
+
 ## How it works
 
 The harness is a small TypeScript CLI that both agent clients call from their hooks. Node 24 runs it
@@ -104,7 +112,7 @@ directly, with no build step.
 
 | Moment                      | What runs                                                                                                                                                            | Takes    |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| Session start               | A code index of every module's public exports, so the agent reuses before it writes                                                                                  | one read |
+| Session start               | A code index of every module's public exports, so the agent reuses before it writes; with shadcn, how to build the interface                                         | one read |
 | User prompt                 | A snapshot of the working tree; Done judges only what this turn changed                                                                                              | ms       |
 | Before a write              | Guards: structure, secrets (`.env*`), the lockfile, vendored UI, applied migrations, the harness lock                                                                | ms       |
 | Before a command            | Guards: force push, `rm` outside the checkout, destructive Prisma and Supabase migrations, Supabase deploys to a linked project, the unlock and false-block commands | ms       |
@@ -767,6 +775,9 @@ Exact versions, no ranges; every config file is TypeScript.
   block, which can turn a one-line change into a larger one.
 - The full lint step has a 120 s limit. On a loaded machine a large app reached it, though the lint
   alone took 33 s.
+- The shadcn rule sees only the seven listed elements. A hand-made layout built from `div` and `nav` passes
+  lint; the session-start text and your plan are what hold it. An element made through
+  `React.createElement` , a tag kept in a variable or a namespaced tag such as `<motion.button>` is not seen either.
 - Content rules are mostly regular expressions; the duplicate check is the only syntax-tree rule.
 - The fast gate was measured at about 1.6 s per edit on the empty template, not on a large project.
 - The `oxc` tool set runs oxlint without `--type-aware`, because oxlint-tsgolint is not installed
