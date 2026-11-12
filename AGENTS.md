@@ -26,7 +26,7 @@ src/
     lib/                     cross-cutting infrastructure; flat
     hooks/                   generic React hooks; flat
 tooling/harness/
-  cli.ts                     hook, check, audit, blocks, legacy init, init, lock, unlock
+  cli.ts                     hook, check, audit, blocks, legacy init and prune, init, lock, unlock
   config.ts                  reads harness.config.ts; workspaces and their defaults
   core/                      guards, audit, gates, state, root layout, path classes
   shapes/                    a workspace's paths, names, content rules, size limits; electron/ for an Electron app
@@ -176,6 +176,8 @@ export default defineHarness({
 - `node tooling/harness/cli.ts legacy init` writes the legacy list once, from the
   files that have a harness finding or a tool finding today; it runs the tools, so
   install them first. Commit it; from then on it may only shrink.
+  `node tooling/harness/cli.ts legacy prune` shortens it to the files that still have a
+  finding; it writes nothing while a tool cannot run. Both are the user's commands.
   The list may sit at the root or under an approved folder such as `tooling/`.
 - A config that fails to load denies every PreToolUse call with the loader's error;
   one that fails validation names the field. Other hook events allow and print it.
@@ -249,14 +251,16 @@ export default defineHarness({
   `ipcRenderer.invoke/send/sendSync/on/once` or `webContents.send`; name channels in `src/shared/`).
   `"use server"`, `"use client"` and `server-only` are reported anywhere, and `process.env` is read in
   `src/main/` only. Console output belongs in a file named `log.ts` in a `src/main/` area folder
-  (`src/main/logging/log.ts`); the `electron-vite` shape takes no `next: true`.
+  (`src/main/logging/log.ts`); preload and renderer do not log, they throw or send the error to main
+  over a channel. The `electron-vite` shape takes no `next: true`.
 - Electron tools: the workspace's `tsconfig.json` names no files, so the tsc step runs
   `tsc --noEmit -p` for each project it refers to, and `tsconfig-strict` judges each of those. CI also
   runs `electron-vite build`; there is no Next type generation and no browser smoke. The audit rule
   `preload-bundle` wants `build: { externalizeDeps: false }` written literally in the `preload` section of
   `electron.vite.config.ts` and no `externalizeDepsPlugin()` there (a config without that section passes): a sandboxed preload script cannot load a package,
   and electron-vite leaves `dependencies` outside the bundle. `init` lists `scripts/**/*.ts` and
-  `e2e/**/*.ts` in the `include` of the project that reads the workspace's top, so code beside `src/` is checked. Knip's entries are
+  `e2e/**/*.ts` in the `include` of the project that reads the workspace's top, so code beside `src/` is checked, and
+  `src/shared/**/*` in every project that does not read that folder yet, so the first contract file is. Knip's entries are
   `electron.vite.config.ts`, `src/main/index.ts`, `src/preload/index.ts`, `src/renderer/index.html`
   and `src/renderer/src/main.tsx`. The code index lists the exports of `src/shared/`, each renderer
   module's `index.ts` and the renderer's `shared/lib/`. There are no starter files.

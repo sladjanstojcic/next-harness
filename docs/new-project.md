@@ -81,8 +81,8 @@ Expect several minutes and no output until it finishes. Most of that time is the
 own tests; on a four-core server the whole check took about seven minutes.
 
 If a step fails before you have changed anything, the template is at fault, not you. Look at the
-Check badge in the README, and run the failing step on its own to see the cause, for example
-`pnpm test` for vitest. Each step is also a script in `package.json`.
+Check badge in the README. A failing test run is printed by its last lines, where the failed tests are
+named. Each step is also a script in `package.json`, such as `pnpm test`, if you want its full output.
 
 ## 6. Let the agent in
 

@@ -35,7 +35,7 @@ const aliasVersion = (spec: string): string => spec.replace(/^npm:(?:@[^@/]+\/)?
 /** server-only is the starter's other runtime dependency; the harness itself does not import it. */
 const STARTER_RUNTIME: Readonly<Record<string, string>> = { "server-only": "0.0.1" };
 
-const inWorkspace = (workspace: WorkspaceEntry, command: string): string => (workspace.path === "" ? command : `cd ${workspace.path} && ${command}`);
+const inWorkspace = (workspace: WorkspaceEntry, command: string): string => (workspace.path === "" ? command : `(cd ${workspace.path} && ${command})`);
 
 /** The version a node_modules folder between the workspace and the git root provides, or undefined. */
 function reachableVersion(root: string, workspace: WorkspaceEntry, name: string): string | undefined {

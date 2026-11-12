@@ -148,7 +148,13 @@ describe("the ESLint preset for the electron layout", () => {
     const banned = expectedRules("src/main/index.ts", "electron");
     expect(banned["no-console"]).toBe("off");
     expect(JSON.stringify(banned["no-restricted-properties"])).toContain("src/main/logging/log.ts");
-    expect(expectedRules(`${R}/app.tsx`, "electron")["no-restricted-properties"]).toEqual(banned["no-restricted-properties"]);
+    // Preload and renderer cannot import that helper, so their message does not send them to it.
+    for (const file of [`${R}/app.tsx`, "src/preload/index.ts"]) {
+      const outside = JSON.stringify(expectedRules(file, "electron")["no-restricted-properties"]);
+      expect(outside, file).toContain("Do not log here: let the error throw, or send it to the main process over a channel");
+      expect(outside, file).not.toContain("Log through a file named log.ts");
+    }
+    expect(JSON.stringify(expectedRules("src/shared/notes.ts", "electron")["no-restricted-properties"])).toContain("src/main/logging/log.ts");
     for (const file of ["src/main/logging/log.ts", "scripts/release.ts"])
       expect(expectedRules(file, "electron")["no-restricted-properties"], file).toBeUndefined();
   });

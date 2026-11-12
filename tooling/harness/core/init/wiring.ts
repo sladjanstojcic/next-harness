@@ -42,14 +42,12 @@ export const PACKAGE_SCRIPTS: Readonly<Record<string, string>> = {
 };
 
 /** With a legacy list CI compares with the remote default branch, which a shallow checkout does not hold. */
-export const ciSteps = (
-  legacy: boolean,
-): string => `CI is not written. Add these steps to a job in .github/workflows/ (Playwright only for a Next workspace at the root):
+/** The browser install is for the smoke test, which runs only for a Next workspace at the root. */
+export const ciSteps = (legacy: boolean, smoke: boolean): string => `CI is not written. Add these steps to a job in .github/workflows/:
       - uses: actions/checkout@v7${legacy ? "\n        with:\n          fetch-depth: 0" : ""}
       - uses: actions/setup-node@v7
         with:
           node-version: 24
       - uses: pnpm/action-setup@v6
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm install --frozen-lockfile${smoke ? "\n      - run: pnpm exec playwright install --with-deps chromium" : ""}
       - run: node tooling/harness/cli.ts check ci`;

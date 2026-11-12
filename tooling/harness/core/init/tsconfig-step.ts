@@ -95,11 +95,21 @@ export function tsconfigStep(root: string, workspace: WorkspaceEntry, force: boo
   return { target, status: "updated", detail: `${changes.join(", ")}${hand}`, ...(hand === "" ? {} : { todo: true }), apply };
 }
 
+/** The folder an Electron app keeps the contract between its three programs in. */
+const SHARED_CONTRACT = "src/shared/**/*";
+
+/** Whether a project's `include` already reads the contract folder `src/shared/`. */
+const readsShared = (include: readonly unknown[]): boolean =>
+  include.some(
+    (entry) => typeof entry === "string" && (/^(?:\.\/)?src(?:\/\*\*(?:\/\*(?:\.tsx?)?)?)?$/.test(entry) || /^(?:\.\/)?src\/shared(?:\/|$)/.test(entry)),
+  );
+
 /**
  * A workspace that is type-checked project by project, as an electron-vite one: its tsconfig.json names no file, so the
  * step above has nothing to change there. A project that takes files from the workspace's top (`*.config.ts`) would reach
  * the harness through harness.config.ts and the tool configs that import a preset; nothing imports those files, so leaving
  * them out of that project's `exclude` is enough. That project also takes `scripts/` and `e2e/`, the code beside `src/`.
+ * Every project of an Electron app also takes `src/shared/`, the contract its three programs share.
  * Any other workspace gets the one step above.
  */
 export function tsconfigSteps(root: string, workspace: WorkspaceEntry, force: boolean, presetConfigs: readonly string[]): Step[] {
@@ -109,9 +119,14 @@ export function tsconfigSteps(root: string, workspace: WorkspaceEntry, force: bo
   const left = [...(workspace.path === "" ? [HARNESS_DIR, CONFIG_FILE] : []), ...presetConfigs];
   return projects.flatMap((project): Step[] => {
     const file = path.join(dir, project);
-    if (!tsconfigFiles(file).some((source) => path.relative(dir, path.dirname(source)) === "")) return [];
+    const readsTop = tsconfigFiles(file).some((source) => path.relative(dir, path.dirname(source)) === "");
+    const contract = workspace.shape === "electron-vite";
+    if (!readsTop && !contract) return [];
     const target = path.posix.join(workspace.path, project);
-    const byHand = `"exclude": [..., ${left.map((entry) => `"${entry}"`).join(", ")}]`;
+    const byHand = [
+      ...(readsTop ? [`"exclude": [..., ${left.map((entry) => `"${entry}"`).join(", ")}]`] : []),
+      ...(contract ? [`"include": [..., "${SHARED_CONTRACT}"]`] : []),
+    ].join("\n    ");
     let config: Record<string, unknown> | undefined;
     try {
       config = readJson(file, target);
@@ -120,12 +135,14 @@ export function tsconfigSteps(root: string, workspace: WorkspaceEntry, force: bo
     }
     if (config === undefined) return [];
     const exclude: unknown[] = Array.isArray(config.exclude) ? config.exclude.map((entry: unknown) => entry) : DEFAULT_EXCLUDE;
-    const added = left.filter((entry) => !exclude.includes(entry));
+    const added = readsTop ? left.filter((entry) => !exclude.includes(entry)) : [];
     // The same project checks the code beside src/: without these, a first file in scripts/ or e2e/ would need a locked edit.
     const include: unknown[] | undefined = Array.isArray(config.include) ? config.include.map((entry: unknown) => entry) : undefined;
-    const wanted = [...(workspace.path === "" ? ["scripts/**/*.ts"] : []), "e2e/**/*.ts"];
+    const beside = readsTop ? [...(workspace.path === "" ? ["scripts/**/*.ts"] : []), "e2e/**/*.ts"] : [];
+    // Every project of an Electron app reads the contract between its three programs, for the same reason.
+    const wanted = [...beside, ...(contract && include !== undefined && !readsShared(include) ? [SHARED_CONTRACT] : [])];
     const included = include === undefined ? [] : wanted.filter((entry) => !include.includes(entry));
-    if (added.length === 0 && included.length === 0) return [{ target, status: "unchanged", detail: "leaves the harness and its configs out" }];
+    if (added.length === 0 && included.length === 0) return readsTop ? [{ target, status: "unchanged", detail: "leaves the harness and its configs out" }] : [];
     const next = {
       ...config,
       ...(include === undefined || included.length === 0 ? {} : { include: [...include, ...included] }),

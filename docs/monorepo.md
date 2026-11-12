@@ -91,9 +91,9 @@ files; running it again with `--starter` later is safe.
 Init also prints the steps for a CI job. They are optional for the local check; add them when the
 repository has GitHub Actions.
 
-The eleven printed steps are steps 4 to 11 here. **Run each printed line from the repository root.**
-Some lines start with `cd apps/docs && ...` and do not return, so the next one fails if you stay
-there. Wrap such a line in brackets: `(cd apps/docs && pnpm add -D ...)`.
+The eleven printed steps are steps 4 to 11 here. Run each printed line from the repository root. A
+line for one workspace comes in brackets, `(cd apps/docs && ...)`, so the shell is back at the root
+afterwards.
 
 ## 4. Install the harness's tools in each workspace
 
@@ -187,6 +187,10 @@ that has a finding today. From then on:
 - a new file, and a file outside the list, is held to every rule;
 - an agent that changes an old file must fix that file's old tool findings before its turn ends;
 - the list may only shrink.
+
+To shorten it, run `node tooling/harness/cli.ts legacy prune` in your own terminal. It runs the same
+tools again and takes every file that has no finding left off the list: fixed, moved or deleted. It
+writes nothing while a tool cannot run. Commit the shorter list.
 
 In GitHub Actions the checkout needs `fetch-depth: 0`, because CI compares each legacy file with the
 default branch. Init prints the workflow steps with that line.

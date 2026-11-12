@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeRepo } from "../../testing/temp-repo.ts";
+import { vitest } from "../../tools/vitest.ts";
 import { runTool } from "./run-tool.ts";
 
 afterEach(() => vi.unstubAllEnvs());
@@ -47,6 +48,21 @@ describe("tool runner", () => {
     expect(findings[0]?.message.split("\n")).toHaveLength(40);
     expect(findings[0]?.message).toMatch(/^line 0\n/);
     expect(findings[0]?.message).toMatch(/\nline 39$/);
+  });
+
+  it("reports a failing Vitest run by its last lines, where the failed tests are named", async () => {
+    const repo = makeRepo();
+    const print = "process.stdout.write(Array.from({length: 45}, (_, i) => 'line ' + i).join('\\n') + '\\n FAIL  src/x.test.ts > adds\\n'); process.exit(1)";
+    const [finding] = await runTool(repo.root, { ...vitest.all(repo.root), command: [process.execPath, "-e", print] });
+    const lines = finding?.message.split("\n") ?? [];
+    expect(finding?.rule).toBe("vitest-failed");
+    expect(lines[0]).toBe("Vitest failed. Its last lines:");
+    expect(lines).toHaveLength(41);
+    expect(lines.at(-1)).toBe(" FAIL  src/x.test.ts > adds");
+    expect(lines).not.toContain("line 0");
+    const hang = "process.stdout.write('running\\n'); setInterval(() => {}, 1000)";
+    const [slow] = await runTool(repo.root, { ...vitest.all(repo.root), command: [process.execPath, "-e", hang], timeoutMs: 300 });
+    expect(slow?.message).toBe("Tool timed out after 300 ms. Its last lines:\nrunning");
   });
 
   it("passes only the allowlisted environment with CI forced to 1", async () => {
