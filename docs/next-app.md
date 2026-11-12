@@ -1,3 +1,9 @@
+---
+title: An existing Next.js project
+nav_order: 2
+parent: Adopt it
+---
+
 # An existing Next.js project
 
 For a single app at the repository root, such as `create-next-app` output, with or without a `src/`

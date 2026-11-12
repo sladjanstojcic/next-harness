@@ -1,3 +1,8 @@
+---
+title: Reference
+nav_order: 6
+---
+
 # Reference
 
 ## Four classes of file

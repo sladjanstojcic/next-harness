@@ -1,3 +1,9 @@
+---
+title: What init writes
+nav_order: 6
+parent: Adopt it
+---
+
 # What init writes
 
 `node tooling/harness/cli.ts init [--starter] [--codex-user] [--force]` is safe to run again. It keeps

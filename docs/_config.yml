@@ -1,0 +1,9 @@
+title: Next Harness
+description: A guarded Next.js template for code that agents write.
+remote_theme: just-the-docs/just-the-docs@v0.12.0
+url: https://sladjanstojcic.github.io
+baseurl: /next-harness
+color_scheme: light
+search_enabled: true
+aux_links:
+  GitHub: https://github.com/sladjanstojcic/next-harness

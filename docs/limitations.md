@@ -1,3 +1,9 @@
+---
+title: Known limitations
+nav_order: 1
+parent: Reference
+---
+
 # Known limitations
 
 - It was tried on real projects of each kind: `create-next-app` with and without `src/`, a fresh

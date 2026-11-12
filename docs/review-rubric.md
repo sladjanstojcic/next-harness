@@ -1,3 +1,9 @@
+---
+title: Review rubric
+nav_order: 2
+parent: Reference
+---
+
 # Review rubric
 
 Score the branch on six dimensions, 0–2 each. This rubric complements the gates;
