@@ -25,6 +25,8 @@ place, checked after every edit, and gated before it ends its turn.
                               pre-push and CI: the same gate, in full
 ```
 
+**Documentation:** <https://sladjanstojcic.github.io/next-harness/>
+
 ## What it does
 
 Agents write good code and bad shape. A `utils/` folder appears in every module, files grow past a
