@@ -59,4 +59,80 @@ describe("code index", () => {
   it("handles the template with no modules or shared files", () => {
     expect(codeIndex(makeRepo().root)).toContain("## shared/lib");
   });
+
+  const SHARED = { "src/shared/lib/format.ts": "export const f = 1;\n" };
+  const SHADCN = { ...SHARED, "components.json": "{}\n" };
+  const section = (index: string): string[] => {
+    const lines = index.split("\n");
+    const start = lines.indexOf("## Interface");
+    const end = lines.findIndex((line, at) => at > start && line.startsWith("## "));
+    return start === -1 ? [] : lines.slice(start, end === -1 ? undefined : end).filter((line) => line !== "");
+  };
+
+  it("stays byte-equal in a workspace without components.json", () => {
+    const expected =
+      "# Code index\n\nReuse these public APIs before adding code. Module internals stay inside their module.\n\n## shared/lib\n\n- `format.ts`: `f`\n";
+    expect(codeIndex(makeRepo(SHARED).root)).toBe(expected);
+    const withForms = { ...SHARED, "package.json": '{ "dependencies": { "react-hook-form": "7.0.0" } }\n' };
+    expect(codeIndex(makeRepo(withForms).root)).toBe(expected);
+  });
+
+  it("adds the interface guidance before the exports of a workspace with components.json, in at most ten lines", () => {
+    const index = codeIndex(makeRepo(SHADCN).root);
+    expect(index).toContain("their module.\n\n## Interface\n\n");
+    expect(index.indexOf("## Interface")).toBeLessThan(index.indexOf("## shared/lib"));
+    expect(index).toContain("\n\n## shared/lib\n\n- `format.ts`: `f`\n");
+    const lines = section(index);
+    expect(lines.length).toBeLessThanOrEqual(10);
+    const text = lines.join("\n");
+    for (const part of [
+      "shadcn components in `src/shared/ui/`",
+      "layouts and blocks (sidebar, page header, cards), unless the task says otherwise",
+      "A mockup decides what is on a screen and what it says; shadcn decides how it looks.",
+      "Do not hand-style a look-alike of a component shadcn has, and keep a component's own variants and spacing.",
+      "say so in the handoff before building it by hand",
+      "If the skills `shadcn` and `vercel-react-best-practices` are available in this session, load them before UI work.",
+    ]) {
+      expect(text).toContain(part);
+    }
+    expect(text).not.toContain("react-hook-form");
+  });
+
+  it.each(["dependencies", "devDependencies"])("names the form stack when react-hook-form is in the workspace's %s", (group) => {
+    const repo = makeRepo({ ...SHADCN, "package.json": JSON.stringify({ [group]: { "react-hook-form": "7.0.0" } }) });
+    const lines = section(codeIndex(repo.root));
+    expect(lines.length).toBeLessThanOrEqual(10);
+    expect(lines.join("\n")).toContain(
+      "A client form uses `react-hook-form` with the shadcn field components and a Zod schema from the module's `schemas.ts`.",
+    );
+  });
+
+  it("names the layout's own folder, per workspace, and says nothing where the shape has no shared/ui/", () => {
+    const atTop = codeIndex(makeRepo({ "app/page.tsx": "export default function Page() { return null; }\n", "components.json": "{}\n" }).root);
+    expect(atTop).toContain("shadcn components in `shared/ui/`");
+    const config = {
+      workspaces: [
+        { path: "apps/web", shape: "next-modules" },
+        { path: "apps/desk", shape: "electron-vite" },
+        { path: "apps/site", shape: "next-modules" },
+        { path: "packages/billing", shape: "package" },
+      ],
+    };
+    const index = codeIndex(
+      makeRepo({
+        "harness.config.ts": `export default ${JSON.stringify(config)};\n`,
+        "apps/web/components.json": "{}\n",
+        "apps/desk/components.json": "{}\n",
+        "apps/site/package.json": "{}\n",
+        "packages/billing/components.json": "{}\n",
+        "packages/billing/src/index.ts": "export const b = 1;\n",
+      }).root,
+    );
+    expect(index.match(/## Interface/g)).toHaveLength(2);
+    expect(index).toContain("# apps/web\n\n## Interface\n\n");
+    expect(index).toContain("# apps/desk\n\n## Interface\n\n");
+    expect(index).toContain("shadcn components in `src/renderer/src/shared/ui/`");
+    expect(index).not.toContain("# apps/site\n\n## Interface");
+    expect(index).not.toContain("# packages/billing\n\n## Interface");
+  });
 });
