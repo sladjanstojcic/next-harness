@@ -27,9 +27,10 @@ Every guide for an existing project follows the same three moves. Add the harnes
 
 An existing project breaks the rules on its first day. You do not fix all of it before you start.
 
-The harness writes a legacy list once: the files that have a finding today. Those files are
-tolerated. New files and files you touch are held to every rule. The list may only shrink, so the
-debt goes down as work passes through the old code. See
+You run `legacy init` once. It writes a legacy list: the files that have a finding today. Those
+files are tolerated. New files are held to every rule, and an old file you touch must clear its
+type, lint and format findings. The list may only shrink, so the debt goes down as work passes
+through the old code. See
 [the legacy list](monorepo.md#the-legacy-list).
 
 ## Let the agent in

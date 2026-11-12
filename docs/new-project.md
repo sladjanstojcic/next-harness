@@ -36,7 +36,7 @@ pnpm rename --name my-product --port 3100 --title "My Product"
 The script changes three files and nothing else:
 
 - `package.json` gets the name, and its `dev` script becomes `next dev -p 3100`.
-- `src/app/layout.tsx` gets the title in its metadata.
+- `src/app/layout.tsx` gets the title as its metadata title and description.
 - `README.md` gets the title as its first heading.
 
 ## 4. Install the test browser and start

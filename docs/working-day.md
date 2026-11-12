@@ -62,7 +62,7 @@ Files changed in this turn block. Older problems elsewhere are reported and do n
 ## 5. Two repairs, then a report
 
 The agent gets two repair attempts per prompt. If the same failure comes back unchanged, repairs
-stop at once. After that the agent must end its turn by telling you what still fails:
+stop at once. After that the harness lets the turn end and shows you what still fails:
 
 ```text
 Checks still failing after 2 repairs:
@@ -105,7 +105,7 @@ Only you can do that. The agent is asked to name the block in its report instead
 decision. Run `pnpm harness:unlock` in your own terminal, make the change together with the agent,
 and run `pnpm harness:lock` when you are done.
 
-**Read the report.** When the agent stops with failing checks, it says which. That is the harness
+**Read the report.** When a turn ends with failing checks, the harness shows you which. That is the harness
 working: you learn about the problem at the end of the turn, not in review a day later.
 
 ## What it does not do

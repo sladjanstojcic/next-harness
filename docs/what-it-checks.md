@@ -34,6 +34,9 @@ harness says   generic-folder: Name the domain/ subfolder after its area (e.g. p
 
 This check runs before the write. The file is never created.
 
+The checks below run after the write, so their findings name the file and line first:
+`file:line rule — message`.
+
 ## Limits
 
 A file has at most 250 lines, counting blanks and comments. A page has at most 60. A folder has at
@@ -44,8 +47,8 @@ it, when the agent still knows what the two halves are.
 
 ```text
 agent grows    src/app/invoices/page.tsx to 84 lines
-harness says   thin-page: page.tsx has 84 lines (maximum 60); move UI into
-               src/modules/<module>/components/ and import it through index.ts.
+harness says   src/app/invoices/page.tsx:1 thin-page — page.tsx has 84 lines (maximum 60); move
+               UI into src/modules/<module>/components/ and import it through index.ts.
 ```
 
 Generated code is exempt: the shadcn components in `src/shared/ui/` are not yours to split.
@@ -57,25 +60,30 @@ Another module, or a route, uses a module only through `index.ts`, `server.ts` o
 pure: no React, no I/O, and a test beside every file.
 
 Boundaries are what let you change the inside of a module without reading the rest of the project.
-An agent reaching into another module's internals removes that, one import at a time.
+An agent reaching into another module's internals removes that, one import at a time. Boundaries are
+checked when the agent says it is done, and again before a push.
 
 ```text
-agent imports  @/modules/billing/server/load-invoices from src/modules/reports/
-harness says   module-public-api: Import another module through index.ts, server.ts or
-               actions/<name>-action.ts; keep internal imports inside their own module.
+agent imports  billing's server/load-invoices.ts from the reports module
+harness says   src/modules/reports/server/monthly-report.ts:1 module-public-api —
+               src/modules/reports/server/monthly-report.ts →
+               src/modules/billing/server/load-invoices.ts. Import another module through
+               index.ts, server.ts or actions/<name>-action.ts; keep internal imports inside
+               their own module.
 ```
 
 ## No copies, no workarounds
 
-The same function may not exist under two names. Unused exports and files are reported. So are
+The same function body may not exist under two names. Unused exports and files are reported. So are
 pasted blocks. `any`, `as never`, `@ts-ignore` and comments that switch off a lint rule are errors.
 
-Copies are how a project ends up with three slightly different price formatters. Workarounds are how
+Copies are how a project ends up with one price formatter in three modules. The copy check runs when
+the agent says it is done. Workarounds are how
 a failing check turns into a passing one without the problem being fixed.
 
 ```text
-agent writes   formatMoney in src/modules/reports/domain/totals.ts
-harness says   duplicate-export: formatMoney is
+agent writes   formatMoney in src/modules/reports/domain/totals.ts, with the body of formatPrice
+harness says   src/modules/reports/domain/totals.ts:12 duplicate-export — formatMoney is
                src/modules/billing/domain/format-price.ts#formatPrice under another name. Reuse
                that export; put cross-module logic in src/shared/lib/ or src/shared/components/.
 ```
@@ -94,9 +102,10 @@ interface drifts apart one button at a time.
 
 ```text
 agent writes   <button className="rounded px-3 py-2">Save</button>
-harness says   Use the shadcn component from src/shared/ui/ instead of a raw <button>; add a
-               missing one with `pnpm dlx shadcn add button`. If shadcn has no component for
-               this, say so in the handoff before building it by hand.
+harness says   src/modules/billing/components/save-bar.tsx:14 no-restricted-syntax — Use the
+               shadcn component from src/shared/ui/ instead of a raw <button>; add a missing one
+               with `pnpm dlx shadcn add button`. If shadcn has no component for this, say so in
+               the handoff before building it by hand.
 ```
 
 ## The lock
@@ -110,9 +119,9 @@ rule is to delete the rule, and an agent under pressure to finish will find it.
 
 ```text
 agent edits    tsconfig.json
-harness says   harness-lock: tsconfig.json is part of the harness and is locked. Ask the user to
-               run `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change
-               with them, then `pnpm harness:lock`.
+harness says   tsconfig.json is part of the harness and is locked. Ask the user to run
+               `pnpm harness:unlock` in their own terminal (valid 4 hours), make the change with
+               them, then `pnpm harness:lock`.
 ```
 
 The agent also cannot run the unlock itself. That command is refused when it comes from the agent.

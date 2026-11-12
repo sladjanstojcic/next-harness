@@ -20,8 +20,9 @@ start carries less weight. The agent does not refuse the rule. It writes the fil
 seems to fit, and the rule is not what it is thinking about.
 
 A hook is different. Claude Code and Codex both run a command of yours at fixed moments: before a
-tool call, after it, and when the agent wants to end its turn. That command can refuse. A write to
-the wrong place then fails, every time, with a message that says where the file belongs.
+tool call, after it, and when the agent wants to end its turn. That command can refuse. A write
+through the agent's file tools to the wrong place then fails, every time, with a message that says
+where the file belongs.
 
 So a rule with no exceptions belongs in a hook. An instruction is the right place for what a check
 cannot judge: naming, taste, what to ask before doing.
