@@ -21,7 +21,7 @@ export default defineHarness({
 ## Adopt it, step by step
 
 Run on a fresh project from the official scaffold. It reached a passing check in twelve steps from
-the committed scaffold, with three files edited by hand.
+the committed scaffold, with one file written and three edited by hand.
 
 **Before you start.** The project is a git repository with a commit and a clean tree. Starting from
 nothing? Create and commit the app first:
@@ -50,14 +50,16 @@ The scaffold does not make a repository, and you do not need to install yet: ste
    });
    ```
 
-3. `node tooling/harness/cli.ts init`, without `--starter`: this shape has no starter files. It adds
-   `tooling/harness` to `pnpm-workspace.yaml` and stops.
+3. `node tooling/harness/cli.ts init`, without `--starter`: this shape has no starter files. It creates
+   `pnpm-workspace.yaml` with `tooling/harness` in it, prints the next two steps, and stops.
 4. `pnpm install`. On pnpm 11 or newer it stops at `ERR_PNPM_IGNORED_BUILDS` for
-   `electron-winstaller`. Under `allowBuilds` in `pnpm-workspace.yaml`, set `electron-winstaller: false`
-   (`true` if you build Windows installers on this machine) and run `pnpm install` again.
+   `electron-winstaller`. pnpm has written that key under `allowBuilds` in `pnpm-workspace.yaml` with a
+   placeholder text. Replace the text with `false` (`true` if you build Windows installers on this
+   machine) and run `pnpm install` again.
 5. `node tooling/harness/cli.ts init` again. It writes the wiring and prints seven steps, which are
-   steps 6 to 12 here. It also prints steps for a CI job; leave its Playwright line out, since an
-   Electron project has no browser smoke test.
+   steps 6 to 12 here. It also prints steps for a CI job. Writing that workflow is optional and
+   not one of the twelve steps; if you do, leave its Playwright line out, since an Electron project has
+   no browser smoke test.
 6. Run the printed `pnpm add -D` line. Copy it from your terminal; it names exact versions.
 7. In `eslint.config.mjs`, add the printed import, and the printed spread as the last argument of
    `defineConfig(...)`, after a comma. For the scaffold the line is:
@@ -80,7 +82,8 @@ The scaffold does not make a repository, and you do not need to install yet: ste
     `components/Versions.tsx`, `tsconfig.node.json` and `tsconfig.web.json`.
 11. `git add -A && git commit -m "Add the harness"`
 12. `pnpm run check`. Ten steps, each ending in `passed`: prettier, eslint, eslint-preset, tsc, audit,
-    depcruise, knip, jscpd, vitest and build. The old findings follow as a count.
+    depcruise, knip, jscpd, vitest and build. The old findings follow as a count per tool, the first
+    few in full, and a line that says how many more there are.
 
 ## The shape
 
@@ -161,28 +164,39 @@ src/
 ## The first feature with a channel
 
 Run on the same project: a `notes` module in the renderer that asks the main process for a list. On
-the scaffold this is more work than one channel, because it touches three legacy files, and a legacy
-file you touch must clear its old tool findings.
+the scaffold this is more work than one channel. It touches seven files of the legacy list, and a
+legacy file you touch must clear its old lint, type and import findings. Three of them have such
+findings: `src/main/index.ts`, `src/preload/index.ts` and `src/preload/index.d.ts`. Findings of the
+harness's own rules on those files, such as the file name `App.tsx` or `sandbox: false`, stay listed
+as pre-existing and do not block.
 
 1. **Let both tsconfig projects read `src/shared/`.** Add `"src/shared/**/*"` to `include` in
    `tsconfig.node.json` and in `tsconfig.web.json`. The scaffold's projects do not read that folder,
    and the first contract file fails with `TS6307` and an ESLint parsing error otherwise. Both files
    are locked for agents, so this step is yours.
 2. **Write the contract** in `src/shared/`: the channel name as a constant, and the types both sides
-   use. The scaffold maps no `@shared/` alias; a relative import of `src/shared/` is allowed.
+   use. The scaffold maps no `@shared/` alias; a relative import of `src/shared/` is allowed. Export
+   only what another file imports: knip reports an unused exported type.
 3. **Write the handler** in a main area folder, such as `src/main/notes/register-notes-ipc.ts`, with
    `ipcMain.handle(NOTES_LIST_CHANNEL, ...)`. A test beside it is allowed, not required.
 4. **Write the module** in `src/renderer/src/modules/notes/`: `index.ts`, the component in
    `components/`, and pure logic in `domain/` with a test beside each file.
 5. **Clean `src/main/index.ts`**, which you touch to register the handler. Mark its four floating
-   promises with `void`, and move its `console.log` into `src/main/logging/log.ts`.
+   promises with `void`, and move its `console.log` into `src/main/logging/log.ts`. Its
+   `sandbox: false` and `shell.openExternal` findings stay as legacy; clearing them is a separate
+   change.
 6. **Replace the scaffold's bridge.** `src/preload/index.ts` imports `@electron-toolkit/preload`, and
    a preload script may import only `electron` and `src/shared/`. Expose one `api` object of your own,
    typed in `src/shared/`, update `index.d.ts`, read `window.api` in `App.tsx` and `Versions.tsx`, and
-   run `pnpm remove @electron-toolkit/preload`. The preload does not log: let an error throw.
+   run `pnpm remove @electron-toolkit/preload`. Drop the `process.contextIsolated` branch with its
+   `@ts-ignore` lines and expose with `contextBridge` only. The preload does not log: let an error
+   throw. `ipcRenderer.invoke` returns `any`, and a cast is refused
+   (`no-unsafe-type-assertion`): check the value with a guard function kept in `src/shared/`. For the
+   scaffold's `'ping'`, either delete the button and its handler, or name the channel in `src/shared/`
+   and add a `ping()` to your `api` object.
 7. `pnpm run check`, then commit.
 
-The messages that lead through steps 5 and 6 name the rule and the fix, for example:
+If you run the check before steps 5 and 6, the messages name the rule and the fix, for example:
 
 ```text
 src/preload/index.ts:2 no-restricted-imports — '@electron-toolkit/preload' import is restricted from

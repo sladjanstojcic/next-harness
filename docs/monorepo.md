@@ -10,7 +10,8 @@ A monorepo gets one file, `harness.config.ts`, that says which folder has which 
 workspace with its own shape; folders outside every workspace get only the root layout rules.
 
 The steps below were run on a fresh create-turbo project: two Next.js apps and three packages. It
-reached a passing check in sixteen steps, with four files edited by hand.
+reached a passing check in the eleven steps below, which are sixteen commands and edits, with one
+file written and four edited by hand.
 
 ## Before you start
 
@@ -82,7 +83,8 @@ pnpm install
 node tooling/harness/cli.ts init --starter   # writes the wiring, prints the next steps
 ```
 
-Give the second run `--starter` if you want the `shared/lib/` helpers in each app. With it init
+The first run prints `node tooling/harness/cli.ts init` as its own next step. Add `--starter` to it, as
+shown here, if you want the `shared/lib/` helpers in each app. With it init
 prints eleven steps for a create-turbo project. Without it init prints eight and writes no starter
 files; running it again with `--starter` later is safe.
 
@@ -123,7 +125,8 @@ const harnessConfig = [...[nextJsConfig].flat(), ...harnessEslint({ root: import
 export default harnessConfig;
 ```
 
-`packages/ui/eslint.config.mjs` gets the same change with `layout: "package"`. Paste what init
+`packages/ui/eslint.config.mjs` gets the same change with its own `config` variable and
+`layout: "package"`. Keep or delete the `@type` comment above the export; the check does not read it. Paste what init
 printed for your project, not this example.
 
 ## 7. Declare NODE_ENV in turbo.json
@@ -168,8 +171,9 @@ pnpm run check
 ```
 
 Every tool runs once per workspace, so the output has 27 lines for this project, each ending in
-`passed`. Below them the old findings are printed as a count, under "Pre-existing in legacy files (not
-blocking)".
+`passed`. Below them, under "Pre-existing in legacy
+files (not blocking)", the old findings are printed as a count per tool, followed by the first few in
+full.
 
 An older Turborepo with one Next.js app and its own tools needed six printed steps and a legacy list
 of 710 files.

@@ -73,7 +73,8 @@ from `apps/web`.
    `tsconfig.json` extends `@repo/typescript-config/base.json` and includes `src`. `src/index.ts` lists
    the exports by name.
 
-2. Put the function in `src/domain/` with its test beside it. With create-turbo's `base.json`, which
+2. Put the function in `src/domain/price-with-tax.ts`, with a Vitest test `price-with-tax.test.ts`
+   beside it. With create-turbo's `base.json`, which
    sets `NodeNext`, write relative imports with the extension:
    `export { priceWithTax } from "./domain/price-with-tax.ts";`. Without it the type check fails with
    `TS2835`.
@@ -82,10 +83,15 @@ from `apps/web`.
    can do this step too.
 4. Run the printed `pnpm add -D` line from the repository root, in brackets so the `cd` does not
    stick: `(cd packages/pricing && pnpm add -D ...)`. It names the versions the presets are
-   tested with, which can differ from the versions the other workspaces already have.
+   tested with, which can differ from the versions the other workspaces already have: pnpm warns that
+   `eslint@9` is deprecated, and the check passes with it. The line also replaces the `typescript`
+   entry with the TypeScript 6 alias; `tsc` stays the project's TypeScript 7.
 5. Add the package to the app that uses it: `(cd apps/web && pnpm add @repo/pricing --workspace)`.
-6. Import it in the app: `import { priceWithTax } from "@repo/pricing";`.
-7. Format the new package, commit, and run `pnpm run check`. The printed format step names every
+6. Import it in the app, in a new file such as `apps/web/app/pricing/page.tsx`:
+   `import { priceWithTax } from "@repo/pricing";`. A file on the legacy list, such as the scaffold's
+   `page.tsx`, would have to clear its old findings first.
+7. Format the new package with `(cd packages/pricing && pnpm exec prettier --write .)`, commit, and
+   run `pnpm run check`. The printed format step names every
    workspace, and the printed commit message still says "Add the harness"; use your own.
 
 The check then has 35 lines, eight of them for `packages/pricing`.
