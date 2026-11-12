@@ -6,6 +6,7 @@
   "eslint": { "version": "9.39.5", "minimum": "9.22.0" },
   "eslint-config-next": { "version": "16.4.5", "minimum": "16.0.0", "when": "eslint-config-next" },
   "eslint-config-prettier": { "version": "10.1.8", "minimum": "10.1.1" },
+  "eslint-plugin-react-hooks": { "version": "7.1.1", "minimum": "5.0.0" },
   "jiti": { "version": "2.7.0", "minimum": "2.3.0", "when": "eslint-config" },
   "jscpd": { "version": "5.4.2", "minimum": "5.0.0", "when": "jscpd" },
   "knip": { "version": "6.44.1", "minimum": "6.0.0", "when": "knip" },

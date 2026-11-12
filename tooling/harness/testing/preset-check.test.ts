@@ -7,7 +7,7 @@ import { parseEvent } from "../core/hooks/event.ts";
 import { checkGuards } from "../core/hooks/guards.ts";
 import { unlock } from "../core/lock.ts";
 import { SOURCE_PROBES } from "../shapes/next-modules.ts";
-import { doubleCast, harnessRuleBlocks, workarounds } from "../presets/eslint-rules.ts";
+import { doubleCast, harnessRuleBlocks, HOOK_RULES, HOOKS_PLUGIN, workarounds } from "../presets/eslint-rules.ts";
 import { eslintPreset, eslintPresetLines, expectedRules, probeToken } from "../tools/eslint-preset.ts";
 import { harnessEslint } from "../presets/eslint.ts";
 import { APP, CNA_ESLINT, initialised, presetFindings, ROOT_APP, run, withPresetLines } from "./preset-fixture.ts";
@@ -82,16 +82,17 @@ describe("the preset presence check", () => {
           .slice(0, 2)
           .flatMap(({ rules }) => Object.keys(rules)),
       ),
+      ...Object.keys(HOOK_RULES),
     ]);
   });
 
   it("names each missing rule per probe path with the lines to add, and passes once create-next-app's config has them", async () => {
     const repo = initialised({ ...APP, "eslint.config.mjs": CNA_ESLINT });
     const missing = await presetFindings(repo.root);
-    // Next's TypeScript config already sets no-explicit-any as an error.
+    // Next's TypeScript config already sets no-explicit-any as an error; a rule the preset switches off cannot be missing.
     const rules = harnessRuleBlocks()
       .flatMap((block) => Object.keys(block.rules))
-      .filter((rule) => rule !== "@typescript-eslint/no-explicit-any");
+      .filter((rule) => rule !== "@typescript-eslint/no-explicit-any" && HOOK_RULES[rule] !== "off");
     expect(new Set(missing.map(({ message }) => message.split(" ")[0]))).toEqual(new Set([...rules, "linterOptions.noInlineConfig"]));
     const lines = `  ${IMPORT}\n  const harnessConfig = [...[eslintConfig].flat(), ...harnessEslint({ root: import.meta.dirname, base: false })];\n  export default harnessConfig;`;
     expect(missing[0]?.message).toContain(lines);
@@ -111,10 +112,10 @@ describe("the preset presence check", () => {
     expect(spread('const url = "https://x";\nexport default [];\n')).toContain("next: true");
   });
 
-  it("adds no plugin of its own on top of a project's config, so none is defined twice", () => {
+  it("adds one plugin on top of a project's config, under a name of its own, so none is defined twice", () => {
     const root = path.resolve(import.meta.dirname, "../../..");
     const blocks = harnessEslint({ root, base: false });
-    expect(blocks.filter((block) => block.plugins !== undefined)).toEqual([]);
+    expect(blocks.flatMap((block) => Object.keys(block.plugins ?? {}))).toEqual([HOOKS_PLUGIN]);
     expect(harnessEslint({ root, next: true }).some((block) => block.plugins?.import !== undefined)).toBe(true);
   });
 

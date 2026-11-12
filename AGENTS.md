@@ -78,6 +78,10 @@ rule must change.
 - In a workspace with `components.json` at its top, lint reports a raw `button`, `input`, `select`,
   `textarea`, `label`, `table` or `dialog` element outside `shared/ui/`: use the shadcn component, or add
   it with `pnpm dlx shadcn add <name>`. Session start adds an "Interface" section on building from shadcn.
+- Lint holds the React hook rules as errors, as `harness-react-hooks/rules-of-hooks` and
+  `harness-react-hooks/exhaustive-deps`, in next-modules and package workspaces and in an Electron
+  renderer, but not under `e2e/`, `scripts/` and `tooling/`. The preset registers `eslint-plugin-react-hooks` under that name of its own, beside a project's
+  `react-hooks` plugin, and switches off the project's two rules of the same kind.
 - `proxy.ts`, `instrumentation.ts` and `instrumentation-client.ts` may live beside app/.
   Keep other non-route code out of app/.
 
@@ -234,8 +238,12 @@ export default defineHarness({
   also forbids cycles, a renderer module used past its `index.ts`, renderer `shared/` importing a
   module, and an impure `domain/`, which has a test beside each file.
 - Electron content rules: `electron-security` (`nodeIntegration: true`, `contextIsolation: false`,
-  `sandbox: false` or `webSecurity: false` in `src/main/` and `src/shared/`, as a property or an
-  assignment; not in tests), `electron-bridge` (`ipcRenderer` or `contextBridge` outside
+  `sandbox: false`, `webSecurity: false`, `webviewTag: true` or `enableRemoteModule: true` in `src/main/`
+  and `src/shared/`, as a property or an assignment; a `<webview>` element in the renderer;
+  `shell.openExternal` with an address that is not a plain string, outside a file named
+  `open-external.ts` in a `src/main/` area folder (`src/main/links/open-external.ts`), which checks the
+  address first; none of these in tests; and an import of `@electron/remote` in any file),
+  `electron-bridge` (`ipcRenderer` or `contextBridge` outside
   `src/preload/`) and `ipc-channel` (a string, template or concatenation, or a same-file constant
   holding one, as the channel of `ipcMain.handle/handleOnce/on/once`,
   `ipcRenderer.invoke/send/sendSync/on/once` or `webContents.send`; name channels in `src/shared/`).
