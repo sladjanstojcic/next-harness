@@ -124,6 +124,27 @@ const ELECTRON_CONSOLE_BLOCK: RuleBlock = {
 };
 
 /**
+ * The preset registers eslint-plugin-react-hooks under a name of its own. ESLint refuses two different plugin objects
+ * under one name, and a project's config, or eslint-config-next, may hold another copy under `react-hooks`.
+ */
+export const HOOKS_PLUGIN = "harness-react-hooks";
+/** Both hook rules as errors, and the project's two of the same kind off, so each finding is reported once. */
+export const HOOK_RULES: RuleBlock["rules"] = {
+  [`${HOOKS_PLUGIN}/rules-of-hooks`]: "error",
+  [`${HOOKS_PLUGIN}/exhaustive-deps`]: "error",
+  "react-hooks/rules-of-hooks": "off",
+  "react-hooks/exhaustive-deps": "off",
+};
+/**
+ * Where React code can sit: in an Electron app the renderer alone, elsewhere every TypeScript file but browser tests
+ * and automation, where a Playwright fixture's `use` and a script's `use…` function are no hooks.
+ */
+const hooksIn = (layout: PresetLayout): RuleBlock =>
+  layout === "electron"
+    ? { files: ["src/renderer/**/*.{ts,tsx}"], rules: HOOK_RULES }
+    : { files: ["**/*.{ts,tsx}"], ignores: ["e2e/**", "scripts/**", "tooling/**"], rules: HOOK_RULES };
+
+/**
  * The harness's own rules, block by block in the preset's order: the preset spreads them into its config, and the
  * presence check folds the blocks matching a probe path into the settings that path must have. Each block that sets
  * no-restricted-syntax replaces the earlier one's options, so with `shadcn` every one of them carries the raw controls.
@@ -171,6 +192,7 @@ export function harnessRuleBlocks(layout: PresetLayout = "app", aliases?: Electr
       },
     },
     layout === "package" ? PACKAGE_DOMAIN : { files: CONSOLE[layout], rules: { "no-console": "off" } },
+    hooksIn(layout),
     ...(layout === "electron" ? [ELECTRON_CONSOLE_BLOCK, ...electronBoundaryBlocks(aliases)] : []),
   ];
 }

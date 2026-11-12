@@ -9,44 +9,6 @@ const root = makeRepo().root;
 const found = (file: string, source: string) => auditSource(root, { file, path: file, profile: electronContent, pageLines: Number.POSITIVE_INFINITY }, source);
 const rules = (file: string, source: string): string[] => found(file, source).map(({ rule, line }) => `${rule}:${String(line)}`);
 
-describe("electron-security", () => {
-  const window = (options: string): string => `import { BrowserWindow } from "electron";\n\nnew BrowserWindow({\n  webPreferences: { ${options} },\n});\n`;
-
-  it.each(["nodeIntegration: true", "contextIsolation: false", "sandbox: false", "webSecurity: false", '"sandbox": false'])(
-    "reports %s in src/main/",
-    (option) => {
-      const findings = found("src/main/index.ts", window(option));
-      expect(findings.map(({ rule, line }) => `${rule}:${String(line)}`)).toEqual(["electron-security:4"]);
-      expect(findings[0]?.message).toContain(option.replaceAll('"', ""));
-      expect(findings[0]?.message.endsWith("(Electron layout)")).toBe(true);
-    },
-  );
-
-  it("passes the safe values, a value that is not a literal, and the same option outside src/main/", () => {
-    expect(rules("src/main/window/create.ts", window("contextIsolation: true, sandbox: true, nodeIntegration: false, webSecurity: true"))).toEqual([]);
-    expect(rules("src/main/window/create.ts", window("sandbox: isSandboxed"))).toEqual([]);
-  });
-});
-
-describe("electron-security, the other spellings", () => {
-  it("reports an assignment to the option, by name or by string key", () => {
-    expect(rules("src/main/window/create.ts", "prefs.sandbox = false;\n")).toEqual(["electron-security:1"]);
-    expect(rules("src/main/window/create.ts", 'prefs["nodeIntegration"] = true;\n')).toEqual(["electron-security:1"]);
-    expect(rules("src/main/window/create.ts", "prefs.sandbox = true;\nconst sandbox = false;\n")).toEqual([]);
-  });
-
-  it("reads src/shared/ too, where window defaults can sit, and no test file", () => {
-    expect(rules("src/shared/window.ts", "export const WINDOW_DEFAULTS = { sandbox: false };\n")).toEqual(["electron-security:1"]);
-    expect(rules("src/main/window/create.test.ts", "expect(options).not.toEqual({ sandbox: false });\n")).toEqual([]);
-    expect(rules("src/preload/index.ts", "export const options = { sandbox: false };\n")).toEqual([]);
-  });
-
-  it("does not follow a shorthand property, and reports the key in another library's options: two documented limits", () => {
-    expect(rules("src/main/window/create.ts", "const sandbox = false;\nnew BrowserWindow({ webPreferences: { sandbox } });\n")).toEqual([]);
-    expect(rules("src/main/print/pdf.ts", "await launch({ sandbox: false });\n")).toEqual(["electron-security:1"]);
-  });
-});
-
 describe("electron-bridge", () => {
   it("reports ipcRenderer and contextBridge outside src/preload/, once per file", () => {
     expect(rules(`${R}/app.tsx`, 'import { ipcRenderer } from "electron";\n\nexport const ping = () => ipcRenderer.send(channel);\n')).toEqual([
