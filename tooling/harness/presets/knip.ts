@@ -15,7 +15,7 @@ const IGNORE_DEPENDENCIES = [
   "lucide-react", // Used by vendored shadcn icons.
 ];
 /** Loaded by the harness's ESLint preset from the workspace, with no import knip can see. */
-const PRESET_DEPENDENCIES = ["@eslint/js", "eslint-config-next", "eslint-config-prettier", "typescript-eslint"];
+const PRESET_DEPENDENCIES = ["@eslint/js", "eslint-config-next", "eslint-config-prettier", "eslint-plugin-react-hooks", "typescript-eslint"];
 
 /** The package that brings each tool whose config or binary init adds to a workspace. */
 const CONFIG_PACKAGES: readonly [keyof typeof TOOL_CONFIG_NAMES, string][] = [

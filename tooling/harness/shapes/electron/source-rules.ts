@@ -1,17 +1,10 @@
 import type ts from "typescript";
-import { TEST_FILE } from "../next-modules.ts";
 import type { SourceFinding } from "../shape.ts";
+import { electronSecurityRules, ownerOf } from "./security-rules.ts";
 
 export const ELECTRON_LAYOUT = "(Electron layout)";
 type Compiler = typeof ts;
 
-/** The webPreferences values that open the window to the page it shows. */
-const INSECURE: ReadonlyMap<string, boolean> = new Map([
-  ["nodeIntegration", true],
-  ["contextIsolation", false],
-  ["sandbox", false],
-  ["webSecurity", false],
-]);
 const BRIDGE: readonly string[] = ["ipcRenderer", "contextBridge"];
 /** The calls whose first argument is a channel name; `webContents.send` is main's way to the renderer. */
 const CHANNEL_CALLS: ReadonlyMap<string, readonly string[]> = new Map([
@@ -19,32 +12,6 @@ const CHANNEL_CALLS: ReadonlyMap<string, readonly string[]> = new Map([
   ["ipcRenderer", ["invoke", "send", "sendSync", "on", "once"]],
   ["webContents", ["send"]],
 ]);
-
-/** `ipcMain` in `ipcMain.handle(…)`, and `ipcRenderer` in `window.electron.ipcRenderer.send(…)`. */
-function ownerOf(ts: Compiler, node: ts.Expression): string | undefined {
-  if (ts.isIdentifier(node)) return node.text;
-  return ts.isPropertyAccessExpression(node) ? node.name.text : undefined;
-}
-
-/** A property's name as written: `sandbox`, `"sandbox"`, `x.sandbox` or `x["sandbox"]`. */
-function keyOf(ts: Compiler, node: ts.Node): string | undefined {
-  if (ts.isIdentifier(node) || ts.isStringLiteral(node)) return node.text;
-  if (ts.isPropertyAccessExpression(node)) return node.name.text;
-  return ts.isElementAccessExpression(node) && ts.isStringLiteral(node.argumentExpression) ? node.argumentExpression.text : undefined;
-}
-
-/**
- * `sandbox: false` in an object literal, and `x.sandbox = false` or `x["sandbox"] = false`. A shorthand `{ sandbox }`
- * and a value that is not a literal are not followed.
- */
-function insecureOption(ts: Compiler, node: ts.Node): string | undefined {
-  const assigned = ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && !ts.isIdentifier(node.left);
-  const [key, value] = ts.isPropertyAssignment(node) ? [node.name, node.initializer] : assigned ? [node.left, node.right] : [];
-  const name = key === undefined ? undefined : keyOf(ts, key);
-  const wanted = name === undefined ? undefined : INSECURE.get(name);
-  if (name === undefined || wanted === undefined || value === undefined) return undefined;
-  return value.kind === (wanted ? ts.SyntaxKind.TrueKeyword : ts.SyntaxKind.FalseKeyword) ? `${name}: ${String(wanted)}` : undefined;
-}
 
 /** A channel written here rather than taken from the contract: a string, a template, or a concatenation. */
 function isText(ts: Compiler, node: ts.Expression): boolean {
@@ -59,9 +26,9 @@ function channelArgument(ts: Compiler, node: ts.Node): ts.Expression | undefined
 }
 
 /**
- * The rules only an Electron project has. In src/main/ and src/shared/, a window option that hands the page Node or drops
- * its isolation (tests aside); outside src/preload/, the bridge objects (once per file); anywhere in src/, a channel
- * written in the call or in a constant of the same file; and "server-only", which belongs to Next.
+ * The rules only an Electron project has: `electron-security` (see security-rules.ts); outside src/preload/, the bridge
+ * objects (once per file); anywhere in src/, a channel written in the call or in a constant of the same file; and
+ * "server-only", which belongs to Next.
  */
 export function electronSourceRules(path: string, source: ts.SourceFile, ts: Compiler): SourceFinding[] {
   const findings: SourceFinding[] = [];
@@ -69,7 +36,6 @@ export function electronSourceRules(path: string, source: ts.SourceFile, ts: Com
     findings.push({ rule, line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1, message: `${message} ${ELECTRON_LAYOUT}` });
   };
   const inSource = path.startsWith("src/");
-  const options = /^src\/(?:main|shared)\//.test(path) && !TEST_FILE.test(path);
   let bridgeSeen = !inSource || path.startsWith("src/preload/");
   /** The names this file gives a channel text to, so `const CHANNEL = "a:b"` does not pass where `"a:b"` would not. */
   const local = new Set<string>();
@@ -79,12 +45,8 @@ export function electronSourceRules(path: string, source: ts.SourceFile, ts: Com
     ts.forEachChild(node, collect);
   };
   if (inSource) collect(source);
+  electronSecurityRules(path, source, ts, add);
   const visit = (node: ts.Node): void => {
-    const insecure = options ? insecureOption(ts, node) : undefined;
-    if (insecure !== undefined) {
-      const safe = "contextIsolation: true, sandbox: true, nodeIntegration: false and webSecurity on";
-      add("electron-security", node, `${insecure} opens the window to the page it shows. Keep ${safe}; the renderer reaches Node through src/preload/`);
-    }
     if (!bridgeSeen && ts.isIdentifier(node) && BRIDGE.includes(node.text)) {
       bridgeSeen = true;
       const where = "Use ipcRenderer and contextBridge only in src/preload/, which exposes a typed API with contextBridge.exposeInMainWorld";

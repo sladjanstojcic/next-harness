@@ -97,6 +97,10 @@ never imports a module. No cycles. dependency-cruiser checks it.
 no `as never`, no narrowing `as` outside a module's `server/`, no computed `import()` or `require()`,
 no inline disables, no `@ts-ignore`.
 
+**React hooks.** Lint holds `rules-of-hooks` and `exhaustive-deps` as errors in every app and package,
+and in an Electron app's renderer. `e2e/`, `scripts/` and `tooling/` are left out: a Playwright fixture's `use` is no hook. The preset loads `eslint-plugin-react-hooks` from the workspace and
+registers it under a name of its own, so a finding reads `harness-react-hooks/exhaustive-deps`.
+
 **shadcn, where the project uses it.** In a workspace with `components.json` at its top, lint reports a
 raw `<button>`, `<input>`, `<select>`, `<textarea>`, `<label>`, `<table>` or `<dialog>` outside the
 generated `shared/ui/`, in tests too, and names the way out: the shadcn component, or
@@ -376,8 +380,13 @@ src/
   `index.ts`. It gets the aliases of `tsconfig.json` and of every project that file refers to, since
   the scaffold keeps `paths` in `tsconfig.web.json`.
 - **Content rules.** `electron-security` reports `nodeIntegration: true`, `contextIsolation: false`,
-  `sandbox: false` and `webSecurity: false` in `src/main/` and `src/shared/`, as an object property or
-  as an assignment (`prefs.sandbox = false`); test files are not read. `electron-bridge` reports
+  `sandbox: false`, `webSecurity: false`, `webviewTag: true` and `enableRemoteModule: true` in `src/main/`
+  and `src/shared/`, as an object property or as an assignment (`prefs.sandbox = false`); a `<webview>`
+  element in the renderer; an import of `@electron/remote` in any file; and `shell.openExternal` with an
+  address that is not a plain string, which lets page content start any program registered for a
+  protocol. That call belongs in one file that checks the address first, named `open-external.ts` in a
+  `src/main/` area folder (`src/main/links/open-external.ts`). Test files are not read, but for the
+  import. `electron-bridge` reports
   `ipcRenderer` or `contextBridge` outside `src/preload/`. `ipc-channel` reports a channel written where
   it is used: a string, a template or a concatenation, or a constant of the same file that holds one, as
   the first argument of `ipcMain.handle/handleOnce/on/once`, `ipcRenderer.invoke/send/sendSync/on/once`
@@ -604,6 +613,13 @@ Init reads two things from a kept config, from its text and from the packages it
 - **The Next rules.** A config that brings `@next/eslint-plugin-next` or `eslint-config-next` gets the
   preset's base without `next: true`.
 
+The React hook rules need no line of their own. Your config, or `eslint-config-next`, may already
+register `eslint-plugin-react-hooks` as `react-hooks`, and ESLint refuses a second copy under that name.
+So the preset registers its copy as `harness-react-hooks`, sets `rules-of-hooks` and `exhaustive-deps`
+there as errors, and switches off `react-hooks/rules-of-hooks` and `react-hooks/exhaustive-deps`, so each
+finding is reported once. Your plugin's other rules stay as you set them. The plugin must be loadable
+from the workspace: init's install line names it when it is not.
+
 An imported package counts through its `package.json` in the workspace's `node_modules`; its
 devDependencies count only when it is a workspace package. create-turbo's `@repo/eslint-config` brings
 Next's plugin and no `typescript-eslint`, so its apps get the full base without `next`. For such a
@@ -730,7 +746,7 @@ Every file obeys the same rules as application code.
 
 Next 16.4.5 · React 19.3.1 · TypeScript 6.0.3 (`strict`, `noUncheckedIndexedAccess`,
 `exactOptionalPropertyTypes`, `noImplicitOverride`, `verbatimModuleSyntax`, `erasableSyntaxOnly`) ·
-Tailwind 4.3.4 · shadcn 4.23.0 · ESLint 9.39.5 with typescript-eslint 8.72.1 · Prettier 3.9.10 ·
+Tailwind 4.3.4 · shadcn 4.23.0 · ESLint 9.39.5 with typescript-eslint 8.72.1 and eslint-plugin-react-hooks 7.1.1 · Prettier 3.9.10 ·
 Vitest 5.1.0 · Playwright 1.64.1 · knip 6.44.1 · dependency-cruiser 18.7.2 · jscpd 5.4.2 · zod 4.6.7.
 Exact versions, no ranges; every config file is TypeScript.
 
@@ -759,7 +775,10 @@ Exact versions, no ranges; every config file is TypeScript.
   Windows or macOS, and packaging was not run. In this repository's own tests the build is a stub, since
   Electron is not installed here.
 - `electron-security` does not follow a shorthand property (`{ sandbox }`), and it reports the same key
-  in another library's options in `src/main/`. `ipc-channel` does not see a literal passed through a
+  in another library's options in `src/main/`. Of `shell.openExternal` it follows `const { openExternal } = shell`
+  and nothing further: not an alias (`const open = shell.openExternal`), not `shell` under another name or written as `shell["openExternal"]`, while any object named `shell` counts as Electron's,
+  not a destructuring from `electron` itself. A constant as the address is reported, though it may hold
+  a literal. `ipc-channel` does not see a literal passed through a
   generic bridge such as `window.api.invoke("…")`.
 - `preload-bundle` reads the config's text and evaluates nothing. A config built by a function, kept in a
   variable or spread from elsewhere is reported as not visible until the setting is written literally,
