@@ -11,7 +11,7 @@
   },
   "overrides": [
     {
-      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "files": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.setup.ts"],
       "rules": { "typescript/no-non-null-assertion": "off" }
     }
   ]
