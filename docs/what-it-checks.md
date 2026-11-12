@@ -17,7 +17,8 @@ Routes live in `src/app/`. Features live in `src/modules/<module>/`. Code used a
 in `src/shared/`. Nothing else goes under `src/`, and nothing new goes at the repository root.
 
 Inside a module the folders are fixed too: `components/`, `server/`, `domain/` and `actions/`, with
-`index.ts` and `server.ts` as its public entries. A folder named `utils`, `helpers`, `common` or
+`index.ts` and `server.ts` as its public entries. A module needs an entry only once something outside
+it imports it. A folder named `utils`, `helpers`, `common` or
 `misc` is refused wherever it appears.
 
 A closed shape means there is one answer to "where does this go?". Without it, every helper folder

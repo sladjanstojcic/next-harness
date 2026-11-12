@@ -55,7 +55,8 @@ The scaffold does not make a repository, and you do not need to install yet: ste
 4. `pnpm install`. On pnpm 11 or newer it stops at `ERR_PNPM_IGNORED_BUILDS` for
    `electron-winstaller`. pnpm has written that key under `allowBuilds` in `pnpm-workspace.yaml` with a
    placeholder text. Replace the text with `false` (`true` if you build Windows installers on this
-   machine) and run `pnpm install` again.
+   machine) and run `pnpm install` again. A warning about peer dependencies, here and in step 6, is
+   expected and needs no action.
 5. `node tooling/harness/cli.ts init` again. It writes the wiring and prints seven steps, which are
    steps 6 to 12 here. It adds `src/shared/**/*` to the `include` of `tsconfig.node.json` and
    `tsconfig.web.json`, so the first contract file is type-checked. It also prints steps for a CI job;
@@ -155,9 +156,10 @@ src/
 - **The lock** also covers `electron.vite.config.ts`, `electron-builder.yml` and every `tsconfig*.json`.
 - **Init** keeps your ESLint, Prettier and Vitest configs. For a config that exports a call, such as
   `defineConfig(a, b)`, it prints the spread to add as the last argument:
-  `...harnessEslint({ root: import.meta.dirname, layout: "electron", base: false })`. It writes
-  `knip.config.ts` and `.dependency-cruiser.json`, and takes `harness.config.ts` and the configs that
-  import a preset out of the project whose `include` reaches `*.config.ts`. There are no starter files.
+  `...harnessEslint({ root: import.meta.dirname, layout: "electron", base: false })`; for the scaffold it
+  adds `toolsFrom`, as in step 7 above. It writes `knip.config.ts` and `.dependency-cruiser.json`, and
+  takes `tooling/harness`, `harness.config.ts` and the configs that import a preset out of the project
+  that reads the workspace's top (`tsconfig.node.json`). There are no starter files.
 - Console output is allowed in a file named `log.ts` in a `src/main/` area folder, such as
   `src/main/logging/log.ts`, and nowhere else in the app. The lint message says so.
 - jscpd writes its report to `node_modules/.cache/jscpd` here, so nothing new needs ignoring.
@@ -173,7 +175,8 @@ as pre-existing and do not block.
 
 1. **Write the contract** in `src/shared/`: the channel name as a constant, and the types both sides
    use. The scaffold maps no `@shared/` alias; a relative import of `src/shared/` is allowed. Export
-   only what another file imports: knip reports an unused exported type.
+   only what another file imports, also for a type that only another type of the same file uses: knip
+   reports it as `knip-types`, and the fix is to drop the word `export`.
 2. **Write the handler** in a main area folder, such as `src/main/notes/register-notes-ipc.ts`, with
    `ipcMain.handle(NOTES_LIST_CHANNEL, ...)`. A test beside it is allowed, not required.
 3. **Write the module** in `src/renderer/src/modules/notes/`: `index.ts`, the component in
@@ -185,7 +188,8 @@ as pre-existing and do not block.
 5. **Replace the scaffold's bridge.** `src/preload/index.ts` imports `@electron-toolkit/preload`, and
    a preload script may import only `electron` and `src/shared/`. Expose one `api` object of your own,
    typed in `src/shared/`, update `index.d.ts`, read `window.api` in `App.tsx` and `Versions.tsx`, and
-   run `pnpm remove @electron-toolkit/preload`. Drop the `process.contextIsolated` branch with its
+   run `pnpm remove @electron-toolkit/preload`. `Versions.tsx` read the versions from that package:
+   add a `versions` field to `api`, filled from `process.versions` in the preload. Drop the `process.contextIsolated` branch with its
    `@ts-ignore` lines and expose with `contextBridge` only. Neither the preload nor the renderer
    logs: let an error throw, or send it to main over a channel, as the lint message says.
    `ipcRenderer.invoke` returns `any`, and a cast is refused (`no-unsafe-type-assertion`): check the
@@ -193,8 +197,13 @@ as pre-existing and do not block.
    scaffold's `'ping'`, either delete the button and its handler, or name the channel in `src/shared/`
    and add a `ping()` to your `api` object.
 6. `pnpm run check`, then commit.
+7. `node tooling/harness/cli.ts legacy prune`, in your own terminal, then commit the list. It takes the
+   files you cleaned off the legacy list; in this run `src/preload/index.ts` and `index.d.ts`, two
+   of eleven. From then on they are held to every rule.
 
-If you run the check before steps 4 and 5, the messages name the rule and the fix, for example:
+If you run the check after steps 1 to 3, it fails on knip, because nothing imports the handler and
+the module yet, and on tsc, because `window.api` is still `unknown`. Once you edit
+`src/preload/index.ts` and keep its import, the message names the rule and the fix:
 
 ```text
 src/preload/index.ts:2 no-restricted-imports — '@electron-toolkit/preload' import is restricted from

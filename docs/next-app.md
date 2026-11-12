@@ -134,8 +134,11 @@ pnpm exec prettier --write .
 This puts the app's own files in the preset's style, once. On a fresh scaffold it rewrote three files.
 
 Node prints a `MODULE_TYPELESS_PACKAGE_JSON` warning about `prettier.config.ts` and suggests adding
-`"type": "module"` to `package.json`. The warning is harmless. Do not change the module type for it. Vitest prints a similar one about
-`vitest.config.ts` when you run `pnpm test`; the same holds.
+`"type": "module"` to `package.json`. The warning is harmless. Do not change the module type for it.
+
+Vitest prints a warning of its own about `vitest.config.ts` when you run `pnpm test`
+(`unsupported by configLoader: 'native'`), suggesting a `.mjs` extension or `"type": "module"`. Do
+neither.
 
 ## 9. Install the browser for the smoke test
 
@@ -157,7 +160,8 @@ git add -A && git commit -m "Add the harness"
 pnpm run check
 ```
 
-On the fresh scaffold all twelve steps passed on the first run, in under a minute:
+On the fresh scaffold all twelve steps passed on the first run, in under a minute. After pnpm's echo
+of the command it prints:
 
 ```text
 prettier: passed
@@ -187,6 +191,7 @@ and new ones are held to the rules.
   is there. The check does not need it; your agent does.
 - **Without `src/`.** The `depcruise` and `jscpd` package scripts list only the folders that exist
   today (`app shared`). Add `modules` to both when you create it, as in `depcruise app modules shared ...`.
-  `pnpm run check` finds the folders itself on every run. For what goes inside a module, see
+  `pnpm run check` finds the folders itself on every run, and it covers files you have not committed
+  yet. For what goes inside a module, see
   [What this one checks](what-it-checks.md).
 - **Let the agent in.** See [Adopt it](adopt.md#let-the-agent-in).

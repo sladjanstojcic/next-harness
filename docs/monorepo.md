@@ -10,7 +10,7 @@ A monorepo gets one file, `harness.config.ts`, that says which folder has which 
 workspace with its own shape; folders outside every workspace get only the root layout rules.
 
 The steps below were run on a fresh create-turbo project: two Next.js apps and three packages. It
-reached a passing check in the eleven steps below, which are sixteen commands and edits, with one
+reached a passing check in the eleven steps below, which are thirteen commands, one
 file written and four edited by hand.
 
 ## Before you start
@@ -24,7 +24,8 @@ Starting from nothing? Create the monorepo first, then `cd my-repo`:
 pnpm dlx create-turbo@latest my-repo --package-manager pnpm --example basic
 ```
 
-create-turbo makes the repository and the first commit itself.
+create-turbo makes the repository and the first commit itself. It also pins its own pnpm version, so
+pnpm may report a different version inside the project.
 
 ## 1. Add the harness folder
 
@@ -126,7 +127,8 @@ export default harnessConfig;
 ```
 
 `packages/ui/eslint.config.mjs` gets the same change with its own `config` variable and
-`layout: "package"`. Keep or delete the `@type` comment above the export; the check does not read it. Paste what init
+`layout: "package"`. Keep or delete the `@type` comment, which now sits above the `const harnessConfig`
+line; the check does not read it. Paste what init
 printed for your project, not this example.
 
 ## 7. Declare NODE_ENV in turbo.json
