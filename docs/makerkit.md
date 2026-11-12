@@ -22,6 +22,7 @@ export default defineHarness({
     { path: "apps/web", shape: "makerkit-app", next: true },
     { path: "packages/features/*", shape: "makerkit-feature" },
     { path: "apps/web/supabase", shape: "supabase" },
+    { path: "apps/e2e", shape: "e2e" },
   ],
   upstream: "tooling/harness-upstream.json",
   legacy: "tooling/harness-legacy.json",
@@ -56,6 +57,14 @@ What an agent meets in a Makerkit project:
 - **In kit files:** no harness rule. An edit is allowed; a new file in a kit folder is yours and is judged.
   The kit's files do not count towards that folder's size limit. The kit's own type check, lint and tests still
   block when the changed file fails them.
+- **In `apps/e2e`:** the kit's own Playwright tests are on the upstream list and are left alone. Your
+  tests go in a suite folder, such as `apps/e2e/tests/access-api/`, with at most two levels of area
+  folders inside it, kebab-case names and the usual size limits. Add an `apps/e2e/tsconfig.json` that
+  includes your suite, since the kit ships none and the type check needs one; if it extends
+  `@kit/tsconfig/base.json`, add `@kit/tsconfig` to the folder's `devDependencies`. Spec and setup
+  files may use non-null assertions, as other test files do; their helpers may not. Without this workspace
+  entry a new file in `apps/e2e` is refused as `unknown-root`; do not move tests to `tooling/` to get
+  around that.
 - **In `supabase/`:** a migration that is already on the remote branch cannot be edited, deleted or moved.
   A new migration is allowed. `supabase db push`, `supabase link` and the `supabase:deploy` script are
   denied; applying a schema to a linked project is your step.

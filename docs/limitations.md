@@ -39,6 +39,10 @@ parent: Reference
   block, which can turn a one-line change into a larger one.
 - The full lint step has a 120 s limit. On a loaded machine a large app reached it, though the lint
   alone took 33 s.
+- The `e2e` shape has no ESLint preset: its lint and type check run with the `oxc` tool set only. With
+  `tools: "none"` the paths, names and folder size are still judged, but the 250-line limit is not,
+  because that limit is a lint rule. The Playwright tests themselves run in the gates only when the
+  workspace names a `test` script, and they need whatever the tests need: a running app or database.
 - The test step has a ten-minute limit. In this template most of that time is the harness's own tests:
   about four minutes alone, and past the limit on a machine that was busy with something else. The
   message then starts with "Tool timed out".

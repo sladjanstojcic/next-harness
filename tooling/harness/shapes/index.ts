@@ -1,7 +1,8 @@
 import { CONFIG_FILE, type ShapeName, type SourceRoot } from "../config.ts";
+import { e2e } from "./e2e.ts";
 import { electronVite } from "./electron/electron-vite.ts";
-import { makerkitApp } from "./makerkit-app.ts";
-import { makerkitFeature } from "./makerkit-feature.ts";
+import { makerkitApp } from "./makerkit/makerkit-app.ts";
+import { makerkitFeature } from "./makerkit/makerkit-feature.ts";
 import { nextModules, nextModulesAtRoot } from "./next-modules.ts";
 import { packageShape } from "./package.ts";
 import type { Shape } from "./shape.ts";
@@ -14,6 +15,7 @@ const SHAPES: Partial<Record<ShapeName, Shape>> = {
   "makerkit-app": makerkitApp,
   "makerkit-feature": makerkitFeature,
   supabase,
+  e2e,
 };
 
 /** A next-modules workspace whose source root is its own top gets that shape's root layout. */

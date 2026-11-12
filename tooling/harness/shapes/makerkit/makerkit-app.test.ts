@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { auditChanged } from "../core/audit/audit.ts";
-import { codeIndex } from "../core/code-index.ts";
-import { parseEvent, type HookEvent } from "../core/hooks/event.ts";
-import { checkGuards } from "../core/hooks/guards.ts";
-import { checkPath, resolveHarness } from "../core/path-check.ts";
-import { MAKERKIT_KIT_ROUTE, MAKERKIT_ROUTE, makerkitConfig, makerkitRepo } from "../testing/makerkit-repo.ts";
+import { auditChanged } from "../../core/audit/audit.ts";
+import { codeIndex } from "../../core/code-index.ts";
+import { parseEvent, type HookEvent } from "../../core/hooks/event.ts";
+import { checkGuards } from "../../core/hooks/guards.ts";
+import { checkPath, resolveHarness } from "../../core/path-check.ts";
+import { MAKERKIT_KIT_ROUTE, MAKERKIT_ROUTE, makerkitConfig, makerkitRepo } from "../../testing/makerkit-repo.ts";
 
 const writeEvent = (root: string, file: string): HookEvent =>
   parseEvent("claude", { session_id: "s", cwd: root, hook_event_name: "PreToolUse", tool_name: "Write", tool_input: { file_path: file, content: "" } }, root);

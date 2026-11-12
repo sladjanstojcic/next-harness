@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { auditChanged } from "../core/audit/audit.ts";
-import { auditContent } from "../core/audit/content-rules.ts";
-import { codeIndex } from "../core/code-index.ts";
-import { parseEvent, type HookEvent } from "../core/hooks/event.ts";
-import { checkGuards } from "../core/hooks/guards.ts";
-import { checkPath, resolveHarness } from "../core/path-check.ts";
-import { makerkitRepo } from "../testing/makerkit-repo.ts";
+import { auditChanged } from "../../core/audit/audit.ts";
+import { auditContent } from "../../core/audit/content-rules.ts";
+import { codeIndex } from "../../core/code-index.ts";
+import { parseEvent, type HookEvent } from "../../core/hooks/event.ts";
+import { checkGuards } from "../../core/hooks/guards.ts";
+import { checkPath, resolveHarness } from "../../core/path-check.ts";
+import { makerkitRepo } from "../../testing/makerkit-repo.ts";
 
 const PKG = "packages/features/journal";
 const KIT = "packages/features/accounts";
