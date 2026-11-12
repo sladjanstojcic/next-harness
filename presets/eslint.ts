@@ -1,6 +1,6 @@
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import { electronAliases } from "./electron-aliases.ts";
-import { harnessRuleBlocks, type PresetLayout } from "./eslint-rules.ts";
+import { harnessRuleBlocks, usesShadcn, type PresetLayout } from "./eslint-rules.ts";
 import { call, defaultOf, isRecord, list, member, toolLoader } from "./load-tool.ts";
 
 const VENDORED = ["shared/ui/**", "shared/lib/utils.ts"];
@@ -66,7 +66,7 @@ export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
       [...ignored, ".next/**", "next-env.d.ts", "out/**", "build/**", ...(layout === "electron" ? ["dist/**"] : []), ".superpowers/**", ".serena/**"],
     ]),
     ...(base ? recommended() : []),
-    ...harnessRuleBlocks(layout, layout === "electron" ? electronAliases(tool("typescript"), root) : undefined).map((block, index) =>
+    ...harnessRuleBlocks(layout, layout === "electron" ? electronAliases(tool("typescript"), root) : undefined, usesShadcn(root)).map((block, index) =>
       index === 0
         ? {
             ...block,
