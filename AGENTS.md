@@ -33,7 +33,7 @@ tooling/harness/
   tools/                     a workspace's formatter, linter, type checker, tests
 scripts/                     repository automation
 e2e/                         Playwright browser tests
-docs/                        review guidance
+docs/                        the documentation site's pages and review guidance
 ```
 
 The closed shape prevents helper folders from becoming parallel architectures.
@@ -190,6 +190,8 @@ export default defineHarness({
 - A workspace with `test: "<package script>"` runs that script through the project's
   package manager instead of Vitest, in CI and in Done. Done runs the whole script, not
   only related tests; a non-zero exit is `test-failed` with the end of the output.
+  A failing Vitest run is `vitest-failed`, also with the end of its output, where the
+  failed tests are named; a run cut off by the time limit starts with "Tool timed out".
 - depcruise and jscpd read `src/`, or `app/`, `modules/`, `shared/`, `proxy.ts` and
   `instrumentation*.ts` in a next-modules workspace without `src/`. With a config file, a workspace that has neither `src/` nor
   `app/` yet skips them (`skipped (no src/)`).
@@ -387,6 +389,22 @@ Before writing Next.js code, read the relevant version-matched guide in
 versions. Heed deprecations. This instruction belongs to this repository;
 `agentRules: false` disables Next's generated instruction block. Development browser
 warnings and errors are forwarded to the terminal through `logging.browserToTerminal`.
+
+## Documentation
+
+GitHub Pages builds the site at <https://sladjanstojcic.github.io/next-harness/> from
+`docs/` on `main`, with Jekyll and the Just the Docs theme set in `docs/_config.yml`.
+There is no build step in this repository and no dependency for it.
+
+- Every page starts with front matter: `title`, `nav_order`, and `parent` for a page
+  under "Adopt it" or "Reference". A page without a title is missing from the sidebar.
+- Link to another page by its file name (`init.md#your-own-eslint-config`), so the link
+  works on GitHub and on the site. Link to a file outside `docs/` by its GitHub address.
+- Write plain Markdown: no callout syntax, no Mermaid, text drawings for diagrams.
+- A message shown on a page is copied from the harness's output, and a numbered step is
+  one that was run. When a change alters what init prints or what a rule says, change the
+  page in the same commit; `README.md` holds the short version of the same commands.
+- Keep a page at most 250 lines; split it as `packages.md` was split from `monorepo.md`.
 
 ## What linters cannot see
 
