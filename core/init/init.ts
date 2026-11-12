@@ -125,6 +125,9 @@ function ownTestsItem(harness: Harness, workspace: WorkspaceEntry): string {
   return `${lead}, by creating ${CONFIG_FILE} with: export default defineHarness({ workspaces: [{ path: ".", shape: "next-modules", next: true, test: "test" }] })`;
 }
 
+/** The browser smoke test runs only for a Next workspace at the root. */
+const runsSmoke = (workspaces: readonly WorkspaceEntry[]): boolean => workspaces.some((workspace) => workspace.path === "" && workspace.next);
+
 /** One numbered list of what the user runs after init, in the order that works: tools before the files that need them. */
 function nextSteps(root: string, harness: Harness, workspaces: readonly WorkspaceEntry[], steps: readonly Step[], starter: boolean): string[] {
   const todo = steps.filter((step) => step.todo === true).map((step) => step.target);
@@ -165,9 +168,7 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
     ...(preparesHooks(root) ? [] : [`Add to the root package.json "prepare" script, so a fresh clone gets the pre-push hook: ${PREPARE}`]),
     ...(format.length === 0 ? [] : [`Format the app's own files once in the preset's style: ${format.join("; ")}`]),
     ...(edited.length === 0 ? [] : [`Format the kept files you edited, in the project's own style: ${edited.join("; ")}`]),
-    ...(workspaces.some((workspace) => workspace.path === "" && workspace.next)
-      ? [`Install the smoke test's browser: ${exec} playwright install chromium`]
-      : []),
+    ...(runsSmoke(workspaces) ? [`Install the smoke test's browser: ${exec} playwright install chromium`] : []),
     ...(legacy === undefined || fs.existsSync(path.join(root, legacy))
       ? []
       : [`List the files with findings today, which the gates then tolerate until someone touches them: node ${HARNESS_PACKAGE}/cli.ts legacy init`]),
@@ -219,7 +220,12 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
     steps.filter((step) => step.apply !== undefined && isFormatted(step.target)).map((step) => step.target),
   );
   return {
-    report: [...lines, ...formatted, ciSteps(harness.config.legacy !== undefined), ...nextSteps(root, harness, workspaces, steps, starter)].join("\n"),
+    report: [
+      ...lines,
+      ...formatted,
+      ciSteps(harness.config.legacy !== undefined, runsSmoke(workspaces)),
+      ...nextSteps(root, harness, workspaces, steps, starter),
+    ].join("\n"),
     ok: true,
   };
 }

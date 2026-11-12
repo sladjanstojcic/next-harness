@@ -19,6 +19,9 @@ afterEach(() => vi.restoreAllMocks());
 const SNAPSHOT = path.join(import.meta.dirname, "decision-corpus.json");
 const FIXTURES = path.join(import.meta.dirname, "../core/hooks/fixtures");
 
+/** A harness path in another case: the same file where the filesystem folds case, another path where it does not. */
+const CASE_VARIANT = "tooling/Harness/x.ts";
+
 function guarded(build: () => ReturnType<typeof checkGuards>): unknown {
   try {
     return build();
@@ -31,7 +34,7 @@ function writes(root: string) {
   const envelope = (tool: string, input: Record<string, string>) =>
     parseEvent("claude", { session_id: "s", cwd: root, hook_event_name: "PreToolUse", tool_name: tool, tool_input: input }, root);
   return Object.fromEntries(
-    PATHS.map((file) => [
+    PATHS.filter((file) => file !== CASE_VARIANT).map((file) => [
       file,
       {
         write: guarded(() => checkGuards(envelope("Write", { file_path: file, content: "" }), root)),
@@ -146,4 +149,17 @@ describe("decision corpus", () => {
     const text = await format(JSON.stringify(result), { ...(await resolveConfig(SNAPSHOT)), filepath: SNAPSHOT });
     await expect(text).toMatchFileSnapshot(SNAPSHOT);
   }, 300_000);
+
+  it("denies a harness path written in another case on every filesystem", () => {
+    expect(PATHS).toContain(CASE_VARIANT);
+    const { root } = templateRepo();
+    const event = parseEvent(
+      "claude",
+      { session_id: "s", cwd: root, hook_event_name: "PreToolUse", tool_name: "Write", tool_input: { file_path: CASE_VARIANT, content: "" } },
+      root,
+    );
+    const folds = fs.existsSync(path.join(root, "tooling/Harness"));
+    // Where case folds it is the locked harness folder itself; elsewhere it is a new folder with a name the shape refuses.
+    expect(checkGuards(event, root)?.guard).toBe(folds ? "harness-lock" : "structure-write");
+  });
 });

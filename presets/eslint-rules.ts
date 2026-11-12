@@ -122,6 +122,20 @@ const ELECTRON_CONSOLE_BLOCK: RuleBlock = {
   ignores: CONSOLE.electron,
   rules: { "no-console": "off", "no-restricted-properties": ["error", ELECTRON_CONSOLE] },
 };
+/** Preload and renderer may not import the main process's log helper, so their message does not send them there. */
+const ELECTRON_CONSOLE_OUTSIDE_MAIN: RuleBlock = {
+  files: ["src/{preload,renderer}/**/*.{ts,tsx}"],
+  rules: {
+    "no-restricted-properties": [
+      "error",
+      {
+        object: "console",
+        message:
+          "Do not log here: let the error throw, or send it to the main process over a channel; console is allowed only in a file named log.ts in a src/main/ area folder (Electron layout).",
+      },
+    ],
+  },
+};
 
 /**
  * The preset registers eslint-plugin-react-hooks under a name of its own. ESLint refuses two different plugin objects
@@ -193,6 +207,6 @@ export function harnessRuleBlocks(layout: PresetLayout = "app", aliases?: Electr
     },
     layout === "package" ? PACKAGE_DOMAIN : { files: CONSOLE[layout], rules: { "no-console": "off" } },
     hooksIn(layout),
-    ...(layout === "electron" ? [ELECTRON_CONSOLE_BLOCK, ...electronBoundaryBlocks(aliases)] : []),
+    ...(layout === "electron" ? [ELECTRON_CONSOLE_BLOCK, ELECTRON_CONSOLE_OUTSIDE_MAIN, ...electronBoundaryBlocks(aliases)] : []),
   ];
 }

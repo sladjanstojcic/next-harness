@@ -69,15 +69,30 @@ describe("a workspace type-checked project by project (electron-vite)", () => {
     "electron.vite.config.ts": "export default {};\n",
   };
 
-  it("adds scripts/ and e2e/ to the project that reads the workspace's top, so their first file needs no locked edit", () => {
+  it("adds scripts/ and e2e/ to the project that reads the workspace's top, and src/shared/ to every project, so their first file needs no locked edit", () => {
     const repo = makeRepo(files);
     const steps = tsconfigSteps(repo.root, DESK, false, ["eslint.config.ts"]);
     expect(steps.map((step) => `${step.status} ${step.target}: ${step.detail}`)).toEqual([
-      "updated tsconfig.node.json: include scripts/**/*.ts, e2e/**/*.ts, exclude tooling/harness, harness.config.ts, eslint.config.ts",
+      "updated tsconfig.node.json: include scripts/**/*.ts, e2e/**/*.ts, src/shared/**/*, exclude tooling/harness, harness.config.ts, eslint.config.ts",
+      "updated tsconfig.web.json: include src/shared/**/*",
     ]);
     for (const step of steps) step.apply?.();
-    expect(JSON.parse(repo.read("tsconfig.node.json"))).toMatchObject({ include: ["*.config.ts", "src/main/**/*.ts", "scripts/**/*.ts", "e2e/**/*.ts"] });
-    expect(JSON.parse(repo.read("tsconfig.web.json"))).toEqual({ compilerOptions: { composite: true, strict: true }, include: ["src/renderer/src/**/*.ts"] });
+    expect(JSON.parse(repo.read("tsconfig.node.json"))).toMatchObject({
+      include: ["*.config.ts", "src/main/**/*.ts", "scripts/**/*.ts", "e2e/**/*.ts", "src/shared/**/*"],
+    });
+    expect(JSON.parse(repo.read("tsconfig.web.json"))).toEqual({
+      compilerOptions: { composite: true, strict: true },
+      include: ["src/renderer/src/**/*.ts", "src/shared/**/*"],
+    });
     expect(tsconfigSteps(repo.root, DESK, false, ["eslint.config.ts"]).map((step) => step.status)).toEqual(["unchanged"]);
+  });
+
+  it("leaves a project that already reads src/shared/ or all of src/ as it is", () => {
+    const repo = makeRepo({
+      ...files,
+      "tsconfig.node.json": '{ "compilerOptions": { "composite": true, "strict": true }, "include": ["src/main/**/*.ts", "src/shared/*.ts"] }\n',
+      "tsconfig.web.json": '{ "compilerOptions": { "composite": true, "strict": true }, "include": ["src/**/*"] }\n',
+    });
+    expect(tsconfigSteps(repo.root, DESK, false, [])).toEqual([]);
   });
 });

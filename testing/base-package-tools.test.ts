@@ -129,7 +129,7 @@ describe("tools the project's own lint config already brings", () => {
       fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "typescript", version }));
     };
     typescript("", "7.0.2");
-    expect(peerInstall(repo.root, loadConfig(repo.root), workspace)).toMatch(/ "typescript@npm:@typescript\/typescript6@\^6\.0\.2"$/);
+    expect(peerInstall(repo.root, loadConfig(repo.root), workspace)).toMatch(/ "typescript@npm:@typescript\/typescript6@\^6\.0\.2"\)$/);
     repo.git("config", "--unset", "core.hooksPath");
     const { report } = initHarness(repo.root, { force: false, starter: false });
     const step = report.split("\n").find((line) => line.includes("Install the harness's tools")) ?? "";
@@ -138,7 +138,7 @@ describe("tools the project's own lint config already brings", () => {
     expect(lead).toContain(
       "(init does not install; typescript-eslint needs TypeScript's JavaScript API and TypeScript 7 has none, so the alias installs TypeScript 6",
     );
-    expect(command).toMatch(/^cd apps\/web && pnpm add -D [^()]+ "typescript@npm:@typescript\/typescript6@\^6\.0\.2"$/);
+    expect(command).toMatch(/^\(cd apps\/web && pnpm add -D [^()]+ "typescript@npm:@typescript\/typescript6@\^6\.0\.2"\)$/);
     install(repo.root, APP, "harness-fixture-tool", 'throw new Error("does not support TS 7.0.");\n');
     const failure = (): unknown => toolLoader(repo.dir, BASE)("harness-fixture-tool");
     expect(failure).toThrow(

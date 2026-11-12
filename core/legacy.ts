@@ -64,14 +64,10 @@ export function untouchedLegacy(gitRoot: string, legacy: ReadonlySet<string>): {
 }
 
 /**
- * Writes the legacy list once: every file with a harness finding or a tool finding (format, lint, types, depcruise, knip,
- * jscpd) now, from the same per-file reports CI judges with. A tool that cannot run lists nothing, so it is named.
+ * The files with a harness finding or a tool finding (format, lint, types, depcruise, knip, jscpd) now, from the same
+ * per-file reports CI judges with, and the steps that could not run, whose findings are therefore unknown.
  */
-export async function initLegacy(gitRoot: string, harness: Harness): Promise<string> {
-  const legacy = harness.config.legacy;
-  if (legacy === undefined) throw new Error(`${CONFIG_FILE} sets no legacy path; add \`legacy: "<path>.json"\` first.`);
-  const target = path.join(gitRoot, legacy);
-  if (fs.existsSync(target)) throw new Error(`${legacy} already exists; remove entries from it as files are fixed.`);
+async function filesWithFindings(gitRoot: string, harness: Harness): Promise<{ files: string[]; failed: string[] }> {
   const found = audit(gitRoot).filter((finding) => HARNESS_RULES.has(finding.rule));
   const output = fs.mkdtempSync(path.join(stateDir(gitRoot), "jscpd-"));
   try {
@@ -84,12 +80,49 @@ export async function initLegacy(gitRoot: string, harness: Harness): Promise<str
   } finally {
     fs.rmSync(output, { recursive: true, force: true });
   }
-  const files = [...new Set(found.map((finding) => finding.file).filter((file) => file !== ""))].sort();
-  const failed = found.filter((finding) => finding.file === "").map((finding) => `${finding.rule}: ${finding.message.split("\n")[0] ?? ""}`);
+  return {
+    files: [...new Set(found.map((finding) => finding.file).filter((file) => file !== ""))].sort(),
+    failed: found.filter((finding) => finding.file === "").map((finding) => `${finding.rule}: ${finding.message.split("\n")[0] ?? ""}`),
+  };
+}
+
+const write = (target: string, files: readonly string[]): void => fs.writeFileSync(target, `${JSON.stringify({ version: 1, files }, null, 2)}\n`);
+
+/** Writes the legacy list once: every file with a finding now. A tool that cannot run lists nothing, so it is named. */
+export async function initLegacy(gitRoot: string, harness: Harness): Promise<string> {
+  const legacy = harness.config.legacy;
+  if (legacy === undefined) throw new Error(`${CONFIG_FILE} sets no legacy path; add \`legacy: "<path>.json"\` first.`);
+  const target = path.join(gitRoot, legacy);
+  if (fs.existsSync(target)) throw new Error(`${legacy} already exists; shorten it with \`legacy prune\` as files are fixed.`);
+  const { files, failed } = await filesWithFindings(gitRoot, harness);
   fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.writeFileSync(target, `${JSON.stringify({ version: 1, files }, null, 2)}\n`);
+  write(target, files);
   return [
     `Wrote ${legacy} with ${String(files.length)} files. Commit it; until then legacy-append is inert.`,
     ...(failed.length === 0 ? [] : [`These steps did not run to the end, so their findings are not on the list and will fail CI:`, ...failed]),
+  ].join("\n");
+}
+
+/**
+ * Shortens the legacy list to the files that still have a finding: a fixed, moved or deleted file leaves it and is held
+ * to every rule from then on. Nothing is written while a tool cannot run, since its findings are unknown.
+ */
+export async function pruneLegacy(gitRoot: string, harness: Harness): Promise<string> {
+  const legacy = harness.config.legacy;
+  if (legacy === undefined) throw new Error(`${CONFIG_FILE} sets no legacy path; there is no list to prune.`);
+  const target = path.join(gitRoot, legacy);
+  if (!fs.existsSync(target)) throw new Error(`${legacy} does not exist; write it with \`legacy init\` first.`);
+  const listed = [...readLegacy(gitRoot, harness.config)].sort();
+  const { files, failed } = await filesWithFindings(gitRoot, harness);
+  if (failed.length > 0) throw new Error(`${legacy} is unchanged, because these steps did not run to the end:\n${failed.join("\n")}`);
+  const current = new Set(files);
+  const kept = listed.filter((file) => current.has(file));
+  const removed = listed.filter((file) => !current.has(file));
+  if (removed.length === 0) return `${legacy} is unchanged: all ${String(listed.length)} files still have a finding.`;
+  write(target, kept);
+  return [
+    `Removed ${String(removed.length)} of ${String(listed.length)} files from ${legacy}; they have no finding left:`,
+    ...removed,
+    "Commit the list.",
   ].join("\n");
 }

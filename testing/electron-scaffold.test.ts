@@ -41,7 +41,8 @@ describe("the official electron-vite scaffold (react-ts), adopted with a legacy 
         "created vitest.config.ts: harness preset",
         "created knip.config.ts: harness preset",
         "created .dependency-cruiser.json: harness preset",
-        "updated tsconfig.node.json: include scripts/**/*.ts, e2e/**/*.ts, exclude tooling/harness, harness.config.ts, eslint.config.mjs, vitest.config.ts, knip.config.ts",
+        "updated tsconfig.node.json: include scripts/**/*.ts, e2e/**/*.ts, src/shared/**/*, exclude tooling/harness, harness.config.ts, eslint.config.mjs, vitest.config.ts, knip.config.ts",
+        "updated tsconfig.web.json: include src/shared/**/*",
         "updated .gitignore: *.tsbuildinfo",
       ].join("\n"),
     );
@@ -50,7 +51,9 @@ describe("the official electron-vite scaffold (react-ts), adopted with a legacy 
       "(init does not edit electron.vite.config.ts), by adding this to its preload section, and removing externalizeDepsPlugin() from that section's plugins when it is there: build: { externalizeDeps: false }",
     );
     expect(repo.read("electron.vite.config.ts")).toBe(SCAFFOLD["electron.vite.config.ts"]);
-    expect(repo.read("tsconfig.web.json")).toBe(SCAFFOLD["tsconfig.web.json"]);
+    // Both projects read the contract folder, so its first file needs no edit to a locked tsconfig.
+    expect((JSON.parse(repo.read("tsconfig.web.json")) as { include: string[] }).include).toContain("src/shared/**/*");
+    expect(repo.report).not.toContain("playwright install --with-deps");
     // Files init wrote are in the project's own style, which its ESLint config holds Prettier to.
     expect(repo.read("knip.config.ts")).toContain("import { harnessKnipElectron } from './tooling/harness/presets/knip.ts'");
 
