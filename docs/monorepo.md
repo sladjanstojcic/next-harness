@@ -1,3 +1,9 @@
+---
+title: A monorepo
+nav_order: 3
+parent: Adopt it
+---
+
 # A Turborepo or other monorepo
 
 Write `harness.config.ts` at the repository root before running init. Each app is a workspace with its

@@ -1,3 +1,9 @@
+---
+title: A Makerkit project
+nav_order: 5
+parent: Adopt it
+---
+
 # A Makerkit project
 
 The kit's code stays the kit's. A file, `tooling/harness-upstream.json`, lists the kit's files. Every file

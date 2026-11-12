@@ -1,3 +1,9 @@
+---
+title: An Electron project
+nav_order: 4
+parent: Adopt it
+---
+
 # An Electron project
 
 A desktop app built with [electron-vite](https://electron-vite.org) has its own shape, `electron-vite`.

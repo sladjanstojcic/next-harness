@@ -1,3 +1,9 @@
+---
+title: Further reading
+nav_order: 3
+parent: Reference
+---
+
 # Further reading and references
 
 Texts about harnesses and coding agents that were read in full and agree with how this template works.
