@@ -58,11 +58,12 @@ parent: Reference
   not a destructuring from `electron` itself. A constant as the address is reported, though it may hold
   a literal. `ipc-channel` does not see a literal passed through a
   generic bridge such as `window.api.invoke("…")`.
-- `ui-stack` checks presence only: a `components.json` at an app's top and the `tailwindcss` package in
-  its `package.json`. A bare `components.json` and an installed `tailwindcss` clear it without the
-  setup; it reads neither what `components.json` says nor whether Tailwind is wired into the CSS and the
-  bundler. Updating an adopted project to a version with the rule fails its next push until each app
-  has the setup, or until the user adds the app's `package.json` to a committed legacy list
+- `ui-stack` checks presence only: a `components.json` at an app's top. A bare `components.json` clears
+  it without the setup; it reads neither what `components.json` says nor whether Tailwind is installed
+  or wired into the CSS and the bundler. Tailwind is set up by init's steps and not checked: a
+  `package.json` entry would show that the package is listed, not that it is used, and shadcn cannot be
+  set up without Tailwind. Updating an adopted project to a version with the rule fails its next push
+  until each app has the setup, or until the user adds the app's `package.json` to a committed legacy list
   ([Update the harness](adopt.md#update-the-harness)). It ran on this repository and in its tests; no
   adopted project has run it yet.
 - `preload-bundle` reads the config's text and evaluates nothing. A config built by a function, kept in a

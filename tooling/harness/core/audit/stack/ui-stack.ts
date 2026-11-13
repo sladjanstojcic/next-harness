@@ -4,7 +4,6 @@ import type { ShapeName } from "../../../config.ts";
 import { usesShadcn } from "../../../presets/eslint-rules.ts";
 import { ELECTRON_LAYOUT } from "../../../shapes/electron/source-rules.ts";
 import { VITE_LAYOUT } from "../../../shapes/vite/source-rules.ts";
-import { declaresTailwind } from "../../init/shadcn/tailwind.ts";
 import { resolveHarness } from "../../path-check.ts";
 import type { Finding } from "../finding.ts";
 
@@ -21,18 +20,10 @@ const APPS: Partial<Record<ShapeName, { page: string; layout: string }>> = {
 
 const ending = (text: string, layout: string): string => (layout === "" ? `${text}.` : `${text} ${layout}`);
 
-/** A package.json that does not parse declares nothing; the package manager reports it on its own. */
-function hasTailwind(text: string): boolean {
-  try {
-    return declaresTailwind(JSON.parse(text));
-  } catch {
-    return false;
-  }
-}
-
 /**
- * The `ui-stack` rule: every app workspace has shadcn's components.json at its top and Tailwind in its package.json.
- * Without them the shadcn lint rule is off and nothing asks for Tailwind, so a skipped setup would pass every check.
+ * The `ui-stack` rule: every app workspace has shadcn's components.json at its top. Without it the shadcn lint rule is
+ * off, so a skipped setup would pass every check. Tailwind is not checked: the package.json shows that it is listed,
+ * not that it is used, and shadcn cannot be set up without it.
  */
 export function auditUiStack(root: string): Finding[] {
   return resolveHarness(root).workspaces.flatMap((workspace): Finding[] => {
@@ -40,19 +31,13 @@ export function auditUiStack(root: string): Finding[] {
     const file = posix.join(workspace.path, "package.json");
     if (app === undefined || !fs.existsSync(join(root, file))) return [];
     const steps = `${SITE}/${app.page}; ${UNLOCK}`;
-    const findings: Finding[] = [];
-    if (!usesShadcn(join(root, workspace.path)))
-      findings.push({
+    if (usesShadcn(join(root, workspace.path))) return [];
+    return [
+      {
         rule: "ui-stack",
         file,
         message: ending(`This app has no components.json: ${STACK}. Set shadcn up with the steps on ${steps}`, app.layout),
-      });
-    if (!hasTailwind(fs.readFileSync(join(root, file), "utf8")))
-      findings.push({
-        rule: "ui-stack",
-        file,
-        message: ending(`This app has no Tailwind (tailwindcss) in its package.json: ${STACK}. Add it with the steps on ${steps}`, app.layout),
-      });
-    return findings;
+      },
+    ];
   });
 }

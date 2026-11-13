@@ -139,8 +139,8 @@ Your config stays where it is and keeps its rules. See
 ## 8. Set up shadcn
 
 The lint rule asks for shadcn's components in place of a raw `button` or `input`, and the audit rule
-`ui-stack` for `components.json` and Tailwind, so both come before the first commit. Init prints four
-steps for them and runs none. With `src/` they read:
+`ui-stack` for `components.json`. Tailwind is not checked, but shadcn needs it, so both come before the
+first commit. Init prints four steps for them and runs none. With `src/` they read:
 
 ```text
   4. Set up shadcn, whose components the lint rule then asks for (init does not run it): pnpm dlx shadcn@latest init -t next -b base -p nova

@@ -15,7 +15,7 @@ import { APP, CNA_ESLINT, initialised, presetFindings, ROOT_APP, run, withPreset
 afterEach(() => vi.restoreAllMocks());
 
 /** The harness's findings on create-next-app's own generated app code, generated without Tailwind and without shadcn. */
-const CNA_APP_FINDINGS = ["app-file src/app/page.module.css", "thin-page src/app/page.tsx", "ui-stack package.json", "ui-stack package.json"];
+const CNA_APP_FINDINGS = ["app-file src/app/page.module.css", "thin-page src/app/page.tsx", "ui-stack package.json"];
 
 const IMPORT = 'import { harnessEslint } from "./tooling/harness/presets/eslint.ts";';
 const WITH_PRESET = `${IMPORT}\nexport default [{ rules: { "no-console": "error" } }, ...harnessEslint({ root: import.meta.dirname, next: true })];\n`;

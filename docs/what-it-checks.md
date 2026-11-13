@@ -124,10 +124,10 @@ harness says   src/modules/billing/components/save-bar.tsx:14 no-restricted-synt
 ```
 
 Every app is built with TypeScript, Tailwind and shadcn. The full audit, which Done, the pre-push
-hook and CI run, reports a Next, Vite or Electron app without shadcn's `components.json` at its top
-or without the `tailwindcss` package in its `package.json`; a plugin such as `@tailwindcss/vite` alone
-does not count. Without that file the rule above is off, so an app that skipped the setup would pass
-every check.
+hook and CI run, reports a Next, Vite or Electron app without shadcn's `components.json` at its top.
+Without that file the rule above is off, so an app that skipped the setup would pass every check.
+Tailwind is set up by init's steps and not checked: `package.json` shows that the package is listed,
+not that it is used, and shadcn cannot be set up without it.
 
 ```text
 agent adds     apps/admin/, a Next app, without the shadcn setup

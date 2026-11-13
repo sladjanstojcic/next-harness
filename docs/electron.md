@@ -91,8 +91,8 @@ The scaffold does not make a repository, and you do not need to install yet: ste
 ## shadcn
 
 The lint rule asks for shadcn's components in the renderer, and the audit rule `ui-stack` for
-`components.json` and Tailwind, so both come before the first commit. Init prints six steps for them
-and runs none. For the scaffold they read:
+`components.json`. Tailwind is not checked, but shadcn needs it, so both come before the first commit.
+Init prints six steps for them and runs none. For the scaffold they read:
 
 ```text
   4. Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in src/renderer/src/assets/main.css, add tailwindcss() from "@tailwindcss/vite" to the renderer plugins in electron.vite.config.ts, and run pnpm add -D tailwindcss @tailwindcss/vite
