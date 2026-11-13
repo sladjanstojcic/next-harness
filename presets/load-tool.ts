@@ -18,17 +18,27 @@ function packageFolder(root: string, name: string): string | undefined {
  * gives it one; that package's binary is `tsc6`, so `tsc` stays the project's own.
  */
 export const TYPESCRIPT_API = "typescript@npm:@typescript/typescript6@^6.0.2";
-export const TYPESCRIPT_API_REASON =
-  "typescript-eslint needs TypeScript's JavaScript API and TypeScript 7 has none, so the alias installs TypeScript 6 under the name typescript, while `tsc` stays the project's own";
+const API_REASON =
+  "typescript-eslint needs TypeScript's JavaScript API and TypeScript 7 has none, so the alias installs TypeScript 6 under the name typescript";
+export const TYPESCRIPT_API_REASON = `${API_REASON}, while \`tsc\` stays the project's own`;
+
+/**
+ * In a workspace no folder above provides `tsc` for, the alias would replace the project's only TypeScript 7 and its
+ * binary; a second alias keeps that version under another name, whose binary is still `tsc`.
+ */
+export const typescriptNative = (version: string): string => `typescript-native@npm:typescript@${version}`;
+export const TYPESCRIPT_NATIVE_REASON = `${API_REASON}, and as no folder above the workspace holds a TypeScript, the second alias keeps TypeScript 7 under the name typescript-native, whose binary \`tsc\` stays the project's own`;
+
+/** The version of the `typescript` a folder resolves; undefined when none is installed. */
+export function typescriptVersion(root: string): string | undefined {
+  const folder = packageFolder(root, "typescript");
+  if (folder === undefined) return undefined;
+  const manifest: unknown = JSON.parse(fs.readFileSync(path.join(folder, "package.json"), "utf8"));
+  return isRecord(manifest) && typeof manifest.version === "string" ? manifest.version : "";
+}
 
 /** Whether the `typescript` a folder resolves is 7 or newer. */
-export function lacksTypescriptApi(root: string): boolean {
-  const folder = packageFolder(root, "typescript");
-  if (folder === undefined) return false;
-  const manifest: unknown = JSON.parse(fs.readFileSync(path.join(folder, "package.json"), "utf8"));
-  const version = isRecord(manifest) && typeof manifest.version === "string" ? manifest.version : "";
-  return Number(version.split(".")[0]) >= 7;
-}
+export const lacksTypescriptApi = (root: string): boolean => Number((typescriptVersion(root) ?? "").split(".")[0]) >= 7;
 
 const isMissing = (error: unknown): boolean => error instanceof Error && "code" in error && error.code === "MODULE_NOT_FOUND";
 
