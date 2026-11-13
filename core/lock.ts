@@ -4,6 +4,7 @@ import path from "node:path";
 import { z } from "zod";
 import { CONFIG_FILE, isWorkspaceFolder, loadConfig, toolsOf, type HarnessConfig, type WorkspaceConfig } from "../config.ts";
 import { ELECTRON_CONFIGS } from "../shapes/electron/electron-vite.ts";
+import { VITE_CONFIGS } from "../shapes/vite/vite-spa.ts";
 import { ALL_TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import type { Finding } from "./audit/finding.ts";
 import { readState, stateDir, writeState } from "./state/state-file.ts";
@@ -25,6 +26,8 @@ const LOCKED_PATHS: readonly string[] = [
 ];
 /** Every tool config name an eslint-prettier workspace may hold, init's and the project's own, and the tsconfig and Prettier ignore file init edits; locked there as at the root. */
 const WORKSPACE_TOOL_CONFIGS: readonly string[] = [...ALL_TOOL_CONFIG_NAMES, ".dependency-cruiser.json", ".jscpd.json", ".prettierignore", "tsconfig.json"];
+/** The build configs and every tsconfig*.json of the shapes type-checked project by project, which their type check reads. */
+const PROJECT_CONFIGS: Partial<Record<WorkspaceConfig["shape"], RegExp>> = { "electron-vite": ELECTRON_CONFIGS, "vite-spa": VITE_CONFIGS };
 export const UNLOCK_COMMAND = /\bharness:unlock\b|cli\.ts\s+unlock\b|harness\/unlock\.json/;
 /** `init --force` replaces locked wiring; while the harness is locked it is the user's command. */
 export const INIT_FORCE_COMMAND = /(?:\bharness:init\b|cli\.ts\s+init\b)[^;&|]*\s--force\b/;
@@ -56,10 +59,10 @@ export function isLocked(file: string, config?: HarnessConfig, root?: string): b
   const name = path.posix.basename(file);
   const inWorkspace = (is: (workspace: WorkspaceConfig) => boolean): boolean =>
     (config?.workspaces ?? []).some((workspace) => is(workspace) && isWorkspaceFolder(workspace, folder === "." ? "" : folder));
-  // An electron-vite workspace, at the root too: its build configs and every tsconfig*.json, which its type check reads.
-  const electron = ELECTRON_CONFIGS.test(name) && inWorkspace((workspace) => workspace.shape === "electron-vite");
+  // Locked at the root too, unlike a workspace's tool configs: the root tsconfig.json alone is in LOCKED_PATHS.
+  const project = inWorkspace((workspace) => PROJECT_CONFIGS[workspace.shape]?.test(name) === true);
   const toolConfig = folder !== "." && WORKSPACE_TOOL_CONFIGS.includes(name) && inWorkspace((workspace) => toolsOf(workspace) === "eslint-prettier");
-  return (electron || toolConfig) && !(root !== undefined && folder !== "." && isNewWorkspace(root, folder));
+  return (project || toolConfig) && !(root !== undefined && folder !== "." && isNewWorkspace(root, folder));
 }
 
 export function unlocked(root: string, now = Date.now()): boolean {

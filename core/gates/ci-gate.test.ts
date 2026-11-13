@@ -99,4 +99,24 @@ describe("CI gate", () => {
     audit.mockReturnValue([{ rule: "src-shape", file: "src/utils/x.ts", message: "Move it." }]);
     expect(auditSection((await ciGate(makeRepo(SMOKE).root)).report)).toContain(NEXT_FOOTER);
   });
+
+  it("builds a vite-spa workspace with vite in its folder, an electron-vite one with electron-vite, and runs no Next step", async () => {
+    const bins = ["prettier", "eslint", "tsc", "depcruise", "knip", "jscpd", "vitest", "vite", "electron-vite"];
+    const repo = makeRepo({
+      "harness.config.ts": 'export default { workspaces: [{ path: "apps/web", shape: "vite-spa" }, { path: "apps/desk", shape: "electron-vite" }] };\n',
+      "apps/web/src/main.tsx": "",
+      "apps/desk/src/main/index.ts": "",
+      ...Object.fromEntries(bins.map((tool) => [`node_modules/.bin/${tool}`, ""])),
+    });
+    const steps: string[] = [];
+    vi.spyOn(runner, "runTool").mockImplementation(async (_root, step) => {
+      steps.push(
+        `${step.name}: ${[path.basename(step.command[0] ?? ""), ...step.command.slice(1)].join(" ")} in ${path.relative(repo.root, step.cwd ?? repo.root)}`,
+      );
+      return [];
+    });
+    await ciGate(repo.root);
+    expect(steps.filter((step) => step.startsWith("build"))).toEqual(["build: vite build in apps/web", "build: electron-vite build in apps/desk"]);
+    expect(steps.filter((step) => /^(typegen|next|playwright)\b/.test(step))).toEqual([]);
+  });
 });

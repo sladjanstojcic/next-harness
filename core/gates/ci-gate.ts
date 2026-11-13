@@ -10,7 +10,7 @@ import { lintConfigFindings } from "../hooks/lint-config-guard.ts";
 import { resolveHarness, type Harness } from "../path-check.ts";
 import { E2E_TESTS } from "../../presets/e2e.ts";
 import { stateDir } from "../state/state-file.ts";
-import { build, electronBuild, playwright } from "../../tools/analysis.ts";
+import { build, electronBuild, playwright, viteBuild } from "../../tools/analysis.ts";
 import { toolWorkspaces, workspaceTools } from "../../tools/index.ts";
 import { placeStep } from "../../tools/tool-set.ts";
 import { analysisSteps, checkSteps, skippedLine, summarizePreExisting, testStep, type SkippedStep } from "./ci-steps.ts";
@@ -114,7 +114,10 @@ async function runCiGate(directory: string, harness: Harness, ratchet: boolean, 
     if (fs.globSync(E2E_TESTS, { cwd: directory }).length > 0) await run("", [playwright(directory)]);
     else reports.push("playwright: skipped");
   }
-  for (const { workspace, dir } of groups) if (workspace.shape === "electron-vite") await run(workspace.path, [electronBuild(dir)]);
+  for (const { workspace, dir } of groups) {
+    if (workspace.shape === "electron-vite") await run(workspace.path, [electronBuild(dir)]);
+    if (workspace.shape === "vite-spa") await run(workspace.path, [viteBuild(dir)]);
+  }
   const preExisting = [...old.values()].flat();
   if (preExisting.length > 0) reports.push(PRE_EXISTING_HEADING, summarizePreExisting(old));
   return { passed: findings.length === 0, findings, preExisting, report: reports.join("\n") };
