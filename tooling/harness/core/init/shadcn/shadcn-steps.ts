@@ -97,7 +97,12 @@ function workspaceTodo(root: string, workspace: WorkspaceEntry, source: string):
     electron
       ? `${setup}; it recognises Vite only by a vite.config file, so the command gives it an empty one for the run: ${inFolder(`printf 'export default {}\\n' > vite.config.ts && ${init} && rm vite.config.ts`)}`
       : `${setup}: ${inFolder(init)}`,
-    `Delete the two files shadcn init wrote where the layout takes no code: rm ${label(`${source}components/ui/button.tsx`)} ${label(`${source}lib/utils.ts`)}`,
+    // On a Next app whose layout loads local fonts, as create-turbo's do, shadcn's font setup imports cn from the file deleted here.
+    `Delete the two files shadcn init wrote where the layout takes no code${
+      workspace.shape === "next-modules"
+        ? `, and where its font setup imported cn from "${alias}lib/utils" in ${label(`${source}app/layout.tsx`)}, import it from "${alias}shared/lib/utils"`
+        : ""
+    }: rm ${label(`${source}components/ui/button.tsx`)} ${label(`${source}lib/utils.ts`)}`,
     `Point shadcn at ${label(`${source}shared/`)}, by setting "aliases" in ${label("components.json")} to: ${sharedAliases(alias)}`,
     // The scaffolds of the other two shapes take the preset's Prettier, whose later format step covers what shadcn wrote.
     electron
