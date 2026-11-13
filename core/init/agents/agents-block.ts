@@ -14,21 +14,31 @@ const IMPORT = "@AGENTS.md";
 /** Codex's default project_doc_max_bytes: it reads no further into the project's instruction files. */
 const CODEX_LIMIT = 32 * 1024;
 
-/** One guide pair per configured workspace; with several, the headings name the workspace each pair is about. */
+/** Said once above several guide pairs, whose trees and paths are written from the workspace folder. */
+const PER_WORKSPACE = "Each pair of sections below is about the workspaces its headings name; the paths in it start at each of those folders.";
+
+/** One guide pair per guide the configured workspaces use; with several, the headings name the workspaces each pair is about. */
 export function harnessBlock(root: string): string {
   const harness = resolveHarness(root);
   const entries = harness.config.workspaces;
-  const pairs = entries.map((entry) => {
+  const groups = new Map<string, { shape: string; paths: string[] }>();
+  for (const entry of entries) {
     // A next-modules entry takes its layout from the folders it covers; a `/*` entry covering none uses src/.
     const covered = harness.workspaces.find((workspace) => isWorkspaceFolder(entry, workspace.path));
-    const guide = readGuide(guideName({ shape: entry.shape, ...(covered?.sourceRoot === undefined ? {} : { sourceRoot: covered.sourceRoot }) }));
-    if (entries.length === 1) return guide;
+    const name = guideName({ shape: entry.shape, ...(covered?.sourceRoot === undefined ? {} : { sourceRoot: covered.sourceRoot }) });
     const where = entry.path.replace(/^\.\/?$/, "") === "" ? "." : entry.path;
+    const group = groups.get(name) ?? { shape: entry.shape, paths: [] };
+    groups.set(name, { ...group, paths: [...group.paths, where] });
+  }
+  const pairs = [...groups].map(([name, { shape, paths }]) => {
+    const guide = readGuide(name);
+    if (entries.length === 1) return guide;
+    const where = paths.join(", ");
     return guide
-      .replace(/^## Architecture and why$/m, `## Architecture and why: ${where} (${entry.shape})`)
+      .replace(/^## Architecture and why$/m, `## Architecture and why: ${where} (${shape})`)
       .replace(/^## Where code goes$/m, `## Where code goes: ${where}`);
   });
-  return [BLOCK_START, ...pairs, readGuide("common"), BLOCK_END].join("\n\n");
+  return [BLOCK_START, ...(entries.length === 1 ? [] : [PER_WORKSPACE]), ...pairs, readGuide("common"), BLOCK_END].join("\n\n");
 }
 
 /** The block's character range, both markers included; a marker counts only at the start of a line outside a code fence. */

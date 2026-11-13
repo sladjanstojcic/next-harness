@@ -38,6 +38,17 @@ describe("harnessBlock", () => {
       expect(count(block, heading), heading).toBe(1);
     }
     for (const common of ["## Checks and the lock", "## Repair budget", "## What linters cannot see"]) expect(count(block, common), common).toBe(1);
+    expect(count(block, "the paths in it start at each of those folders")).toBe(1);
+    expect(harnessBlock(makeRepo().root)).not.toContain("the paths in it start at each of those folders");
+  });
+
+  it("shares one pair across the entries that use the same guide, headed by their paths", () => {
+    const three =
+      'export default { workspaces: [{ path: "apps/web", shape: "next-modules" }, { path: "apps/docs", shape: "next-modules" }, { path: "packages/*", shape: "package" }] };\n';
+    const block = harnessBlock(makeRepo({ "harness.config.ts": three }).root);
+    expect(count(block, "## Architecture and why")).toBe(2);
+    expect(count(block, "## Architecture and why: apps/web, apps/docs (next-modules)\n")).toBe(1);
+    expect(count(block, "## Where code goes: apps/web, apps/docs\n")).toBe(1);
   });
 });
 
