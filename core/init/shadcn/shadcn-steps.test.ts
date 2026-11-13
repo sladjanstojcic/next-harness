@@ -32,8 +32,8 @@ const tailwind = (css: string, plugins: string): string =>
   `Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in apps/web/${css}, add tailwindcss() from "@tailwindcss/vite" to the ${plugins}, and run (cd apps/web && pnpm add -D tailwindcss @tailwindcss/vite)`;
 const nextTailwind = (css: string, config: string): string =>
   `Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in apps/web/${css}, add turbopack: { rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } } } to the config in apps/web/${config}, and run (cd apps/web && pnpm add -D tailwindcss @tailwindcss/turbopack)`;
-const remove = (source: string): string =>
-  `Delete the two files shadcn init wrote where the layout takes no code: rm apps/web/${source}components/ui/button.tsx apps/web/${source}lib/utils.ts`;
+const remove = (source: string, next = false): string =>
+  `Delete the two files shadcn init wrote where the layout takes no code${next ? `, and where its font setup imported cn from "@/lib/utils" in apps/web/${source}app/layout.tsx, import it from "@/shared/lib/utils"` : ""}: rm apps/web/${source}components/ui/button.tsx apps/web/${source}lib/utils.ts`;
 const point = (source: string, prefix: string): string =>
   `Point shadcn at apps/web/${source}shared/, by setting "aliases" in apps/web/components.json to: ${aliases(prefix)}`;
 const ADD = "Add the first component and the cn helper there: (cd apps/web && pnpm dlx shadcn@latest add button utils)";
@@ -47,7 +47,7 @@ describe("the shadcn setup init prints", () => {
       const repo = makeRepo(NEXT_TAILWIND);
       expect(shadcnTodo(repo.root, [entry("next-modules", sourceRoot === undefined ? {} : { sourceRoot })])).toEqual([
         `${SETUP}: (cd apps/web && pnpm dlx shadcn@latest init -t next -b base -p nova)`,
-        remove(source),
+        remove(source, true),
         point(source, "@/"),
         ADD,
       ]);
