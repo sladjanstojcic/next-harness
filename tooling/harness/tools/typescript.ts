@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
@@ -61,7 +62,9 @@ export const aliasesOf = (dir: string): ElectronAliases => electronAliases(ts, d
 export function cruiserAliases(dir: string, workspace: Pick<WorkspaceEntry, "shape">): string[] {
   const { paths } = checksByProject(workspace.shape) ? aliasesOf(dir) : { paths: {} };
   if (Object.keys(paths).length === 0) return [];
-  const file = path.join(dir, "node_modules/.cache/harness/tsconfig.aliases.json");
+  // Test projects and monorepo workspaces can share one node_modules through a link, so the name carries the folder.
+  const id = createHash("sha256").update(dir).digest("hex").slice(0, 12);
+  const file = path.join(dir, `node_modules/.cache/harness/tsconfig.aliases.${id}.json`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, `${JSON.stringify({ extends: path.join(dir, "tsconfig.json"), compilerOptions: { paths } }, null, 2)}\n`);
   return ["--ts-config", relativePath(dir, file)];
