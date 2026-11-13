@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { makerkitApp } from "../../shapes/makerkit/makerkit-app.ts";
 import { nextModules } from "../../shapes/next-modules.ts";
 import type { ContentProfile } from "../../shapes/shape.ts";
+import { viteContent } from "../../shapes/vite/content.ts";
 import { makeRepo } from "../../testing/temp-repo.ts";
 import { auditContent, auditSource, resolveTarget } from "./content-rules.ts";
 
@@ -26,6 +27,11 @@ describe("NEXT_PUBLIC_* reads", () => {
   it("stay env-access in next-modules, which has no publicEnvAllowed", () => {
     const file = "src/modules/a/components/x.tsx";
     expect(auditSource(makeRepo().root, { file, path: file, profile: nextModules.content }, source).map(({ rule }) => rule)).toEqual(["env-access"]);
+  });
+
+  it("stay env-access in vite-spa, where Vite exposes nothing as process.env", () => {
+    const file = "src/modules/a/components/x.tsx";
+    expect(auditSource(makeRepo().root, { file, path: file, profile: viteContent }, source).map(({ rule }) => rule)).toEqual(["env-access"]);
   });
 
   it("pass in a makerkit profile", () => {
