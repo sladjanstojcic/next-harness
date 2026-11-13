@@ -26,7 +26,8 @@ const PRESETS = [
   ...filesUnder("tooling/harness/guides").filter((file) => !file.endsWith(".test.ts")),
 ];
 
-export function templateRepo(files: Record<string, string> = {}) {
+/** A project from this template; `stack` gives it the components.json the template has, for a test that runs the full audit. */
+export function templateRepo(files: Record<string, string> = {}, options: { stack?: boolean } = {}) {
   const configs = [
     "package.json",
     "tsconfig.json",
@@ -47,7 +48,7 @@ export function templateRepo(files: Record<string, string> = {}) {
       "src/app/layout.tsx": "export default function Layout({ children }: { children: React.ReactNode }) { return <html><body>{children}</body></html>; }\n",
       ...files,
     },
-    { agents: true },
+    { agents: true, ...options },
   );
   linkModules(repo);
   return repo;
@@ -68,7 +69,7 @@ function linkModules(repo: RepoFixture, folder = ""): void {
  * false leaves the install to the caller.
  * `agents` gives it the AGENTS.md init writes, for a fixture that stands for the project after adoption.
  */
-export function consumerRepo(files: Record<string, string>, modules: string | false = "", options: { agents?: boolean } = {}) {
+export function consumerRepo(files: Record<string, string>, modules: string | false = "", options: Parameters<typeof makeRepo>[1] = {}) {
   const repo = makeRepo({ ...Object.fromEntries(PRESETS.map((file) => [file, fs.readFileSync(path.join(template, file), "utf8")])), ...files }, options);
   repo.git("config", "--unset", "core.hooksPath");
   if (modules !== false) linkModules(repo, modules);

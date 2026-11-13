@@ -40,11 +40,14 @@ const DASHBOARD_FILES: Readonly<Record<string, string>> = {
 
 /** A dashboard monorepo in miniature: a next-modules dashboard under apps/, Supabase at the root, and a committed legacy list for two dashboard files. */
 export function dashboardRepo(files: Record<string, string> = {}): RepoFixture {
-  return makeRepo({ ...DASHBOARD_FILES, ...files }, { agents: true });
+  return makeRepo({ ...DASHBOARD_FILES, ...files }, { agents: true, stack: true });
 }
 
 /** The same project as create-turbo writes the app: app/ at the dashboard's top, its old lib and components beside it, no src/. */
 export function dashboardRepoWithoutSrc(files: Record<string, string> = {}): RepoFixture {
   const atTop = (text: string): string => text.replaceAll("apps/dashboard/src/", "apps/dashboard/");
-  return makeRepo({ ...Object.fromEntries(Object.entries(DASHBOARD_FILES).map(([file, text]) => [atTop(file), atTop(text)])), ...files }, { agents: true });
+  return makeRepo(
+    { ...Object.fromEntries(Object.entries(DASHBOARD_FILES).map(([file, text]) => [atTop(file), atTop(text)])), ...files },
+    { agents: true, stack: true },
+  );
 }

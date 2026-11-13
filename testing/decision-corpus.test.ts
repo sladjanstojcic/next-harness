@@ -102,7 +102,7 @@ async function events(): Promise<Record<string, unknown>> {
 }
 
 function seededRepo() {
-  const repo = templateRepo(PRE_EXISTING_SEEDS);
+  const repo = templateRepo(PRE_EXISTING_SEEDS, { stack: true });
   const seeds: Record<string, string> = { ...GATE_SEEDS, "tsconfig.json": `${repo.read("tsconfig.json")}\n` };
   for (const [file, text] of Object.entries(seeds)) repo.write(file, text);
   return { root: repo.root, changed: Object.keys(seeds).sort() };

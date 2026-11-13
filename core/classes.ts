@@ -47,6 +47,7 @@ export const HARNESS_RULES: ReadonlySet<string> = new Set([
   "electron-bridge",
   "ipc-channel",
   "preload-bundle",
+  "ui-stack",
 ]);
 
 export const ALWAYS_BLOCKS = (finding: Finding): boolean =>
