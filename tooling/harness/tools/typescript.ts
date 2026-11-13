@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
-import type { WorkspaceEntry } from "../config.ts";
+import type { ShapeName, WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
 import { electronAliases, type ElectronAliases } from "../presets/electron-aliases.ts";
@@ -48,6 +48,9 @@ export function typecheckProjects(dir: string, workspace: Pick<WorkspaceEntry, "
   return config?.checksNothing === true ? config.references.map((file) => relativePath(dir, file)) : [];
 }
 
+/** Whether a shape's tsconfig.json refers to the projects that hold its files and aliases, as electron-vite and create-vite write it. */
+export const checksByProject = (shape: ShapeName): boolean => shape === "electron-vite" || shape === "vite-spa";
+
 /** The aliases an electron-vite workspace declares, in its tsconfig.json or in a project that file refers to. */
 export const aliasesOf = (dir: string): ElectronAliases => electronAliases(ts, dir);
 
@@ -56,7 +59,7 @@ export const aliasesOf = (dir: string): ElectronAliases => electronAliases(ts, d
  * that extends it and carries every alias in force, into a folder git ignores, and returns the arguments that name it.
  */
 export function cruiserAliases(dir: string, workspace: Pick<WorkspaceEntry, "shape">): string[] {
-  const { paths } = workspace.shape === "electron-vite" ? aliasesOf(dir) : { paths: {} };
+  const { paths } = checksByProject(workspace.shape) ? aliasesOf(dir) : { paths: {} };
   if (Object.keys(paths).length === 0) return [];
   const file = path.join(dir, "node_modules/.cache/harness/tsconfig.aliases.json");
   fs.mkdirSync(path.dirname(file), { recursive: true });

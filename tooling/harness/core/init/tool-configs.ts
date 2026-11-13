@@ -6,7 +6,7 @@ import { JSCPD_CACHE } from "../../tools/analysis.ts";
 import { eslintPresetLines, exportedName, exportsCall, presetCall, presetImport } from "../../tools/eslint-preset.ts";
 import { isObject, readJson, starterSteps, writer, type Step } from "./files.ts";
 import { developsHarness, ELECTRON_IGNORED, gitignoreStep, HARNESS_MODULES, IGNORED, prettierIgnored, ignoreEntriesStep } from "./ignore-files.ts";
-import { typecheckProjects } from "../../tools/typescript.ts";
+import { checksByProject, typecheckProjects } from "../../tools/typescript.ts";
 import { tsconfigSteps } from "./tsconfig-step.ts";
 
 interface ToolConfig {
@@ -58,11 +58,16 @@ const VITEST: ToolConfig = {
         ],
 };
 
-const KNIP_PRESETS: Partial<Record<WorkspaceEntry["shape"], string>> = { package: "harnessKnipPackage", "electron-vite": "harnessKnipElectron" };
+const KNIP_PRESETS: Partial<Record<WorkspaceEntry["shape"], string>> = {
+  package: "harnessKnipPackage",
+  "electron-vite": "harnessKnipElectron",
+  "vite-spa": "harnessKnipVite",
+};
 const knipPreset = (workspace: WorkspaceEntry): string => KNIP_PRESETS[workspace.shape] ?? "harnessKnip";
 const CRUISER_PRESETS: Partial<Record<WorkspaceEntry["shape"], string>> = {
   package: "dependency-cruiser-package.json",
   "electron-vite": "dependency-cruiser-electron.json",
+  "vite-spa": "dependency-cruiser-vite.json",
 };
 
 const KNIP: ToolConfig = {
@@ -199,7 +204,7 @@ export function toolScripts(workspace: WorkspaceEntry, dir = "", starter = false
   const analysis = {
     depcruise: `depcruise ${sources} --config .dependency-cruiser.json`,
     knip: "knip",
-    jscpd: `jscpd ${sources} --config ${presetImport(workspace.path, "jscpd.json")}${workspace.shape === "electron-vite" ? ` --output ${JSCPD_CACHE}` : ""}`,
+    jscpd: `jscpd ${sources} --config ${presetImport(workspace.path, "jscpd.json")}${checksByProject(workspace.shape) ? ` --output ${JSCPD_CACHE}` : ""}`,
   };
   return {
     lint: "eslint . --max-warnings 0",
