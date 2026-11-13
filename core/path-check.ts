@@ -60,6 +60,14 @@ export function isVendoredIn(harness: Harness, file: string): boolean {
   return matchesEntry(shape.vendored, found.path) || (shape.vendoredPattern?.test(found.path) ?? false);
 }
 
+/** A vendored file the shape's pattern names rather than its folders: the database types a backend's CLI writes. */
+export function isGeneratedIn(harness: Harness, file: string): boolean {
+  const found = workspaceOf(harness.workspaces, file);
+  if (found === undefined) return false;
+  const shape = found.entry.shapeImpl;
+  return !matchesEntry(shape.vendored, found.path) && (shape.vendoredPattern?.test(found.path) ?? false);
+}
+
 interface Scope {
   path: string;
   entries: ReadonlySet<string>;

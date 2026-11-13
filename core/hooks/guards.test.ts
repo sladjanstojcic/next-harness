@@ -148,11 +148,12 @@ describe("file guards", () => {
     expect(checkGuards(fileEvent(root, file), root)).toEqual({ guard: "structure-write", reason: `${rule}: ${verdict.reason}` });
   });
 
-  it("gives the required vendored remediation", () => {
+  it.each([
+    ["src/shared/ui/button.tsx", "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/"],
+    ["src/backend/database.types.ts", "regenerate src/backend/database.types.ts with the backend's CLI; keep your own types in a module's types.ts"],
+  ])("gives the vendored remediation for %s", (file, reason) => {
     const { root } = makeRepo();
-    expect(checkGuards(fileEvent(root, "src/shared/ui/button.tsx"), root)?.reason).toBe(
-      "add primitives with `pnpm dlx shadcn add <name>`; customise in src/shared/components/",
-    );
+    expect(checkGuards(fileEvent(root, file), root)?.reason).toBe(reason);
   });
 
   it("resolves file tools through a symlinked repository path", () => {
