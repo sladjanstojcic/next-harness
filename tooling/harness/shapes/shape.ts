@@ -124,6 +124,8 @@ export interface ContentProfile {
   packageBoundary?: string;
   /** With packageBoundary: only files under this folder are judged, and their relative imports must also stay under it. */
   sourceRoot?: string;
+  /** A backend package may be imported in `allowed` only, of the files in `scope`; absent leaves backend packages unjudged. */
+  backend?: { scope: RegExp; allowed: RegExp; message: string };
   /**
    * Rules only this shape has, on the parsed file at a workspace-relative path. The audit hands the compiler in, so a
    * shape loads without it: the hooks resolve shapes on every tool call.

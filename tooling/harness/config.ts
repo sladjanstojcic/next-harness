@@ -41,6 +41,8 @@ export interface HarnessConfig {
   root?: { entries?: string[]; jsExceptions?: string[] };
   env?: "all" | "local";
   analysis?: AnalysisName[];
+  /** Packages, or scopes ending in "/", that open a backend connection; added to the harness's own list. */
+  backendPackages?: string[];
 }
 
 /** Where a next-modules workspace keeps app/, modules/ and shared/: under src/, or at its own top. */
@@ -124,6 +126,7 @@ const schema = z.strictObject({
   root: z.strictObject({ entries: z.array(z.string().min(1)).exactOptional(), jsExceptions: z.array(z.string().min(1)).exactOptional() }).exactOptional(),
   env: z.enum(["all", "local"]).exactOptional(),
   analysis: z.array(z.enum(ANALYSIS_NAMES)).exactOptional(),
+  backendPackages: z.array(z.string().min(1)).exactOptional(),
 });
 
 export function loadConfig(gitRoot: string): HarnessConfig {
