@@ -52,20 +52,39 @@ export function blockIn(text: string): { start: number; end: number } | "none" |
   return { start, end };
 }
 
-/** The text AGENTS.md holds after the step, or why init leaves it alone. */
-function nextAgents(root: string): { before: string; after: string; range: ReturnType<typeof blockIn> } | { problem: string } {
-  const file = path.join(root, AGENTS);
-  let before = "";
-  if (fs.existsSync(file)) {
+/** Whether two blocks say the same: a project's own Prettier may rewrap lines or reindent lists inside the block. */
+export function sameBlock(a: string, b: string): boolean {
+  const words = (text: string): string => text.replace(/\s+/g, " ").trim();
+  return words(a) === words(b);
+}
+
+/** A file's text, undefined when it is absent, or why it cannot be read. */
+function readFile(file: string): string | undefined | { problem: string } {
+  try {
+    if (!fs.existsSync(file)) return undefined;
     if (!fs.statSync(file).isFile()) return { problem: "is not a file; make it one and rerun init" };
-    before = fs.readFileSync(file, "utf8");
+    return fs.readFileSync(file, "utf8");
+  } catch (error) {
+    const reason = error instanceof Error ? ((error as NodeJS.ErrnoException).code ?? error.message) : String(error);
+    return { problem: `${path.basename(file)} cannot be read (${reason}); make it readable and rerun init` };
   }
+}
+
+/** The text AGENTS.md holds after the step, or why init leaves it alone and the size it keeps, when known. */
+function nextAgents(root: string): { before: string; after: string; range: ReturnType<typeof blockIn> } | { problem: string; bytes?: number } {
+  const read = readFile(path.join(root, AGENTS));
+  if (typeof read === "object") return read;
+  const before = read ?? "";
   const eol = before.includes("\r\n") ? "\r\n" : "\n";
   const block = harnessBlock(root).replaceAll("\n", eol);
   if (before === "") return { before, after: `${block}${eol}`, range: "none" };
   const range = blockIn(before);
-  if (range === "broken") return { problem: "holds a harness marker without its pair; remove the stray marker and rerun init" };
+  if (range === "broken") {
+    const problem = "holds harness markers that do not form one block; remove the stray marker and rerun init";
+    return { problem, bytes: Buffer.byteLength(before) };
+  }
   if (range === "none") return { before, after: `${before}${before.endsWith(eol) ? eol : `${eol}${eol}`}${block}${eol}`, range };
+  if (sameBlock(before.slice(range.start, range.end), block)) return { before, after: before, range };
   return { before, after: `${before.slice(0, range.start)}${block}${before.slice(range.end)}`, range };
 }
 
@@ -82,18 +101,16 @@ export function agentsStep(root: string): Step {
 /** Claude Code reads CLAUDE.md, not AGENTS.md: the import line brings the harness rules in. */
 export function claudeStep(root: string): Step {
   const file = path.join(root, CLAUDE);
-  if (!fs.existsSync(file)) return { target: CLAUDE, status: "created", detail: `imports ${AGENTS}`, apply: writer(file, `${IMPORT}\n`) };
-  if (fs.statSync(file).isFile() && fs.readFileSync(file, "utf8").split(/\r?\n/).includes(IMPORT)) {
-    return { target: CLAUDE, status: "unchanged", detail: `imports ${AGENTS}` };
-  }
+  const read = readFile(file);
+  if (read === undefined) return { target: CLAUDE, status: "created", detail: `imports ${AGENTS}`, apply: writer(file, `${IMPORT}\n`) };
+  if (typeof read === "object") return { target: CLAUDE, status: "kept", detail: read.problem, todo: true };
+  if (read.split(/\r?\n/).includes(IMPORT)) return { target: CLAUDE, status: "unchanged", detail: `imports ${AGENTS}` };
   return { target: CLAUDE, status: "kept", detail: `add the line ${IMPORT} so Claude Code reads the harness rules`, todo: true };
 }
 
 export function agentsSizeNote(root: string): string[] {
   const next = nextAgents(root);
-  const file = path.join(root, AGENTS);
-  const kept = fs.existsSync(file) && fs.statSync(file).isFile() ? fs.statSync(file).size : 0;
-  const bytes = "problem" in next ? kept : Buffer.byteLength(next.after);
+  const bytes = "problem" in next ? (next.bytes ?? 0) : Buffer.byteLength(next.after);
   if (bytes <= CODEX_LIMIT) return [];
   return [
     `${AGENTS} is ${String(bytes)} bytes; Codex stops reading project instructions at 32 KiB (project_doc_max_bytes). Shorten the part outside the harness block.`,
