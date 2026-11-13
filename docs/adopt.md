@@ -56,7 +56,8 @@ git subtree pull --prefix=tooling/harness https://github.com/sladjanstojcic/next
 node tooling/harness/cli.ts init    # adds wiring the new version needs, refreshes the rules in AGENTS.md
 ```
 
-Run both in your own terminal. `tooling/harness/` is locked for agents.
+Run both in your own terminal. `tooling/harness/` is locked for agents. Until init has run and its
+`AGENTS.md` change is committed, the Done gate, the pre-push hook and CI fail with `agents-block`.
 
 ## Before you commit to it
 

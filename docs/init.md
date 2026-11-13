@@ -51,8 +51,9 @@ package; they load each tool from the workspace that calls them.
 Init writes the rules the agent reads into `AGENTS.md`, between two marker lines. The block holds the
 shape's layout and "where code goes" sections, then the checks, the lock, the repair budget and what
 linters cannot see. Every
-path and rule in it comes from the shape's code. With several workspaces it has one pair of sections
-per workspace, each heading naming its folder. Your own text stays outside the markers:
+path and rule in it comes from the shape's code. With several workspaces, the workspaces that use the
+same guide share one pair of sections, whose headings name their folders, and one line above the
+pairs says that each pair's paths start at those folders. Your own text stays outside the markers:
 
 ```text
 created AGENTS.md: harness rules
@@ -70,11 +71,14 @@ The audit rule `agents-block` keeps the block current. A missing, broken or stal
 audit, and with it the gate:
 
 ```text
-AGENTS.md:1 agents-block — The harness rules in AGENTS.md are missing or out of date. Run: node tooling/harness/cli.ts init
+AGENTS.md:1 agents-block — The harness rules in AGENTS.md are missing or out of date. Run: node tooling/harness/cli.ts init, then commit only AGENTS.md and CLAUDE.md; any other step init prints is the user's.
 ```
 
-The agent can fix this itself. Plain `node tooling/harness/cli.ts init` passes the shell guard while
-the harness is locked, and `AGENTS.md` is not locked; `init --force` is denied.
+The agent may run init: plain `node tooling/harness/cli.ts init` passes the shell guard while the
+harness is locked, and `AGENTS.md` is not locked; `init --force` is denied. That fixes the block. When
+init also writes or prints something else, such as wiring a harness update adds, that part is yours,
+as the message says. Init prints the Tailwind and shadcn steps only before the commit that adds the
+harness, or for a workspace folder no commit has held yet.
 
 Init leaves the file alone when its markers do not form one block, and says what to do:
 
@@ -83,8 +87,9 @@ kept AGENTS.md: holds harness markers that do not form one block; remove the str
 ```
 
 Claude Code reads `CLAUDE.md`, not `AGENTS.md`. Init creates `CLAUDE.md` with the one line
-`@AGENTS.md`, which imports the other file. A `CLAUDE.md` of your own without that line is kept, and
-its change becomes a printed step:
+`@AGENTS.md`, which imports the other file. Init counts `@AGENTS.md` or `@./AGENTS.md` anywhere in the
+text as that import, and a `CLAUDE.md` that is a link to `AGENTS.md` as the file itself. A `CLAUDE.md`
+of your own without the import is kept, and its change becomes a printed step:
 
 ```text
 kept CLAUDE.md: add the line @AGENTS.md so Claude Code reads the harness rules
@@ -99,6 +104,11 @@ Codex reads `AGENTS.md` itself, up to 32 KiB. Past that, init prints a note:
 ```text
 AGENTS.md is 48307 bytes; Codex stops reading project instructions at 32 KiB (project_doc_max_bytes). Shorten the part outside the harness block.
 ```
+
+The block sits at the end of the file, so the harness rules are the first part Codex leaves unread.
+The note counts the root `AGENTS.md` only. Codex's AGENTS.md page calls the limit the combined size of
+the files it reads, so an `AGENTS.md` in a subfolder may count too; with such files, keep the root file
+well under 32 KiB.
 
 ## Your own ESLint config
 
