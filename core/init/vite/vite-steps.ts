@@ -56,13 +56,17 @@ function workspaceTodo(root: string, workspace: WorkspaceEntry): string[] {
     : [];
   const sources = path.join(dir, "src") + path.sep;
   const app = projects.find((project) => tsconfigFiles(path.join(dir, project)).some((file) => file.startsWith(sources)));
-  const mapped = app === undefined || compilerOptionsInForce(path.join(dir, app))?.paths?.["@/*"] !== undefined;
-  // Vite's own resolver follows the solution tsconfig's references to the project that holds the alias.
-  const alias = mapped
-    ? []
-    : [
-        `Map @/ to src/ (init does not edit these files): add "paths": { "@/*": ["./src/*"] } to compilerOptions of ${label(app)}, and resolve: { tsconfigPaths: true } to ${label(VITE_CONFIG)}`,
-      ];
+  const maps = (project: string): boolean => compilerOptionsInForce(path.join(dir, project))?.paths?.["@/*"] !== undefined;
+  const appUnmapped = app !== undefined && !maps(app);
+  // Vite's own resolver follows the solution tsconfig's references to the project that holds the alias; shadcn reads only tsconfig.json.
+  const unmapped = [...(appUnmapped ? [app] : []), ...(app === "tsconfig.json" || maps("tsconfig.json") ? [] : ["tsconfig.json"])];
+  const resolve = appUnmapped ? `, and resolve: { tsconfigPaths: true } to ${label(VITE_CONFIG)}` : "";
+  const alias =
+    unmapped.length === 0
+      ? []
+      : [
+          `Map @/ to src/ (init does not edit these files): add "paths": { "@/*": ["./src/*"] } to compilerOptions of ${unmapped.map(label).join(" and ")}${resolve}`,
+        ];
   return [...strict, ...oxlint, ...alias];
 }
 
