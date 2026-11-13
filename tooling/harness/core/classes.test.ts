@@ -21,7 +21,7 @@ const CONFIG = `export default { workspaces: [{ path: ".", shape: "next-modules"
 const list = (files: string[]): string => `${JSON.stringify({ version: 1, files })}\n`;
 
 function configuredRepo(files: Record<string, string> = {}) {
-  return makeRepo({ "harness.config.ts": CONFIG, ...files });
+  return makeRepo({ "harness.config.ts": CONFIG, ...files }, { agents: true });
 }
 
 const writeEvent = (root: string, file: string): HookEvent =>
@@ -214,7 +214,8 @@ describe("legacy list", () => {
 
 describe("whole-repository audits", () => {
   const nested = `export default { workspaces: [{ path: "apps/web", shape: "next-modules", tools: "none" }], legacy: "${LEGACY}" };\n`;
-  const nestedRepo = () => makeRepo({ "harness.config.ts": nested, [LEGACY]: list(["apps/web/src/utils/x.ts"]), "apps/web/src/utils/x.ts": "export {};\n" });
+  const nestedRepo = () =>
+    makeRepo({ "harness.config.ts": nested, [LEGACY]: list(["apps/web/src/utils/x.ts"]), "apps/web/src/utils/x.ts": "export {};\n" }, { agents: true });
 
   it("reports legacy findings in CI as pre-existing and still fails on owned files", async () => {
     const repo = nestedRepo();

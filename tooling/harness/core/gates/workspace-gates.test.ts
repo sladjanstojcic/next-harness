@@ -31,7 +31,7 @@ function workspacesRepo(rootTools: string[]) {
     "apps/web/node_modules/.bin/next": "",
   };
   for (const tool of rootTools) files[`node_modules/.bin/${tool}`] = "";
-  const repo = makeRepo(files);
+  const repo = makeRepo(files, { agents: true });
   return { ...repo, real: fs.realpathSync(repo.root) };
 }
 

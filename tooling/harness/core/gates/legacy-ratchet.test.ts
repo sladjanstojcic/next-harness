@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PRE_EXISTING_HEADING } from "../classes.ts";
 import { DASHBOARD_LEGACY_FILES, dashboardRepo } from "../../testing/dashboard-repo.ts";
+import { harnessBlock } from "../init/agents/agents-block.ts";
 import { makeRepo, type RepoFixture } from "../../testing/temp-repo.ts";
 import { testScript } from "../../tools/test-script.ts";
 import { ciGate } from "./ci-gate.ts";
@@ -142,6 +143,9 @@ describe("a configured next-modules workspace without src/", () => {
     fs.rmSync(path.join(repo.root, "apps/dashboard/src"), { recursive: true });
     if (app) repo.write("apps/dashboard/app/page.tsx", "export default function Page() { return null; }\n");
     repo.write("tooling/harness-legacy.json", `${JSON.stringify({ version: 1, files: [] })}\n`);
+    repo.git("add", "-A");
+    // The layout is read from git: once src/ is gone from the index, init writes the guide for the folders at the top.
+    repo.write("AGENTS.md", `${harnessBlock(repo.root)}\n`);
     repo.git("add", "-A");
     repo.git("commit", "-qm", "an app without src/");
     return repo;

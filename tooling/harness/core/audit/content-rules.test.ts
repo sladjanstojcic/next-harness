@@ -152,12 +152,15 @@ describe("auditContent", () => {
 
 describe("audit", () => {
   it("combines path and content rules, skipping vendored files and non-code assets", () => {
-    const repo = makeRepo({
-      "src/utils/bad.ts": "process.env.X;",
-      "src/shared/ui/Bad.tsx": '"use server"; process.env.X;',
-      "src/shared/lib/utils.ts": "process.env.X;",
-      "public/logo.svg": '<svg>"use server";</svg>',
-    });
+    const repo = makeRepo(
+      {
+        "src/utils/bad.ts": "process.env.X;",
+        "src/shared/ui/Bad.tsx": '"use server"; process.env.X;',
+        "src/shared/lib/utils.ts": "process.env.X;",
+        "public/logo.svg": '<svg>"use server";</svg>',
+      },
+      { agents: true },
+    );
     expect(audit(repo.root).map(({ rule }) => rule)).toEqual(["src-shape", "env-access"]);
     expect(auditChanged(repo.root, ["public/logo.svg"])).toEqual([]);
   });

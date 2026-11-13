@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { classify, readLegacy } from "../classes.ts";
+import { auditAgentsBlock } from "../init/agents/agents-rule.ts";
 import { resolveHarness } from "../path-check.ts";
 import { auditContent } from "./content-rules.ts";
 import { findDuplicateExports } from "./duplicate-exports.ts";
@@ -39,6 +40,7 @@ export function audit(root: string): Finding[] {
     ...findDuplicateExports(root, selected),
     ...auditTsconfigs(root),
     ...auditPreloadBundles(root),
+    ...auditAgentsBlock(root),
   ];
 }
 

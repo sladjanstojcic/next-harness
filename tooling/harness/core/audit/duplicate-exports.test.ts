@@ -17,7 +17,7 @@ const copy = "src/modules/b/components/calculate-b.ts";
 
 describe("findDuplicateExports", () => {
   it("finds renamed 45-node functions and identifies the original", () => {
-    const repo = makeRepo({ [original]: largeFunction("calculate", "value"), [copy]: largeFunction("compute", "input") });
+    const repo = makeRepo({ [original]: largeFunction("calculate", "value"), [copy]: largeFunction("compute", "input") }, { agents: true });
     const findings = findDuplicateExports(repo.root, [original, copy]);
     expect(findings).toContainEqual({ rule: "duplicate-export", file: copy, line: 1, message: expect.stringContaining(`${original}#calculate`) as unknown });
     expect(findings).toHaveLength(2);
