@@ -91,7 +91,7 @@ git add -A && git commit -m "Scaffold"
     ```
 
 15. Replace the template's `App.tsx` with routes: `git rm src/App.tsx src/App.css`, then write the three
-    files below. A legacy list would also do, but replacing three files is shorter.
+    files below.
 16. `git add -A && git commit -m "Routes in src/app"`
 17. `pnpm run check`. Ten steps, each ending in `passed`: prettier, eslint, eslint-preset, tsc, audit,
     depcruise, knip, jscpd, vitest and build. `vite build` writes `dist/`.
@@ -239,6 +239,9 @@ scope ending in `/`. A type-only import, a test file and code outside `src/` pas
 - A backend package that is neither built in nor in `backendPackages` is not seen.
 - `env-access` sees `import.meta.env`, `import.meta["env"]` and `const { env } = import.meta`, not an
   alias such as `const m = import.meta; m.env`.
+- Init's `vitest.config.ts` merges a `vite.config.ts` that exports an object, as create-vite writes it.
+  A config written as a function, such as `defineConfig(({ mode }) => ...)`, fails with "Cannot merge
+  config in form of callback": call that function in `vitest.config.ts` by hand.
 - Where two workspaces cover the same folder, a config there is locked when either workspace's shape
   locks it, not only the shape of the workspace the folder belongs to.
 
