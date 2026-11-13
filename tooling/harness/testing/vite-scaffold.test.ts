@@ -13,13 +13,14 @@ const SCAFFOLD = z.record(z.string(), z.string()).parse(JSON.parse(fs.readFileSy
 
 const config = (at: string): string => `export default {\n  workspaces: [{ path: "${at}", shape: "vite-spa" }],\n};\n`;
 
-/** The scaffold with strict type checking, the `@/` alias and no oxlint config: the three hand steps are done. */
+/** The scaffold with strict type checking, the `@/` alias in the app project and the root tsconfig, and no oxlint config: the three hand steps are done. */
 function finished(files: Readonly<Record<string, string>>): Record<string, string> {
   const strict = (text: string): string => text.replace('"compilerOptions": {', '"compilerOptions": {\n    "strict": true,');
   const done: Record<string, string> = {
     ...files,
     "tsconfig.app.json": strict(files["tsconfig.app.json"] ?? "").replace('"strict": true,', '"strict": true,\n    "paths": { "@/*": ["./src/*"] },'),
     "tsconfig.node.json": strict(files["tsconfig.node.json"] ?? ""),
+    "tsconfig.json": (files["tsconfig.json"] ?? "").replace(/\n}\s*$/, ',\n  "compilerOptions": { "paths": { "@/*": ["./src/*"] } }\n}\n'),
   };
   delete done[".oxlintrc.json"];
   return done;
@@ -38,7 +39,7 @@ const strictLine = (file: string): string =>
 const oxlintLine = (prefix: string, remove: string, script = true): string =>
   `Remove the template's oxlint, which the ESLint preset replaces: delete ${prefix}.oxlintrc.json${script ? `, set the "lint" script in ${prefix}package.json to eslint . --max-warnings 0,` : ""} and run ${remove}`;
 const aliasLine = (prefix: string): string =>
-  `Map @/ to src/ (init does not edit these files): add "paths": { "@/*": ["./src/*"] } to compilerOptions of ${prefix}tsconfig.app.json, and resolve: { tsconfigPaths: true } to ${prefix}vite.config.ts`;
+  `Map @/ to src/ (init does not edit these files): add "paths": { "@/*": ["./src/*"] } to compilerOptions of ${prefix}tsconfig.app.json and ${prefix}tsconfig.json, and resolve: { tsconfigPaths: true } to ${prefix}vite.config.ts`;
 const count = (report: string, line: string): number => report.split("\n").filter((each) => each.endsWith(line)).length;
 
 describe("init in a create-vite react-ts project (vite-spa)", () => {

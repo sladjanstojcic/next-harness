@@ -23,7 +23,8 @@ One task, from the prompt to the push. The task: "add a monthly total to the inv
 
 Before your prompt, the agent receives a code index: the public exports of every module and of
 `shared/lib/`. It now knows that `formatNumber` exists in `shared/lib/format.ts` without having
-opened the file.
+opened the file. In a workspace with `components.json`, an "Interface" section follows: build the
+interface from the shadcn components and layouts.
 
 ## 2. A write is refused
 

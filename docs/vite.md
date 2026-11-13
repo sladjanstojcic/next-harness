@@ -22,7 +22,7 @@ export default defineHarness({
 ## Adopt it, step by step
 
 Run on a fresh project from create-vite 9.3.4 (`react-ts`), with Vite 8.3.8, React Router 8.5.1 and
-TypeScript 7.0.2. It reached a passing check in seventeen steps, without a legacy list.
+TypeScript 7.0.2. It reached a passing check in eighteen steps, without a legacy list.
 
 **Before you start.** Create the app, add the router and commit:
 
@@ -49,8 +49,10 @@ git add -A && git commit -m "Scaffold"
    ```
 
 4. `pnpm install`.
-5. `node tooling/harness/cli.ts init` again. It writes the wiring and prints nine steps, which are steps
-   6 to 14 here. It also prints steps for a CI job; that workflow is optional.
+5. `node tooling/harness/cli.ts init` again. It writes the wiring and prints fourteen steps, which are
+   steps 6 to 15 here; step 12 holds five of them. It creates `AGENTS.md` with the harness's rules, 116
+   lines here, and a `CLAUDE.md` that imports it. It also prints steps for a CI job; that workflow is
+   optional.
 6. Run the printed `pnpm add -D` line. Copy it from your terminal; it names exact versions. The template
    has TypeScript 7, whose JavaScript API typescript-eslint cannot use. So the line ends with two aliases,
    and the step explains them:
@@ -77,23 +79,25 @@ git add -A && git commit -m "Scaffold"
 10. Remove the template's oxlint, which the ESLint preset replaces: delete `.oxlintrc.json`, set the
     `lint` script in `package.json` to `eslint . --max-warnings 0`, and run `pnpm remove oxlint`.
 11. Map `@/` to `src/`. Add `"paths": { "@/*": ["./src/*"] }` to `compilerOptions` in
-    `tsconfig.app.json`, and `resolve: { tsconfigPaths: true }` to the config in `vite.config.ts`.
-12. `pnpm exec prettier --write .`, to put the app's own files in the preset's style once. On the
-    template it rewrote six files.
-13. `git add -A && git commit -m "Add the harness"`
-14. `pnpm run check`. It fails, on the template's own code only; seven of ten steps pass. ESLint reports
-    `Forbidden non-null assertion` in `src/main.tsx`, knip reports `react-router` as an unused dependency,
-    and the audit reports the template's names:
+    `tsconfig.app.json` and `tsconfig.json`, and `resolve: { tsconfigPaths: true }` to the config in
+    `vite.config.ts`. shadcn reads the alias from the root `tsconfig.json`.
+12. Set up shadcn: printed steps 7 to 11, shown under "shadcn" below.
+13. `pnpm exec prettier --write .`, to put the app's own files in the preset's style once. On the
+    template it rewrote seven files, among them what shadcn wrote.
+14. `git add -A && git commit -m "Add the harness"`
+15. `pnpm run check`. It fails, on the template's own code only; seven of ten steps pass. ESLint reports
+    the `!` in `src/main.tsx` and the raw `<button>` in `src/App.tsx`, knip reports `react-router` as
+    an unused dependency, and the audit reports the template's names:
 
     ```text
     src/App.css:1 file-name — Use kebab-case file and folder names in src/, e2e/, tooling/ and scripts/; [param] and (group) folders belong only in src/app/ (Vite layout)
     src/App.tsx:1 file-name — Use kebab-case file and folder names in src/, e2e/, tooling/ and scripts/; [param] and (group) folders belong only in src/app/ (Vite layout)
     ```
 
-15. Replace the template's `App.tsx` with routes: `git rm src/App.tsx src/App.css`, then write the three
+16. Replace the template's `App.tsx` with routes: `git rm src/App.tsx src/App.css`, then write the three
     files below.
-16. `git add -A && git commit -m "Routes in src/app"`
-17. `pnpm run check`. Ten steps, each ending in `passed`: prettier, eslint, eslint-preset, tsc, audit,
+17. `git add -A && git commit -m "Routes in src/app"`
+18. `pnpm run check`. Ten steps, each ending in `passed`: prettier, eslint, eslint-preset, tsc, audit,
     depcruise, knip, jscpd, vitest and build. `vite build` writes `dist/`.
 
 `src/app/router.tsx` holds the whole route tree:
@@ -134,25 +138,23 @@ createRoot(container).render(
 
 ## shadcn
 
-Init does not print these steps. On a create-vite project shadcn 4.23.0 needs Tailwind first, the `@/`
-alias in the root `tsconfig.json` as well, and its `components.json` aliases pointed at `src/shared/`.
-Run on the same project:
+The lint rule asks for shadcn's components in place of a raw `button` or `input`, and the audit rule
+`ui-stack` for `components.json`. Tailwind is not checked, but shadcn needs it, so both come before the
+first commit. Init prints five steps for them and runs none:
 
-1. **Tailwind.** `pnpm add tailwindcss @tailwindcss/vite`, replace `src/index.css` with
-   `@import "tailwindcss";`, and add `tailwindcss()` to the `plugins` in `vite.config.ts`. Without it,
-   `shadcn init` stops at `No Tailwind CSS configuration found`.
-2. `pnpm dlx shadcn@latest init -t vite -b radix`. It asks for a preset. It reads `@/` from the root
-   `tsconfig.json`, which maps none, so it writes its two files to a folder literally named `@` at the
-   project root. Delete that folder: `rm -r @`.
-3. **`components.json`.** Its defaults `@/components` and `@/lib` are denied by the layout. Set
-   `components` to `@/shared/components`, `utils` to `@/shared/lib/utils`, `ui` to `@/shared/ui`, `lib`
-   to `@/shared/lib` and `hooks` to `@/shared/hooks`.
-4. **The root `tsconfig.json`** gets the same alias, beside its `files` and `references`:
-   `"compilerOptions": { "paths": { "@/*": ["./src/*"] } }`.
-5. `pnpm dlx shadcn@latest add button` writes `src/shared/ui/button.tsx`. It does not write
-   `src/shared/lib/utils.ts`; `pnpm dlx shadcn@latest add utils` does.
-6. `pnpm exec prettier --write .`: the check failed on `src/index.css` and `src/shared/lib/utils.ts` as
-   shadcn wrote them. Then commit and run `pnpm run check`; all ten steps passed.
+```text
+  7. Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in src/index.css, add tailwindcss() from "@tailwindcss/vite" to the plugins in vite.config.ts, and run pnpm add -D tailwindcss @tailwindcss/vite
+  8. Set up shadcn, whose components the lint rule then asks for (init does not run it): pnpm dlx shadcn@latest init -t vite -b base -p nova
+  9. Delete the two files shadcn init wrote where the layout takes no code: rm src/components/ui/button.tsx src/lib/utils.ts
+  10. Point shadcn at src/shared/, by setting "aliases" in components.json to: { "components": "@/shared/components", "utils": "@/shared/lib/utils", "ui": "@/shared/ui", "lib": "@/shared/lib", "hooks": "@/shared/hooks" }
+  11. Add the first component and the cn helper there: pnpm dlx shadcn@latest add button utils
+```
+
+`-b base` picks Base UI and `-p nova` the preset this template uses, so shadcn asks nothing. The last
+step writes `src/shared/ui/button.tsx` and `src/shared/lib/utils.ts`. In a workspace below the root,
+such as `apps/web`, each command is printed inside `(cd apps/web && ...)` and each path from the root;
+that form ran as printed too. The full check there then fails at jscpd, a
+[known limitation](limitations.md) unrelated to shadcn.
 
 ## The shape
 

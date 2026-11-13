@@ -20,7 +20,8 @@ Inside a module the folders are fixed too: `components/`, `server/`, `domain/` a
 `index.ts` and `server.ts` as its public entries. A module needs an entry only once something outside
 it imports it. An optional, flat `src/backend/` holds the connection to a database or hosted backend:
 the client and the types its CLI generates. A folder named `utils`, `helpers`, `common` or
-`misc` is refused wherever it appears.
+`misc` is refused wherever it appears. Area folders go one level deep; past that, the agent splits a
+new module when the responsibility warrants it, and says why in its report.
 
 A closed shape means there is one answer to "where does this go?". Without it, every helper folder
 becomes a second architecture beside the first.
@@ -122,6 +123,20 @@ harness says   src/modules/billing/components/save-bar.tsx:14 no-restricted-synt
                the handoff before building it by hand.
 ```
 
+Every app is built with TypeScript, Tailwind and shadcn. The full audit, which Done, the pre-push
+hook and CI run, reports a Next, Vite or Electron app without shadcn's `components.json` at its top.
+Without that file the rule above is off, so an app that skipped the setup would pass every check.
+Tailwind is set up by init's steps and not checked: `package.json` shows that the package is listed,
+not that it is used, and shadcn cannot be set up without it.
+
+```text
+agent adds     apps/admin/, a Next app, without the shadcn setup
+harness says   apps/admin/package.json:1 ui-stack — This app has no components.json: every app is
+               built with TypeScript, Tailwind and shadcn. Set shadcn up with the steps on
+               https://sladjanstojcic.github.io/next-harness/next-app.html; they change locked
+               tool configs, so the user unlocks first.
+```
+
 ## The lock
 
 The agent cannot edit the harness itself, the hook settings, the git hooks, the CI workflow or the
@@ -142,6 +157,7 @@ The agent also cannot run the unlock itself. That command is refused when it com
 
 ## The complete rules
 
-This page shows the families. The full statement, with every exception, is the file the agent itself
-reads: [AGENTS.md](https://github.com/sladjanstojcic/next-harness/blob/main/AGENTS.md). Other kinds
-of project have their own shape with the same ideas; see [Adopt it](adopt.md).
+This page shows the families. The rules as the agent reads them are in
+[AGENTS.md](https://github.com/sladjanstojcic/next-harness/blob/main/AGENTS.md); the details are in
+[harness.config.ts](configuration.md) and [Guards and gates](gates.md). Other kinds of project have
+their own shape with the same ideas; see [Adopt it](adopt.md).

@@ -21,6 +21,9 @@ const TOOLS = {
   "typescript-eslint": "8.72.1",
   vitest: "5.1.0",
 };
+/** Init's printed Tailwind step for a Next app: the import in globals.css, the Turbopack loader and its two packages. */
+const TAILWIND = { "@tailwindcss/turbopack": "4.3.4", tailwindcss: "4.3.4" };
+const TURBOPACK = 'turbopack: { rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } } }';
 const PACKAGES = ["packages/ui", "packages/billing"];
 const versions = z.record(z.string(), z.string()).optional();
 const packageJson = z.looseObject({ dependencies: versions, devDependencies: versions });
@@ -34,7 +37,8 @@ export function turboProject() {
 
 /**
  * That project after `init --starter` and its printed steps: the harness's tools in each workspace's package.json, the
- * starter files' runtime packages in each app, the two lines in each kept ESLint config, and one format run.
+ * starter files' runtime packages, Tailwind through the Turbopack loader and a components.json in each app, the two lines
+ * in each kept ESLint config, and one format run.
  */
 export function adoptedTurbo() {
   const repo = turboProject();
@@ -42,9 +46,18 @@ export function adoptedTurbo() {
   expect(ok, report).toBe(true);
   for (const workspace of [...TURBO_APPS, ...PACKAGES]) {
     const manifest = packageJson.parse(JSON.parse(repo.read(`${workspace}/package.json`)));
-    const runtime = PACKAGES.includes(workspace) ? {} : { zod: "4.6.7", "server-only": "0.0.1" };
-    const next = { ...manifest, dependencies: { ...manifest.dependencies, ...runtime }, devDependencies: { ...manifest.devDependencies, ...TOOLS } };
+    const app = !PACKAGES.includes(workspace);
+    const runtime = app ? { zod: "4.6.7", "server-only": "0.0.1" } : {};
+    const tools = app ? { ...TOOLS, ...TAILWIND } : TOOLS;
+    const next = { ...manifest, dependencies: { ...manifest.dependencies, ...runtime }, devDependencies: { ...manifest.devDependencies, ...tools } };
     repo.write(`${workspace}/package.json`, `${JSON.stringify(next, null, 2)}\n`);
+    if (!app) continue;
+    repo.write(`${workspace}/components.json`, '{ "style": "base-nova", "tailwind": { "css": "app/globals.css" } }\n');
+    repo.write(`${workspace}/app/globals.css`, `@import "tailwindcss";\n${repo.read(`${workspace}/app/globals.css`)}`);
+    repo.write(
+      `${workspace}/next.config.js`,
+      repo.read(`${workspace}/next.config.js`).replace("const nextConfig = {};", `const nextConfig = { ${TURBOPACK} };`),
+    );
   }
   for (const app of TURBO_APPS) {
     const own = repo.read(`${app}/eslint.config.js`);

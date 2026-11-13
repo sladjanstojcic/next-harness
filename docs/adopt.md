@@ -40,22 +40,37 @@ down as work passes through the old code. `node tooling/harness/cli.ts legacy pr
 files that have no finding left off the list. See
 [the legacy list](monorepo.md#the-legacy-list).
 
+An app without shadcn's `components.json` gets the `ui-stack` finding on its `package.json`. Run the
+Tailwind and shadcn steps init prints before your first commit, or `legacy init` puts that
+`package.json` on the list until you do. The rule asks for `components.json` only; init's steps set
+Tailwind up, and nothing checks it.
+
 ## Let the agent in
 
 - **Claude Code:** accept the workspace trust dialog. `.claude/settings.json` wires the hooks.
 - **Codex:** trust the project's `.codex/` configuration and review the hooks in `/hooks`.
 
-Init does not write an `AGENTS.md` into an adopting project. Copy the sections that apply from
-[this template's file](https://github.com/sladjanstojcic/next-harness/blob/main/AGENTS.md).
+Init writes the harness's rules for the agent into `AGENTS.md`, below any text of your own, and
+makes `CLAUDE.md` import that file for Claude Code. [What init writes](init.md#agentsmd-and-claudemd)
+shows each case.
 
 ## Update the harness
 
 ```sh
 git subtree pull --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
-node tooling/harness/cli.ts init    # adds wiring the new version needs; keeps what is already there
+node tooling/harness/cli.ts init    # adds wiring the new version needs, refreshes the rules in AGENTS.md
 ```
 
-Run both in your own terminal. `tooling/harness/` is locked for agents.
+Run both in your own terminal. `tooling/harness/` is locked for agents. Until init has run and its
+`AGENTS.md` change is committed, the Done gate, the pre-push hook and CI fail with `agents-block`.
+
+A version with the `ui-stack` rule also needs each app's shadcn setup, which brings `components.json`,
+before your next push. The pre-push hook and CI fail with `ui-stack` on an app without it, and init prints no setup
+steps for a project that is already adopted. Run the steps on the app's page:
+[Next.js](next-app.md#8-set-up-shadcn), [Vite](vite.md#shadcn) or [Electron](electron.md#shadcn).
+With a committed legacy list you may instead add the app's `package.json` to it yourself, after
+`pnpm harness:unlock`. `legacy init` refuses while a list exists, and an entry the agent adds is
+blocked as `legacy-append`.
 
 ## Before you commit to it
 

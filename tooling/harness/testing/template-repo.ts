@@ -12,7 +12,7 @@ function filesUnder(dir: string): string[] {
   });
 }
 
-/** The presets, the harness files they import and the harness's package.json, as a subtree holds them. */
+/** The presets, the harness files they import, the guides init writes from and the harness's package.json, as a subtree holds them. */
 const PRESETS = [
   "tooling/harness/package.json",
   "tooling/harness/shapes/backend-folder.ts",
@@ -22,9 +22,12 @@ const PRESETS = [
   "tooling/harness/core/init/bootstrap.ts",
   "tooling/harness/core/init/files.ts",
   ...filesUnder("tooling/harness/presets"),
+  // The guides' own test imports the shapes, which a fixture does not hold; a related-test run there would fail on it.
+  ...filesUnder("tooling/harness/guides").filter((file) => !file.endsWith(".test.ts")),
 ];
 
-export function templateRepo(files: Record<string, string> = {}) {
+/** A project from this template; `stack` gives it the components.json the template has, for a test that runs the full audit. */
+export function templateRepo(files: Record<string, string> = {}, options: { stack?: boolean } = {}) {
   const configs = [
     "package.json",
     "tsconfig.json",
@@ -38,12 +41,15 @@ export function templateRepo(files: Record<string, string> = {}) {
     ".gitignore",
     ...PRESETS,
   ];
-  const repo = makeRepo({
-    ...Object.fromEntries(configs.map((file) => [file, fs.readFileSync(path.join(template, file), "utf8")])),
-    "src/app/page.tsx": "export default function Page() { return <main>Hello</main>; }\n",
-    "src/app/layout.tsx": "export default function Layout({ children }: { children: React.ReactNode }) { return <html><body>{children}</body></html>; }\n",
-    ...files,
-  });
+  const repo = makeRepo(
+    {
+      ...Object.fromEntries(configs.map((file) => [file, fs.readFileSync(path.join(template, file), "utf8")])),
+      "src/app/page.tsx": "export default function Page() { return <main>Hello</main>; }\n",
+      "src/app/layout.tsx": "export default function Layout({ children }: { children: React.ReactNode }) { return <html><body>{children}</body></html>; }\n",
+      ...files,
+    },
+    { agents: true, ...options },
+  );
   linkModules(repo);
   return repo;
 }
@@ -61,9 +67,10 @@ function linkModules(repo: RepoFixture, folder = ""): void {
  * A project before init: the presets as a subtree holds them, the template's node_modules, no tool configs and no git
  * hooks path. `modules` is the folder that holds node_modules: the root, or a workspace as pnpm installs a monorepo;
  * false leaves the install to the caller.
+ * `agents` gives it the AGENTS.md init writes, for a fixture that stands for the project after adoption.
  */
-export function consumerRepo(files: Record<string, string>, modules: string | false = "") {
-  const repo = makeRepo({ ...Object.fromEntries(PRESETS.map((file) => [file, fs.readFileSync(path.join(template, file), "utf8")])), ...files });
+export function consumerRepo(files: Record<string, string>, modules: string | false = "", options: Parameters<typeof makeRepo>[1] = {}) {
+  const repo = makeRepo({ ...Object.fromEntries(PRESETS.map((file) => [file, fs.readFileSync(path.join(template, file), "utf8")])), ...files }, options);
   repo.git("config", "--unset", "core.hooksPath");
   if (modules !== false) linkModules(repo, modules);
   return repo;

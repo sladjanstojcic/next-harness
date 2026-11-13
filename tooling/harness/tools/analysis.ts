@@ -183,8 +183,7 @@ export const jscpd = {
     findings: () => duplicateFindings(dir, sharedLib(workspace), path.join(output, "jscpd-report.json")),
   }),
   check: (dir: string, workspace: WorkspaceEntry): ToolStep => {
-    const folders =
-      sourceRootOf(workspace) === "" ? [...sources(dir, workspace), "tooling"].filter((file) => fs.existsSync(path.join(dir, file))) : ["src", "tooling"];
+    const folders = [...sources(dir, workspace), "tooling"].filter((file) => fs.existsSync(path.join(dir, file)));
     const output = checksByProject(workspace.shape) ? ["--output", JSCPD_CACHE] : [];
     return check(dir, "jscpd", "jscpd", [...folders, "--config", jscpdConfig(dir, workspace.path), ...output]);
   },

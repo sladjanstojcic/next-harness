@@ -8,7 +8,7 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("Done tool results", () => {
   it("describes out-of-scope findings without claiming they predate this turn", async () => {
-    const repo = makeRepo();
+    const repo = makeRepo({}, { agents: true });
     vi.spyOn(runner, "runTool").mockImplementation(async (_root, step) =>
       step.name === "knip" ? [{ rule: "knip-exports", file: "src/shared/lib/unused.ts", message: "Unused export" }] : [],
     );
@@ -66,7 +66,10 @@ describe("Done tool results", () => {
     ["@scope/installed/subpath", false, true, true, false],
   ] as const)("scopes unresolved %s with core/declaration/installation evidence", async (specifier, core, declared, installed, blocks) => {
     const name = specifier.startsWith("@") ? specifier.split("/").slice(0, 2).join("/") : specifier.split("/")[0]!;
-    const repo = makeRepo({ "package.json": JSON.stringify({ dependencies: declared ? { [name]: "1.0.0" } : {} }), ".gitignore": "node_modules/\n" });
+    const repo = makeRepo(
+      { "package.json": JSON.stringify({ dependencies: declared ? { [name]: "1.0.0" } : {} }), ".gitignore": "node_modules/\n" },
+      { agents: true, stack: true },
+    );
     if (installed) repo.write(`node_modules/${name}/package.json`, JSON.stringify({ name }));
     const importer = "src/shared/lib/importer.ts";
     const consumer = "src/shared/lib/consumer.ts";

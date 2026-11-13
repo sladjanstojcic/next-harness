@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { agentsSizeNote, agentsStep, claudeStep } from "./agents/agents-block.ts";
 import { HARNESS_PACKAGE, managerCommands } from "./bootstrap.ts";
 import { codexHooksSetting, withHooksFeature } from "./codex-user.ts";
 import { compareHooks, hooksBlock, mergeHooks, type HooksBlock } from "./hooks-merge.ts";
@@ -13,6 +14,7 @@ import { gitignoreStep, HARNESS_MODULES, rootIgnoreSteps } from "./ignore-files.
 import { TYPESCRIPT_API_REASON, TYPESCRIPT_NATIVE_REASON } from "../../presets/load-tool.ts";
 import { nativeTypescript, needsTypescriptApi, peerInstall, starterInstall } from "./peers.ts";
 import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
+import { shadcnTodo } from "./shadcn/shadcn-steps.ts";
 import { viteTodo } from "./vite/vite-steps.ts";
 import { CONFIG_FILE, isConfigOnly, type WorkspaceEntry } from "../../config.ts";
 import { ciSteps, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH, PREPARE } from "./wiring.ts";
@@ -168,6 +170,7 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
         `Bundle the packages the preload script imports, which a sandboxed preload cannot load and electron-vite leaves outside the bundle (init does not edit ${file}), by adding this to its preload section, and removing externalizeDepsPlugin() from that section's plugins when it is there: ${PRELOAD_BUNDLE_SETTING}`,
     ),
     ...viteTodo(root, workspaces),
+    ...shadcnTodo(root, workspaces),
     ...(preparesHooks(root) ? [] : [`Add to the root package.json "prepare" script, so a fresh clone gets the pre-push hook: ${PREPARE}`]),
     ...(format.length === 0 ? [] : [`Format the app's own files once in the preset's style: ${format.join("; ")}`]),
     ...(edited.length === 0 ? [] : [`Format the kept files you edited, in the project's own style: ${edited.join("; ")}`]),
@@ -203,6 +206,8 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
     hooksStep(root, ".codex/hooks.json", CODEX_HOOKS, force),
     codexConfigStep(root, force),
     prePushStep(root, force),
+    agentsStep(root),
+    claudeStep(root),
     scriptsStep(root, "package.json", PACKAGE_SCRIPTS, { prepare: PREPARE, ...(atRoot === undefined ? {} : toolScripts(atRoot, root, starter)) }, force),
     ...(atRoot === undefined ? [gitignoreStep(root, "", [HARNESS_MODULES])] : []),
     ...workspaces.flatMap((workspace) => [
@@ -226,6 +231,7 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
     report: [
       ...lines,
       ...formatted,
+      ...agentsSizeNote(root),
       ciSteps(harness.config.legacy !== undefined, runsSmoke(workspaces)),
       ...nextSteps(root, harness, workspaces, steps, starter),
     ].join("\n"),

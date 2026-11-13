@@ -13,7 +13,7 @@ import { sourceProbes } from "./next-probes.ts";
 
 const PAGE = "export default function Page() {\n  return null;\n}\n";
 /** create-next-app without --src-dir, and no harness.config.ts. */
-const rootLayout = (files: Record<string, string> = {}) => makeRepo({ "package.json": "{}\n", "app/page.tsx": PAGE, ...files });
+const rootLayout = (files: Record<string, string> = {}) => makeRepo({ "package.json": "{}\n", "app/page.tsx": PAGE, ...files }, { agents: true, stack: true });
 const sourceRootIn = (files: Record<string, string>) => expandWorkspaces(makeRepo(files).root, DEFAULT_CONFIG)[0]?.sourceRoot ?? "src/";
 
 describe("the source root of a next-modules workspace", () => {

@@ -28,7 +28,7 @@ const ACCOUNTS_PACKAGE = `${JSON.stringify({ name: "@kit/accounts", exports: { "
 
 /** A Makerkit app in miniature: apps/web as a Makerkit app, kit and owned feature packages beside it, committed env files and .mjs configs. */
 export function makerkitRepo(files: Record<string, string> = {}): RepoFixture {
-  return makeRepo({
+  const all: Record<string, string> = {
     "harness.config.ts": makerkitConfig(),
     "package.json": "{}\n",
     "pnpm-workspace.yaml": "packages:\n  - apps/*\n  - packages/**\n",
@@ -60,5 +60,6 @@ export function makerkitRepo(files: Record<string, string> = {}): RepoFixture {
     "packages/features/journal/package.json": "{}\n",
     "packages/ui/src/shadcn/button.tsx": "export const Button = () => null;\n",
     ...files,
-  });
+  };
+  return makeRepo(all, { agents: true });
 }

@@ -23,18 +23,22 @@ const VITE_MONOREPO_CONFIG = `export default {
 
 /** The app at the repository root, with the template's node_modules and the presets as a subtree holds them. */
 export function viteProject(): RepoFixture {
-  return consumerRepo({ ...AD_STUDIO, "harness.config.ts": VITE_CONFIG });
+  return consumerRepo({ ...AD_STUDIO, "harness.config.ts": VITE_CONFIG }, "", { agents: true, stack: true });
 }
 
 /** The same app in apps/web, beside a supabase workspace, with a root package.json. */
 export function viteMonorepo(): RepoFixture {
   const placed = Object.fromEntries(Object.entries(AD_STUDIO).map(([file, text]) => [`apps/web/${file}`, text]));
-  return consumerRepo({
-    ...placed,
-    "package.json": '{\n  "name": "ad-studio-repo",\n  "private": true\n}\n',
-    ".gitignore": "node_modules\n",
-    "supabase/config.toml": "\n",
-    "supabase/migrations/20261101090000_ads.sql": "create table ads (id text primary key);\n",
-    "harness.config.ts": VITE_MONOREPO_CONFIG,
-  });
+  return consumerRepo(
+    {
+      ...placed,
+      "package.json": '{\n  "name": "ad-studio-repo",\n  "private": true\n}\n',
+      ".gitignore": "node_modules\n",
+      "supabase/config.toml": "\n",
+      "supabase/migrations/20261101090000_ads.sql": "create table ads (id text primary key);\n",
+      "harness.config.ts": VITE_MONOREPO_CONFIG,
+    },
+    "",
+    { agents: true, stack: true },
+  );
 }

@@ -39,11 +39,15 @@ describe("init", () => {
     expect(JSON.parse(repo.read("package.json"))).toEqual({ name: "consumer", scripts: ROOT_SCRIPTS });
     expect(first.report).toContain("created .claude/settings.json: hooks");
     expect(first.report).toContain("CI is not written");
+    expect(first.report).toContain("created AGENTS.md: harness rules");
+    expect(first.report).toContain("created CLAUDE.md: imports AGENTS.md");
 
     const before = snapshot(repo);
     const second = initHarness(repo.root, { force: false, starter: false });
     expect(second.ok).toBe(true);
     expect(second.report.split("\n").filter((line) => /^(created|updated|conflict) /.test(line))).toEqual([]);
+    expect(second.report).toContain("unchanged AGENTS.md: harness rules");
+    expect(second.report).toContain("unchanged CLAUDE.md: imports AGENTS.md");
     expect(snapshot(repo)).toEqual(before);
   });
 

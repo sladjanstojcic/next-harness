@@ -20,8 +20,8 @@ export default defineHarness({
 
 ## Adopt it, step by step
 
-Run on a fresh project from the official scaffold. It reached a passing check in twelve steps from
-the committed scaffold, with one file written and three edited by hand.
+Run on a fresh project from the official scaffold. It reached a passing check in thirteen steps from
+the committed scaffold, with one file written and six edited by hand.
 
 **Before you start.** The project is a git repository with a commit and a clean tree. Starting from
 nothing? Create and commit the app first:
@@ -57,10 +57,11 @@ The scaffold does not make a repository, and you do not need to install yet: ste
    placeholder text. Replace the text with `false` (`true` if you build Windows installers on this
    machine) and run `pnpm install` again. A warning about peer dependencies, here and in step 6, is
    expected and needs no action.
-5. `node tooling/harness/cli.ts init` again. It writes the wiring and prints seven steps, which are
-   steps 6 to 12 here. It adds `src/shared/**/*` to the `include` of `tsconfig.node.json` and
+5. `node tooling/harness/cli.ts init` again. It writes the wiring and prints thirteen steps, which are
+   steps 6 to 13 here; step 9 holds six of them. It creates `AGENTS.md` with the harness's rules and a
+   `CLAUDE.md` that imports it. It adds `src/shared/**/*` to the `include` of `tsconfig.node.json` and
    `tsconfig.web.json`, so the first contract file is type-checked. It also prints steps for a CI job;
-   writing that workflow is optional and not one of the twelve steps.
+   writing that workflow is optional and not one of the thirteen steps.
 6. Run the printed `pnpm add -D` line. Copy it from your terminal; it names exact versions.
 7. In `eslint.config.mjs`, add the printed import, and the printed spread as the last argument of
    `defineConfig(...)`, after a comma. For the scaffold the line is:
@@ -77,14 +78,37 @@ The scaffold does not make a repository, and you do not need to install yet: ste
 
    The reason is under "Preload bundle" below.
 
-9. `pnpm exec prettier --write eslint.config.mjs`, to put the edited file back in the project's style.
-10. `node tooling/harness/cli.ts legacy init`. For the scaffold it lists eleven files: three in
+9. Set up shadcn: printed steps 4 to 9, shown under "shadcn" below.
+10. `pnpm exec prettier --write eslint.config.mjs`, to put the edited file back in the project's style.
+11. `node tooling/harness/cli.ts legacy init`. For the scaffold it lists eleven files: three in
     `.vscode/`, `src/main/index.ts`, `src/preload/index.ts` and `index.d.ts`, `App.tsx`, `main.tsx`,
     `components/Versions.tsx`, `tsconfig.node.json` and `tsconfig.web.json`.
-11. `git add -A && git commit -m "Add the harness"`
-12. `pnpm run check`. Ten steps, each ending in `passed`: prettier, eslint, eslint-preset, tsc, audit,
+12. `git add -A && git commit -m "Add the harness"`
+13. `pnpm run check`. Ten steps, each ending in `passed`: prettier, eslint, eslint-preset, tsc, audit,
     depcruise, knip, jscpd, vitest and build. The old findings follow as a count per tool, the first
     few in full, and a line that says how many more there are.
+
+## shadcn
+
+The lint rule asks for shadcn's components in the renderer, and the audit rule `ui-stack` for
+`components.json`. Tailwind is not checked, but shadcn needs it, so both come before the first commit.
+Init prints six steps for them and runs none. For the scaffold they read:
+
+```text
+  4. Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in src/renderer/src/assets/main.css, add tailwindcss() from "@tailwindcss/vite" to the renderer plugins in electron.vite.config.ts, and run pnpm add -D tailwindcss @tailwindcss/vite
+  5. Map @renderer/ in tsconfig.json too, where shadcn reads aliases (init does not edit it): add "compilerOptions": { "paths": { "@renderer/*": ["./src/renderer/src/*"] } }
+  6. Set up shadcn, whose components the lint rule then asks for (init does not run it); it recognises Vite only by a vite.config file, so the command gives it an empty one for the run: printf 'export default {}\n' > vite.config.ts && pnpm dlx shadcn@latest init -t vite -b base -p nova && rm vite.config.ts
+  7. Delete the two files shadcn init wrote where the layout takes no code: rm src/renderer/src/components/ui/button.tsx src/renderer/src/lib/utils.ts
+  8. Point shadcn at src/renderer/src/shared/, by setting "aliases" in components.json to: { "components": "@renderer/shared/components", "utils": "@renderer/shared/lib/utils", "ui": "@renderer/shared/ui", "lib": "@renderer/shared/lib", "hooks": "@renderer/shared/hooks" }
+  9. Add the first component and the cn helper there, and format what shadcn wrote in the project's own style: pnpm dlx shadcn@latest add button utils && pnpm exec prettier --write src/renderer/src/assets/main.css src/renderer/src/shared/lib/utils.ts
+```
+
+shadcn takes a project for Vite only when a file named `vite.config.*` is at its top, and
+electron-vite's is `electron.vite.config.ts`. So step 6 creates an empty `vite.config.ts` for the
+run of `shadcn init` and deletes it afterwards. That run adds the theme to `main.css` and installs
+`@base-ui/react` and the other packages the components import. `-b base` picks Base UI and `-p nova`
+the preset this template uses, so shadcn asks nothing. The last step writes
+`src/renderer/src/shared/ui/button.tsx`.
 
 ## The shape
 
@@ -151,7 +175,7 @@ src/
   does not read that folder yet. The first automation script, browser test or contract file is then
   type-checked and linted without a change to a locked file.
 - **Gates.** ESLint, Prettier, tsc, Vitest, depcruise, knip and jscpd run as in a Next app. CI also runs
-  `electron-vite build`. There is no Next type generation and no browser smoke test; packaging with
+  `electron-vite build`. There is no Next type generation and no browser smoke test, and `next: true` is refused; packaging with
   electron-builder stays your step.
 - **The lock** also covers `electron.vite.config.ts`, `electron-builder.yml` and every `tsconfig*.json`.
 - **Init** keeps your ESLint, Prettier and Vitest configs. For a config that exports a call, such as
@@ -192,9 +216,10 @@ as pre-existing and do not block.
    a preload script may import only `electron` and `src/shared/`. Expose one `api` object of your own,
    typed in `src/shared/`, update `index.d.ts`, read `window.api` in `App.tsx` and `Versions.tsx`, and
    run `pnpm remove @electron-toolkit/preload`. `Versions.tsx` read the versions from that package:
-   add a `versions` field to `api`, filled from `process.versions` in the preload. Drop the `process.contextIsolated` branch with its
-   `@ts-ignore` lines and expose with `contextBridge` only. Neither the preload nor the renderer
-   logs: let an error throw, or send it to main over a channel, as the lint message says.
+   add a `versions` field to `api`, filled from `process.versions` in the preload. Drop the
+   `process.contextIsolated` branch with its `@ts-ignore` lines and expose with `contextBridge` only.
+   Neither the preload nor the renderer logs: let an error throw, or send it to main over a channel,
+   as the lint message says.
    `ipcRenderer.invoke` returns `any`, and a cast is refused (`no-unsafe-type-assertion`): check the
    value with a guard function kept in `src/shared/`. For the
    scaffold's `'ping'`, either delete the button and its handler, or name the channel in `src/shared/`

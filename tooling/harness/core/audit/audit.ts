@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { classify, readLegacy } from "../classes.ts";
+import { auditAgentsBlock } from "../init/agents/agents-rule.ts";
 import { resolveHarness } from "../path-check.ts";
 import { auditContent } from "./content-rules.ts";
 import { findDuplicateExports } from "./duplicate-exports.ts";
@@ -8,6 +9,7 @@ import type { Finding } from "./finding.ts";
 import { listFiles, trackedDependencyFolders } from "./list-files.ts";
 import { auditPaths } from "./path-rules.ts";
 import { auditPreloadBundles } from "./preload-bundle.ts";
+import { auditUiStack } from "./stack/ui-stack.ts";
 import { auditTsconfigs } from "./tsconfig-rules.ts";
 
 /** Vendored files are exempt and upstream files are not the harness's to judge; legacy files are audited and reported as pre-existing. */
@@ -39,6 +41,8 @@ export function audit(root: string): Finding[] {
     ...findDuplicateExports(root, selected),
     ...auditTsconfigs(root),
     ...auditPreloadBundles(root),
+    ...auditAgentsBlock(root),
+    ...auditUiStack(root),
   ];
 }
 

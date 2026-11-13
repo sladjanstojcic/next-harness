@@ -15,7 +15,7 @@ const SMOKE = { "e2e/smoke.test.ts": "" };
 
 describe("CI gate", () => {
   it("runs all checks in order with full typed lint even after middle failures", async () => {
-    const repo = makeRepo({ ...SMOKE, "src/utils/date.ts": "export const today = 1;" });
+    const repo = makeRepo({ ...SMOKE, "src/utils/date.ts": "export const today = 1;", "tooling/scripts/seed.ts": "" });
     const calls: string[] = [];
     const audit = vi.spyOn(auditor, "audit");
     audit.mockImplementation((root) => {
@@ -54,7 +54,7 @@ describe("CI gate", () => {
 
   it("reports every successful step", async () => {
     vi.spyOn(runner, "runTool").mockResolvedValue([]);
-    const result = await ciGate(makeRepo(SMOKE).root);
+    const result = await ciGate(makeRepo(SMOKE, { agents: true }).root);
     expect(result.passed).toBe(true);
     expect(result.findings).toEqual([]);
     expect(result.report.match(/: passed/g)).toHaveLength(12);
@@ -73,7 +73,7 @@ describe("CI gate", () => {
 
   it("skips the browser step when the root Next workspace has no e2e/**/*.test.ts", async () => {
     const run = vi.spyOn(runner, "runTool").mockResolvedValue([]);
-    const result = await ciGate(makeRepo({ "e2e/helpers.ts": "" }).root);
+    const result = await ciGate(makeRepo({ "e2e/helpers.ts": "" }, { agents: true }).root);
     expect(result.passed).toBe(true);
     expect(result.report).toContain("build: passed\nplaywright: skipped");
     expect(run.mock.calls.some(([, step]) => step.name === "playwright")).toBe(false);

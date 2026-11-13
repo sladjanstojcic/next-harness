@@ -47,10 +47,11 @@ export const HARNESS_RULES: ReadonlySet<string> = new Set([
   "electron-bridge",
   "ipc-channel",
   "preload-bundle",
+  "ui-stack",
 ]);
 
 export const ALWAYS_BLOCKS = (finding: Finding): boolean =>
-  ["harness-lock", "legacy-append", "legacy-invalid", "migration-applied", "nested-lint-config", "preset-missing"].includes(finding.rule) ||
+  ["agents-block", "harness-lock", "legacy-append", "legacy-invalid", "migration-applied", "nested-lint-config", "preset-missing"].includes(finding.rule) ||
   finding.rule.endsWith("-failed");
 
 function isOwned(file: string, owned: readonly string[] | undefined): boolean {
