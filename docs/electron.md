@@ -151,7 +151,7 @@ src/
   does not read that folder yet. The first automation script, browser test or contract file is then
   type-checked and linted without a change to a locked file.
 - **Gates.** ESLint, Prettier, tsc, Vitest, depcruise, knip and jscpd run as in a Next app. CI also runs
-  `electron-vite build`. There is no Next type generation and no browser smoke test; packaging with
+  `electron-vite build`. There is no Next type generation and no browser smoke test, and `next: true` is refused; packaging with
   electron-builder stays your step.
 - **The lock** also covers `electron.vite.config.ts`, `electron-builder.yml` and every `tsconfig*.json`.
 - **Init** keeps your ESLint, Prettier and Vitest configs. For a config that exports a call, such as

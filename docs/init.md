@@ -76,7 +76,8 @@ register `eslint-plugin-react-hooks` as `react-hooks`, and ESLint refuses a seco
 So the preset registers its copy as `harness-react-hooks`, sets `rules-of-hooks` and `exhaustive-deps`
 there as errors, and switches off `react-hooks/rules-of-hooks` and `react-hooks/exhaustive-deps`, so each
 finding is reported once. Your plugin's other rules stay as you set them. The plugin must be loadable
-from the workspace: init's install line names it when it is not.
+from the workspace: init's install line names it when it is not. The hook rules hold in next-modules and
+package workspaces and in an Electron renderer, not under `e2e/`, `scripts/` and `tooling/`.
 
 An imported package counts through its `package.json` in the workspace's `node_modules`; its
 devDependencies count only when it is a workspace package. create-turbo's `@repo/eslint-config` brings

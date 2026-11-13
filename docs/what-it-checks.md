@@ -142,6 +142,7 @@ The agent also cannot run the unlock itself. That command is refused when it com
 
 ## The complete rules
 
-This page shows the families. The full statement, with every exception, is the file the agent itself
-reads: [AGENTS.md](https://github.com/sladjanstojcic/next-harness/blob/main/AGENTS.md). Other kinds
-of project have their own shape with the same ideas; see [Adopt it](adopt.md).
+This page shows the families. The rules as the agent reads them are in
+[AGENTS.md](https://github.com/sladjanstojcic/next-harness/blob/main/AGENTS.md); the details are in
+[harness.config.ts](configuration.md) and [Guards and gates](gates.md). Other kinds of project have
+their own shape with the same ideas; see [Adopt it](adopt.md).

@@ -33,6 +33,13 @@ exists. The harness then keeps the same shape one level up: routes in `app/`, fe
 `modules/<module>/`, shared code in `shared/`. It reads this from git: `app/` holds a file git lists and
 `src/app/` holds none. Nothing is configured, and an empty folder does not switch the layout.
 
+A folder counts once git lists a file under it, tracked or untracked and not ignored, so an empty
+folder from `mkdir` changes nothing and every clone agrees. Every other workspace, an empty one too,
+uses `src/`. Without `src/`, a `src` folder is denied; with it, `app/`, `modules/`, `shared/` and
+`backend/` at the top stay denied. So the Write tool cannot switch the layout. A shell command that moves
+or creates files under `app/` or `src/app/` can, and the full audit then reports the files left in the
+other layout. The `@/` alias maps to the workspace top.
+
 Every message then names your paths, without the `src/` prefix. Read the other pages of this site the
 same way.
 
