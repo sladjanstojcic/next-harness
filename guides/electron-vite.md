@@ -70,8 +70,9 @@ src/
   `src/main/logging/log.ts`. Preload and renderer do not log: let the error throw, or send it to main over a channel.
 - Need to open a link in the browser → call `shell.openExternal` in one file named `open-external.ts` in a `src/main/`
   area folder (`src/main/links/open-external.ts`), which checks the address first.
-- Need a window → keep `nodeIntegration`, `contextIsolation`, `sandbox`, `webSecurity` and `webviewTag` at their safe
-  defaults; `electron-security` reports each loosened one, a `<webview>` element and `@electron/remote`.
+- Need a window → keep `nodeIntegration`, `contextIsolation`, `sandbox`, `webSecurity`, `webviewTag` and
+  `enableRemoteModule` at their safe defaults. `electron-security` reports each loosened one, a `<webview>` element
+  and `@electron/remote`.
 - Need a form control, table or dialog → use the shadcn component in `src/renderer/src/shared/ui/`, or add it with
   `pnpm dlx shadcn add <name>`, and customise it in `src/renderer/src/shared/components/`.
 - `"use client"`, `"use server"` and `server-only` belong to Next and are reported here.

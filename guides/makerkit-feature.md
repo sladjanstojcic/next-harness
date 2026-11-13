@@ -32,5 +32,6 @@ src/
 - Need UI → put it in `src/components/`; `"use client"` belongs there or in `src/hooks/`.
 - Need a Zod schema → put it in `src/schema/<name>.schema.ts`. Need client-safe logic → put it in `src/shared/`.
 - Need environment values → read them in the app's `config/<name>.config.ts` and pass typed values in.
+  `NEXT_PUBLIC_*` reads stay allowed in the package.
 - Need an error the user sees → log the driver error and throw an i18n key instead of raw error text.
 - Need a route → it belongs in the app's `app/`. Need more depth → split the feature into a second package.
