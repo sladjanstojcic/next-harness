@@ -3,7 +3,8 @@ import { checkBackendFolder, GENERATED_TYPES } from "../backend-folder.ts";
 import { checkModuleFiles, TEST_FILE, type ModuleLayout } from "../next-modules.ts";
 import { deny, exportLine, GENERIC_FOLDERS, onlyGitkeepHidden, PLAIN_SHAPE, ROUTE_SEGMENT, sortedEntries, type PathVerdict, type Shape } from "../shape.ts";
 import { ALL_TOOL_CONFIG_NAMES, JS_TOOL_CONFIG_NAMES } from "../tool-config-names.ts";
-import { VITE_LAYOUT as LAYOUT, viteContent } from "./content.ts";
+import { viteContent } from "./content.ts";
+import { VITE_LAYOUT as LAYOUT } from "./source-rules.ts";
 
 const ok: PathVerdict = { ok: true };
 /** The config files Vite and TypeScript read; the lock covers them. create-vite writes tsconfig.app.json and tsconfig.node.json. */

@@ -4,7 +4,7 @@ import { checkPath, isVendoredIn, resolveHarness } from "../../core/path-check.t
 import { makeRepo } from "../../testing/temp-repo.ts";
 import { shapeOf } from "../index.ts";
 import type { PathRule } from "../shape.ts";
-import { VITE_LAYOUT } from "./content.ts";
+import { VITE_LAYOUT } from "./source-rules.ts";
 import { VITE_PROBES, viteSpa } from "./vite-spa.ts";
 
 const CONFIG = 'export default { workspaces: [{ path: ".", shape: "vite-spa" }] };\n';
@@ -69,6 +69,11 @@ const denied: [string, PathRule][] = [
   ["src/services/api.ts", "src-shape"],
   ["src/assets/helper.ts", "src-shape"],
   ["src/shared/utils/x.ts", "shared-shape"],
+  ["src/shared/lib/a/b.ts", "nesting"],
+  ["src/shared/components/utils/x.tsx", "generic-folder"],
+  ["src/modules/ads/foo.ts", "module-shape"],
+  ["src/modules/ads/components/a/b/c.tsx", "nesting"],
+  ["src/modules/ads/hooks/a/use-x.ts", "nesting"],
 ];
 
 describe("vite-spa paths", () => {
