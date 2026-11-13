@@ -1,3 +1,4 @@
+import { backendProfile } from "../backend-folder.ts";
 import type { ContentProfile } from "../shape.ts";
 import { ELECTRON_LAYOUT as LAYOUT, electronSourceRules } from "./source-rules.ts";
 
@@ -15,6 +16,7 @@ export const electronContent: ContentProfile = {
   aliases: { "@/": "src/renderer/src/", "@shared/": "src/shared/" },
   envScope: /^src\//,
   envAllowed: /^src\/main\//,
+  backend: backendProfile(/^src\//, /^src\/main\//, "src/main/", LAYOUT),
   domainFile: /^src\/renderer\/src\/modules\/[^/]+\/domain\/(?:[^/]+\/)?[^/]+\.ts$/,
   sourceRules: electronSourceRules,
   messages: {

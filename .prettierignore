@@ -1,4 +1,6 @@
 src/shared/ui
+src/backend/*.types.ts
+src/backend/*-types.ts
 pnpm-lock.yaml
 .next
 docs/superpowers

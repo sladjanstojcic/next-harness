@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { BESIDE_APP, SOURCE_AREAS, type SourceRoot } from "../config.ts";
+import { backendProfile, checkBackendFolder, GENERATED_TYPES } from "./backend-folder.ts";
 import { MAX_FILE_LINES, MAX_FOLDER_FILES, MAX_PAGE_LINES } from "./limits.ts";
 import {
   deny,
@@ -25,41 +26,8 @@ const CONFIG_ENTRIES = ["package.json", "tsconfig.json", "next-env.d.ts", "next.
 const DOT_ENTRIES = ["components.json", ".dependency-cruiser.json", ".jscpd.json", ".prettierignore", ".env.example"];
 /** An app below the repository root has its own; at the root the root layout already takes them. */
 const APP_ENTRIES = ["README.md", ".gitignore", "AGENTS.md", "CLAUDE.md"];
-const moduleFolders = ["components", "server", "actions", "domain"];
-const sharedFolders = ["components", "lib", "hooks"];
-
-/** The shared/lib/ helpers the content rules point at, which `init --starter` copies. */
-export const STARTER_HELPERS: readonly string[] = ["env.ts", "define-action.ts", "user-error.ts", "format.ts", "log.ts"];
-
-/**
- * One source path per folder and extension this shape allows code in, one per area subfolder level, a colocated test
- * and an automation script, then the fixed names and route segments a config could single out; `{name}` takes a fresh
- * token on each use. Written for the src/ layout; `sourceProbes` gives them for a workspace's own source root.
- */
-export const SOURCE_PROBES: readonly string[] = [
-  "src/app/{name}/{name}.ts",
-  "src/app/{name}/{name}.tsx",
-  "src/modules/{name}/{name}.ts",
-  ...moduleFolders.flatMap((folder) => {
-    if (folder === "components") return ["src/modules/{name}/components/{name}.ts", "src/modules/{name}/components/{name}.tsx"];
-    if (folder === "actions") return ["src/modules/{name}/actions/{name}-action.ts"];
-    return [`src/modules/{name}/${folder}/{name}.ts`];
-  }),
-  ...moduleFolders
-    .filter((folder) => folder !== "actions")
-    .map((folder) => `src/modules/{name}/${folder}/{name}/{name}.${folder === "components" ? "tsx" : "ts"}`),
-  "src/modules/{name}/domain/{name}.test.ts",
-  ...sharedFolders.map((folder) => `src/shared/${folder}/{name}.${folder === "components" ? "tsx" : "ts"}`),
-  "scripts/{name}.ts",
-  ...["page.tsx", "layout.tsx", "route.ts"].map((file) => `src/app/{name}/${file}`),
-  "src/app/{name}/{name}/page.tsx",
-  "src/app/({name})/{name}/page.tsx",
-  "src/app/[{name}]/page.tsx",
-  ...MODULE_ENTRIES.map((file) => `src/modules/{name}/${file}`),
-  ...STARTER_HELPERS.map((file) => `src/shared/lib/${file}`),
-];
-
-export const sourceProbes = (root: SourceRoot): string[] => SOURCE_PROBES.map((probe) => probe.replace(/^src\//, root));
+export const MODULE_FOLDERS: readonly string[] = ["components", "server", "actions", "domain"];
+export const SHARED_FOLDERS: readonly string[] = ["components", "lib", "hooks"];
 
 function genericDenial(root: SourceRoot, folder: string): PathVerdict {
   return deny(
@@ -103,7 +71,7 @@ function checkModule(parts: string[], root: SourceRoot): PathVerdict {
   const [module, ...inside] = parts;
   if (module && !KEBAB.test(module)) return nameDenial(root);
   const verdict = checkModuleFiles(inside, {
-    areaFolders: moduleFolders.filter((folder) => folder !== "actions"),
+    areaFolders: MODULE_FOLDERS.filter((folder) => folder !== "actions"),
     flatFolders: ["actions"],
     shapeAdvice: "Place module code in components/, server/, actions/ or domain/; expose it through index.ts, server.ts or actions/<name>-action.ts.",
     nestingAdvice: `Keep actions/ flat; components/, server/ and domain/ permit one area subfolder. Split a new ${root}modules/<module>/ for more depth.`,
@@ -120,7 +88,7 @@ function checkModule(parts: string[], root: SourceRoot): PathVerdict {
 function checkShared(parts: string[], root: SourceRoot): PathVerdict {
   const folder = parts[0];
   if (folder === "ui" && parts.length >= 2) return ok;
-  if (!folder || !sharedFolders.includes(folder) || parts.length < 2) {
+  if (!folder || !SHARED_FOLDERS.includes(folder) || parts.length < 2) {
     return deny("shared-shape", `Put shared code in ${root}shared/components/, lib/ or hooks/; generated primitives belong in ${root}shared/ui/.`);
   }
   if (parts.length > (folder === "components" ? 3 : 2)) {
@@ -136,6 +104,7 @@ function checkShared(parts: string[], root: SourceRoot): PathVerdict {
 
 function content(root: SourceRoot): ContentProfile {
   const under = (pattern: string): RegExp => new RegExp(`^${root}${pattern}`);
+  const envScope = root === "" ? /^(?:(?:app|modules|shared)\/|(?:proxy|instrumentation(?:-client)?)\.ts$)/ : /^src\//;
   return {
     actionFile: under("modules/[^/]+/actions/[^/]+-action\\.ts$"),
     actionBuilders: ["defineAction"],
@@ -145,7 +114,8 @@ function content(root: SourceRoot): ContentProfile {
     actionImport: under("modules/[^/]+/actions(?:/|$)"),
     aliases: { "@/": root },
     envFile: `${root}shared/lib/env.ts`,
-    envScope: root === "" ? /^(?:(?:app|modules|shared)\/|(?:proxy|instrumentation(?:-client)?)\.ts$)/ : /^src\//,
+    envScope,
+    backend: backendProfile(envScope, under("backend/"), `${root}backend/`, ""),
     domainFile: under("modules/[^/]+/domain/(?:[^/]+/)?[^/]+\\.ts$"),
     errorScope: new RegExp(`^${root}app/|(?:^|/)components/`),
     messages: {
@@ -225,10 +195,12 @@ function nextModulesShape(root: SourceRoot): Shape {
         if (area === "app") return checkApp(rest, root);
         if (area === "modules") return checkModule(rest, root);
         if (area === "shared") return checkShared(rest, root);
+        if (area === "backend") return checkBackendFolder(rest, `${root}backend/`, "");
       }
       return deny("src-shape", `Put routes in ${root}app/, feature code in ${root}modules/<module>/, and cross-cutting utilities in ${root}shared/lib/.`);
     },
     vendored: [`${root}shared/ui/`, `${root}shared/lib/utils.ts`],
+    vendoredPattern: new RegExp(`^${root}backend/[^/]+${GENERATED_TYPES.source}`),
     jsExceptions: JS_TOOL_CONFIG_NAMES,
     routeRoot: `${root}app/`,
     limits: { fileLines: MAX_FILE_LINES, folderFiles: MAX_FOLDER_FILES, pageLines: MAX_PAGE_LINES },

@@ -27,6 +27,8 @@ export interface Shape {
   isNameExempt(parts: readonly string[], index: number): boolean;
   checkPath(path: string): PathVerdict;
   vendored: readonly string[];
+  /** Generated files matched by name rather than by path, such as a backend's database types; tested beside `vendored`. */
+  vendoredPattern?: RegExp;
   jsExceptions: readonly string[];
   routeRoot?: string;
   limits: { fileLines: number; folderFiles: number; pageLines: number };

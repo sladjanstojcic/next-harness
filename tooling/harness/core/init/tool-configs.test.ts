@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { makeRepo } from "../../testing/temp-repo.ts";
-import { STARTER_HELPERS } from "../../shapes/next-modules.ts";
+import { STARTER_HELPERS } from "../../shapes/next-probes.ts";
 import { isLocked } from "../lock.ts";
 import { initHarness } from "./init.ts";
 
@@ -42,7 +42,9 @@ describe("init tool configs", () => {
     expect(repo.read("vitest.config.ts")).toContain("harnessVitest()");
     expect(repo.read("knip.config.ts")).toContain("harnessKnip()");
     expect(repo.read(".gitignore")).toBe(".next/\ntest-results/\ntooling/harness/node_modules/\n");
-    expect(repo.read(".prettierignore")).toBe("pnpm-lock.yaml\nsrc/shared/ui\n.next\ntooling/harness\nharness.config.ts\n");
+    expect(repo.read(".prettierignore")).toBe(
+      "pnpm-lock.yaml\nsrc/shared/ui\nsrc/backend/*.types.ts\nsrc/backend/*-types.ts\n.next\ntooling/harness\nharness.config.ts\n",
+    );
     expect(exists(repo.root, "src/shared/lib/env.ts")).toBe(false);
     expect(exists(repo.root, "e2e/smoke.test.ts")).toBe(false);
     expect(result.report).not.toContain("Prettier is not installed");
@@ -169,7 +171,7 @@ describe("init tool configs", () => {
     ]);
     expect(repo.read("apps/dashboard/.gitignore")).toBe(".next/\ntest-results/\n");
     expect(repo.read(".gitignore")).toBe("/.next/\ntooling/harness/node_modules/\n");
-    expect(repo.read("apps/dashboard/.prettierignore")).toBe("pnpm-lock.yaml\nsrc/shared/ui\n.next\n");
+    expect(repo.read("apps/dashboard/.prettierignore")).toBe("pnpm-lock.yaml\nsrc/shared/ui\nsrc/backend/*.types.ts\nsrc/backend/*-types.ts\n.next\n");
     expect(repo.read(".prettierignore")).toBe("tooling/harness\nharness.config.ts\n");
     expect(exists(repo.root, ".eslintignore")).toBe(false);
     expect(nextSteps(result.report).slice(1)).toEqual([

@@ -1,12 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { HARNESS_PACKAGE, harnessIsWorkspace } from "../core/init/bootstrap.ts";
+import { GENERATED_TYPE_GLOBS } from "../shapes/backend-folder.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 
 /** Under src/, or at the top of a workspace without it; only the paths that exist are listed. */
 const inSources = (paths: string[]): string[] => ["src/", ""].flatMap((root) => paths.map((file) => `${root}${file}`));
 const ENTRY = inSources(["shared/lib/env.ts", "shared/lib/user-error.ts", "shared/lib/format.ts", "shared/lib/define-action.ts", "shared/lib/log.ts"]);
-const IGNORE = inSources(["shared/ui/**", "shared/lib/utils.ts"]);
+const IGNORE = inSources(["shared/ui/**", "shared/lib/utils.ts", ...GENERATED_TYPE_GLOBS.map((glob) => `backend/${glob}`)]);
 const IGNORE_DEPENDENCIES = [
   "server-only", // Imported by server.ts and server/ files; Vitest aliases it, so it may have no static importer yet.
   "cn", // Used only by the vendored shared/lib/utils.ts helper.
@@ -133,7 +134,8 @@ function fromManifest(dir: string): { configs: string[]; lists: { ignoreDependen
  * ignored. Only paths that exist and dependencies the workspace declares are listed, so knip has no stale entry to hint at.
  */
 export function harnessKnipWorkspace({ harness = "ignore" }: HarnessKnipOptions = {}, dir = process.cwd()): KnipWorkspace {
-  const exists = (pattern: string) => fs.existsSync(path.join(dir, pattern.replace(/\/\*\*$/, "")));
+  // A glob is listed once the folder it names exists.
+  const exists = (pattern: string) => fs.existsSync(path.join(dir, pattern.replace(/\/[^/]*\*[^/]*$/, "")));
   const { configs, lists } = fromManifest(dir);
   return {
     next: true,
