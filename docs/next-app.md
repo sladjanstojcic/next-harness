@@ -186,6 +186,10 @@ generates, named `*.types.ts` or `*-types.ts`. Those are vendored: the Write too
 so regenerate them through the shell. `shared/` and `domain/` do not import the folder, and it imports
 only `shared/lib/`.
 
+Without `src/`, a `backend/` folder at the top is always this folder. A project that approved
+`backend` in `root.entries` for something else, such as a separate service, now gets path, name and
+size findings there. Move that service to another folder name.
+
 An import of a backend package such as `@supabase/supabase-js` or `pg` anywhere else is reported as
 `backend-package`, unless the import is `import type`:
 

@@ -181,9 +181,9 @@ function codeIndex(workspaceDir: string, root: SourceRoot): string[] {
 }
 
 const ROOT_LAYOUT_ADVICE =
-  "Use an approved root entry: routes belong in app/, feature code in modules/<module>/, shared code in shared/, harness code in tooling/, and automation in scripts/; this project keeps its code beside app/, not in src/.";
+  "Use an approved root entry: routes belong in app/, feature code in modules/<module>/, shared code in shared/, the backend client in backend/, harness code in tooling/, and automation in scripts/; this project keeps its code beside app/, not in src/.";
 
-/** The shape for one source root. With "" the three areas and the files beside app/ are top entries, and `src` is not one. */
+/** The shape for one source root. With "" the four areas and the files beside app/ are top entries, and `src` is not one. */
 function nextModulesShape(root: SourceRoot): Shape {
   const sources = root === "" ? SOURCE_AREAS : ["src"];
   const depth = root === "" ? 0 : 1;
@@ -199,7 +199,7 @@ function nextModulesShape(root: SourceRoot): Shape {
     checkHidden(path) {
       const parts = path.split("/");
       if (inSource(parts) && parts.slice(1).some((part) => part.startsWith(".") && part !== ".gitkeep")) {
-        const where = root === "" ? "app/, modules/ or shared/" : "src/";
+        const where = root === "" ? "app/, modules/, shared/ or backend/" : "src/";
         return deny("hidden-file", `Keep visible source files in ${root}modules/ or ${root}shared/; only .gitkeep placeholders may be hidden under ${where}.`);
       }
       return ok;
