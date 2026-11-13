@@ -68,7 +68,9 @@ public/                 static files
   `shared/lib/log.ts`, the one file where console output is allowed.
 - Need formatting → reuse `shared/lib/format.ts`.
 - Need a generic hook or a composed component → use `shared/hooks/` or `shared/components/`.
-- Need a form control, table or dialog → use the shadcn component in `shared/ui/`, or add it with `pnpm dlx shadcn add
-<name>`, and customise it in `shared/components/`. With `components.json`, lint reports a raw `button`, `input`,
-  `select`, `textarea`, `label`, `table` or `dialog` elsewhere.
+- Need a form control, table or dialog → use the shadcn component in `shared/ui/`, and customise it in
+  `shared/components/`.
+- Need a shadcn component that is missing → add it with `pnpm dlx shadcn add <name>`.
+- With `components.json`, lint reports a raw `button`, `input`, `select`, `textarea`, `label`, `table` or `dialog`
+  outside `shared/ui/`.
 - Need a browser test → put it in `e2e/`. Need automation → put it in `scripts/`.

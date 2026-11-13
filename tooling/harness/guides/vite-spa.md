@@ -64,8 +64,10 @@ src/
   reported. Every `VITE_*` value is public in the built bundle: a service key never gets that prefix.
 - Need logging → console output belongs in `src/shared/lib/log.ts`. Show the user a message written for them, and keep
   raw error details in that file.
-- Need a form control, table or dialog → use the shadcn component in `src/shared/ui/`, or add it with `pnpm dlx shadcn
-add <name>`, and customise it in `src/shared/components/`. With `components.json`, lint reports a raw `button`,
-  `input`, `select`, `textarea`, `label`, `table` or `dialog` elsewhere.
+- Need a form control, table or dialog → use the shadcn component in `src/shared/ui/`, and customise it in
+  `src/shared/components/`.
+- Need a shadcn component that is missing → add it with `pnpm dlx shadcn add <name>`.
+- With `components.json`, lint reports a raw `button`, `input`, `select`, `textarea`, `label`, `table` or `dialog`
+  outside `src/shared/ui/`.
 - Need images, fonts or CSS → put them in `src/assets/`, or in `public/` when served as they are.
 - Need a browser test → put it in `e2e/`. Need automation → put it in `scripts/`.

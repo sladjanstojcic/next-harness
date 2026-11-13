@@ -79,6 +79,12 @@ describe("the guides", () => {
     expect(refused).toEqual([]);
   });
 
+  it.each(Object.keys(GUIDE_LIMITS))("%s keeps every inline code span on one line", (name) => {
+    const prose = readGuide(name).replace(/```[\s\S]*?```/g, "");
+    const split = prose.split("\n").filter((line) => (line.match(/`/g) ?? []).length % 2 === 1);
+    expect(split).toEqual([]);
+  });
+
   it("throws on an unknown name", () => {
     expect(() => readGuide("nope")).toThrow('No guide for "nope"');
   });
