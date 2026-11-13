@@ -42,6 +42,7 @@ export const HARNESS_RULES: ReadonlySet<string> = new Set([
   "duplicate-export",
   "inline-disable",
   "package-boundary",
+  "backend-package",
   "electron-security",
   "electron-bridge",
   "ipc-channel",
