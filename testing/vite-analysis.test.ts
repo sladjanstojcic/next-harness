@@ -27,6 +27,7 @@ const PASSING: Record<string, string> = {
   [`${ADS}/data/ads.test.ts`]:
     'import { client } from "../../../backend/client";\nimport { adsList } from "./ads";\n\nexport const both = [client, adsList];\n',
   [`${ADS}/domain/price.ts`]: "export const price = (cents: number): number => cents * 2;\n",
+  [`${ADS}/domain/row.ts`]: 'import type { Database } from "../../../backend/database.types";\n\nexport type Row = Database["ads"];\n',
   [`${ADS}/components/view.tsx`]:
     'import { useState } from "react";\nimport type { Database } from "../../../backend/database.types";\nimport { price } from "../domain/price";\n\nexport type Row = Database["ads"];\nexport const view = [useState, price];\n',
   "src/backend/client.ts": 'import { format } from "../shared/lib/format";\n\nexport const client = { format };\n',
@@ -79,8 +80,8 @@ describe("dependency-cruiser for a vite-spa workspace", () => {
       "backend-own-code src/backend/bad.ts": 2,
       "module-public-api src/app/page.tsx": 1,
       "module-public-api src/modules/cart/index.ts": 1,
-      // React, data/ and the backend client.
-      [`domain-pure-path ${ADS}/domain/bad.ts`]: 3,
+      // React and data/; the backend client is backend-from-data-only's.
+      [`domain-pure-path ${ADS}/domain/bad.ts`]: 2,
       // A generated shadcn component is React too.
       [`domain-pure-path ${ADS}/domain/styled.ts`]: 1,
       [`not-to-test ${ADS}/domain/uses-test.ts`]: 1,

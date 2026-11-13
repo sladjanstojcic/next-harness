@@ -19,7 +19,7 @@ export function viteBoundaryBlocks(): BoundaryBlock[] {
     message: `src/backend/ holds the client and its types only: no React, module or route code ${LAYOUT}`,
   };
   const pureDomain: Pattern = {
-    regex: `${react}|^@/backend(?:/|$)`,
+    regex: react,
     message: `A domain/ rule is plain TypeScript: React belongs in the module's components/ or hooks/, backend calls in its data/ ${LAYOUT}`,
   };
   const throughData: Pattern = {
@@ -32,7 +32,7 @@ export function viteBoundaryBlocks(): BoundaryBlock[] {
     block(["src/**/*.{ts,tsx}"], [noNode], { builtins: true }),
     block(["src/shared/**/*.{ts,tsx}"], [noNode, noOuter], { builtins: true }),
     block(["src/backend/**/*.ts"], [noNode, pureBackend], { builtins: true }),
-    block(["src/modules/*/domain/**/*.ts"], [noNode, pureDomain], { builtins: true, ignores: ["**/*.test.ts"] }),
+    block(["src/modules/*/domain/**/*.ts"], [noNode, pureDomain, throughData], { builtins: true, ignores: ["**/*.test.ts"] }),
     block(ui, [noNode, throughData], { builtins: true }),
   ];
 }

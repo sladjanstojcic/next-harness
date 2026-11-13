@@ -53,6 +53,9 @@ const ROWS: [file: string, code: string, expected: string[]][] = [
   ["src/shared/lib/route.ts", 'import { used } from "@/app/page";\n\nexport const route = used;\n', ["no-restricted-imports"]],
   ["src/shared/hooks/use-client.ts", 'import { pb } from "@/backend/client";\n\nexport const used = pb;\n', ["no-restricted-imports"]],
   ["src/modules/ads/hooks/use-ads.ts", 'import { pb } from "@/backend/client";\n\nexport const used = pb;\n', ["no-restricted-imports"]],
+  ["src/modules/ads/domain/rows.ts", 'import type { Ad } from "@/backend/database.types";\n\nexport type Row = Ad;\n', []],
+  ["src/modules/ads/domain/call.ts", 'import { pb } from "@/backend/client";\n\nexport const used = pb;\n', ["no-restricted-imports"]],
+  ["src/shared/lib/rows.ts", 'import type { Ad } from "@/backend/database.types";\n\nexport type Row = Ad;\n', ["no-restricted-imports"]],
   ["src/modules/ads/domain/p.test.ts", 'import { useState } from "react";\n\nexport const used = useState;\n', []],
   ...UI_ENTRIES.map((file): [string, string, string[]] => [
     file,

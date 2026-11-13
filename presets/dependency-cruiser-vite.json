@@ -54,8 +54,7 @@
         "path": [
           "^(react|react-dom)(/|$)|(^|/)node_modules/(react|react-dom)/",
           "^src/modules/[^/]+/(components|hooks|data)/",
-          "^src/shared/(components|hooks|ui)/",
-          "^src/backend/"
+          "^src/shared/(components|hooks|ui)/"
         ]
       }
     },
