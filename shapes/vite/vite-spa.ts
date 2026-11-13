@@ -1,7 +1,18 @@
 import { join } from "node:path";
 import { checkBackendFolder, GENERATED_TYPES } from "../backend-folder.ts";
-import { checkModuleFiles, TEST_FILE, type ModuleLayout } from "../next-modules.ts";
-import { deny, exportLine, GENERIC_FOLDERS, onlyGitkeepHidden, PLAIN_SHAPE, ROUTE_SEGMENT, sortedEntries, type PathVerdict, type Shape } from "../shape.ts";
+import { checkClientModule, TEST_FILE, type ClientModuleText, type ModuleLayout } from "../next-modules.ts";
+import {
+  checkSharedFolder,
+  codeIndexBuilder,
+  deny,
+  onlyGitkeepHidden,
+  PLAIN_SHAPE,
+  ROUTE_SEGMENT,
+  sortedEntries,
+  type PathVerdict,
+  type SharedFolderText,
+  type Shape,
+} from "../shape.ts";
 import { ALL_TOOL_CONFIG_NAMES, JS_TOOL_CONFIG_NAMES } from "../tool-config-names.ts";
 import { viteContent } from "./content.ts";
 import { VITE_LAYOUT as LAYOUT } from "./source-rules.ts";
@@ -76,33 +87,18 @@ function checkApp(inside: readonly string[]): PathVerdict {
   return deny("app-file", `src/app/ takes ${files}; move other UI into a module's components/ and import it from the module's index.ts ${LAYOUT}`);
 }
 
-function checkModule(parts: readonly string[]): PathVerdict {
-  const [, ...inside] = parts;
-  if (["server", "actions"].includes(inside[0] ?? "") || (inside.length === 1 && untested(inside[0] ?? "") === "server.ts")) {
-    const where = "calls to the backend belong in the module's data/, through the client in src/backend/";
-    return deny("module-shape", `This app has no server, so a module has no server.ts, server/ or actions/: ${where} ${LAYOUT}`);
-  }
-  const verdict = checkModuleFiles(inside, MODULE);
-  if (!verdict.ok) return verdict;
-  const file = inside.at(-1) ?? "";
-  if ((inside[0] === "domain" || inside[0] === "data") && file.endsWith(".tsx"))
-    return deny("file-name", `Keep ${inside[0]}/ for TypeScript (.ts); React UI belongs in components/ ${LAYOUT}`);
-  if (inside[0] === "hooks" && !/^use-[a-z0-9-]+\.tsx?$/.test(untested(file))) return deny("file-name", `Name hooks use-<name>.ts(x) in hooks/ ${LAYOUT}`);
-  return ok;
-}
+const MODULE_TEXT: ClientModuleText = {
+  noServer: `This app has no server, so a module has no server.ts, server/ or actions/: calls to the backend belong in the module's data/, through the client in src/backend/ ${LAYOUT}`,
+  tsOnly: ["domain", "data"],
+  noJsx: (folder) => `Keep ${folder}/ for TypeScript (.ts); React UI belongs in components/ ${LAYOUT}`,
+  layout: LAYOUT,
+};
 
-function checkShared(parts: readonly string[]): PathVerdict {
-  const folder = parts[0] ?? "";
-  if (folder === "ui" && parts.length >= 2) return ok;
-  if (!["components", "lib", "hooks"].includes(folder) || parts.length < 2) {
-    return deny("shared-shape", `Put shared code in src/shared/components/, lib/ or hooks/; generated primitives belong in src/shared/ui/ ${LAYOUT}`);
-  }
-  if (parts.length > (folder === "components" ? 3 : 2)) {
-    const split = "Move feature code into src/modules/<module>/";
-    return deny("nesting", `Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. ${split} ${LAYOUT}`);
-  }
-  return parts.length === 3 && GENERIC_FOLDERS.includes(parts[1] ?? "") ? generic("src/shared/components/") : ok;
-}
+const SHARED_TEXT: SharedFolderText = {
+  shape: `Put shared code in src/shared/components/, lib/ or hooks/; generated primitives belong in src/shared/ui/ ${LAYOUT}`,
+  nesting: `Keep src/shared/lib/ and hooks/ flat; src/shared/components/ permits one area subfolder. Move feature code into src/modules/<module>/ ${LAYOUT}`,
+  generic: generic("src/shared/components/"),
+};
 
 function checkPath(path: string): PathVerdict {
   const [top, area = "", ...inside] = path.split("/");
@@ -114,22 +110,14 @@ function checkPath(path: string): PathVerdict {
   }
   if (area === "assets") return /\.[cm]?[jt]sx?$/.test(file) ? deny("src-shape", `src/assets/ holds images, fonts and CSS; ${WHERE}`) : ok;
   if (area === "app") return checkApp(inside);
-  if (area === "modules") return checkModule(inside);
+  if (area === "modules") return checkClientModule(inside.slice(1), MODULE, MODULE_TEXT);
   if (area === "backend") return checkBackendFolder(inside, "src/backend/", LAYOUT);
-  if (area === "shared") return checkShared(inside);
+  if (area === "shared") return checkSharedFolder(inside, SHARED_TEXT);
   return deny("src-shape", `src/ takes app/, modules/, backend/, shared/ and assets/: ${WHERE}`);
 }
 
 function codeIndex(workspaceDir: string): string[] {
-  const lines: string[] = [];
-  const section = (title: string, base: string, files: readonly string[]): void => {
-    const found = files.flatMap((file) => exportLine(join(workspaceDir, base), file) ?? []);
-    if (found.length > 0) lines.push("", `## ${title}`, "", ...found);
-  };
-  const sources = (folder: string): string[] =>
-    sortedEntries(join(workspaceDir, folder))
-      .filter((entry) => entry.isFile() && /\.tsx?$/.test(entry.name) && !TEST_FILE.test(entry.name))
-      .map((entry) => entry.name);
+  const { lines, section, sources } = codeIndexBuilder(workspaceDir);
   section("src/backend", "src/backend", sources("src/backend"));
   for (const entry of sortedEntries(join(workspaceDir, "src/modules")).filter((entry) => entry.isDirectory())) {
     section(entry.name, `src/modules/${entry.name}`, ["index.ts"]);

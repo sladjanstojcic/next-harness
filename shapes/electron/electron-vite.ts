@@ -1,6 +1,18 @@
 import { join } from "node:path";
-import { checkModuleFiles, TEST_FILE, type ModuleLayout } from "../next-modules.ts";
-import { deny, exportLine, GENERIC_FOLDERS, KEBAB, onlyGitkeepHidden, PLAIN_SHAPE, sortedEntries, type PathVerdict, type Shape } from "../shape.ts";
+import { checkClientModule, TEST_FILE, type ClientModuleText, type ModuleLayout } from "../next-modules.ts";
+import {
+  checkSharedFolder,
+  codeIndexBuilder,
+  deny,
+  GENERIC_FOLDERS,
+  KEBAB,
+  onlyGitkeepHidden,
+  PLAIN_SHAPE,
+  sortedEntries,
+  type PathVerdict,
+  type SharedFolderText,
+  type Shape,
+} from "../shape.ts";
 import { ALL_TOOL_CONFIG_NAMES, JS_TOOL_CONFIG_NAMES } from "../tool-config-names.ts";
 import { electronContent } from "./content.ts";
 import { ELECTRON_LAYOUT as LAYOUT } from "./source-rules.ts";
@@ -75,36 +87,18 @@ function checkAreas(inside: readonly string[], folder: string, flat: boolean, sh
   return deny("src-shape", `${folder} takes index.ts, the entry; put other code in an area folder such as ${folder}storage/ or ${folder}db/ ${LAYOUT}`);
 }
 
-function checkModule(parts: readonly string[]): PathVerdict {
-  const [, ...inside] = parts;
-  if (["server", "actions"].includes(inside[0] ?? "") || (inside.length === 1 && untested(inside[0] ?? "") === "server.ts")) {
-    const where = "Node, the database and the network live in src/main/, and the renderer calls them through the API src/preload/ exposes";
-    return deny("module-shape", `A renderer module has no server.ts, server/ or actions/: ${where} ${LAYOUT}`);
-  }
-  const verdict = checkModuleFiles(inside, MODULE);
-  if (!verdict.ok) return verdict;
-  const file = inside.at(-1) ?? "";
-  if (inside[0] === "domain" && file.endsWith(".tsx"))
-    return deny("file-name", `Keep domain/ for pure TypeScript (.ts); React UI belongs in components/ ${LAYOUT}`);
-  if (inside[0] === "hooks" && !/^use-[a-z0-9-]+\.tsx?$/.test(untested(file))) return deny("file-name", `Name hooks use-<name>.ts(x) in hooks/ ${LAYOUT}`);
-  return ok;
-}
+const MODULE_TEXT: ClientModuleText = {
+  noServer: `A renderer module has no server.ts, server/ or actions/: Node, the database and the network live in src/main/, and the renderer calls them through the API src/preload/ exposes ${LAYOUT}`,
+  tsOnly: ["domain"],
+  noJsx: () => `Keep domain/ for pure TypeScript (.ts); React UI belongs in components/ ${LAYOUT}`,
+  layout: LAYOUT,
+};
 
-function checkRendererShared(parts: readonly string[]): PathVerdict {
-  const folder = parts[0] ?? "";
-  if (folder === "ui" && parts.length >= 2) return ok;
-  if (!["components", "lib", "hooks"].includes(folder) || parts.length < 2) {
-    return deny(
-      "shared-shape",
-      `Put shared renderer code in ${RENDERER}shared/components/, lib/ or hooks/; generated primitives belong in shared/ui/ ${LAYOUT}`,
-    );
-  }
-  if (parts.length > (folder === "components" ? 3 : 2)) {
-    const split = `Move feature code into ${RENDERER}modules/<module>/`;
-    return deny("nesting", `Keep ${RENDERER}shared/lib/ and hooks/ flat; shared/components/ permits one area subfolder. ${split} ${LAYOUT}`);
-  }
-  return parts.length === 3 && GENERIC_FOLDERS.includes(parts[1] ?? "") ? generic(`${RENDERER}shared/components/`, `${RENDERER}shared/lib/`) : ok;
-}
+const SHARED_TEXT: SharedFolderText = {
+  shape: `Put shared renderer code in ${RENDERER}shared/components/, lib/ or hooks/; generated primitives belong in shared/ui/ ${LAYOUT}`,
+  nesting: `Keep ${RENDERER}shared/lib/ and hooks/ flat; shared/components/ permits one area subfolder. Move feature code into ${RENDERER}modules/<module>/ ${LAYOUT}`,
+  generic: generic(`${RENDERER}shared/components/`, `${RENDERER}shared/lib/`),
+};
 
 function checkRenderer(inside: readonly string[]): PathVerdict {
   const file = inside.at(-1) ?? "";
@@ -119,8 +113,8 @@ function checkRenderer(inside: readonly string[]): PathVerdict {
   if (area === "assets") {
     return /\.[cm]?[jt]sx?$/.test(file) ? deny("src-shape", `${RENDERER}assets/ holds images, fonts and CSS; ${WHERE}`) : ok;
   }
-  if (area === "modules") return checkModule(rest);
-  if (area === "shared") return checkRendererShared(rest);
+  if (area === "modules") return checkClientModule(rest.slice(1), MODULE, MODULE_TEXT);
+  if (area === "shared") return checkSharedFolder(rest, SHARED_TEXT);
   return deny("src-shape", `Put feature code in ${RENDERER}modules/<module>/ and cross-cutting renderer code in ${RENDERER}shared/; ${WHERE}`);
 }
 
@@ -146,15 +140,7 @@ function checkPath(path: string): PathVerdict {
 }
 
 function codeIndex(workspaceDir: string): string[] {
-  const lines: string[] = [];
-  const section = (title: string, base: string, files: readonly string[]): void => {
-    const found = files.flatMap((file) => exportLine(join(workspaceDir, base), file) ?? []);
-    if (found.length > 0) lines.push("", `## ${title}`, "", ...found);
-  };
-  const sources = (folder: string): string[] =>
-    sortedEntries(join(workspaceDir, folder))
-      .filter((entry) => entry.isFile() && /\.tsx?$/.test(entry.name) && !TEST_FILE.test(entry.name))
-      .map((entry) => entry.name);
+  const { lines, section, sources } = codeIndexBuilder(workspaceDir);
   const folders = (folder: string): string[] =>
     sortedEntries(join(workspaceDir, folder))
       .filter((entry) => entry.isDirectory())

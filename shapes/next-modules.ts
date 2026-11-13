@@ -12,13 +12,14 @@ import {
   nameDenial,
   ROUTE_SEGMENT,
   sortedEntries,
+  TEST_FILE,
   type ContentProfile,
   type PathVerdict,
   type Shape,
 } from "./shape.ts";
 import { ALL_TOOL_CONFIG_NAMES, JS_TOOL_CONFIG_NAMES } from "./tool-config-names.ts";
 
-export const TEST_FILE = /\.test\.tsx?$/;
+export { TEST_FILE } from "./shape.ts";
 export const MODULE_ENTRIES: readonly string[] = ["index.ts", "server.ts", "schemas.ts", "types.ts"];
 
 const ok: PathVerdict = { ok: true };
@@ -63,6 +64,29 @@ export function checkModuleFiles(inside: readonly string[], layout: ModuleLayout
   if (inside.length > (flat ? 2 : 3)) return deny("nesting", layout.nestingAdvice);
   if (inside.slice(0, -1).some((part) => !KEBAB.test(part))) return layout.name();
   if (inside.length === 3 && GENERIC_FOLDERS.includes(inside[1] ?? "")) return layout.generic(folder);
+  return ok;
+}
+
+const untested = (file: string): string => file.replace(/\.test(\.tsx?)$/, "$1");
+
+/** The denials of a module in an app without a server; each shape words them with its own paths and layout. */
+export interface ClientModuleText {
+  noServer: string;
+  /** The folders that take TypeScript without JSX, and the denial of a .tsx file there. */
+  tsOnly: readonly string[];
+  noJsx(folder: string): string;
+  layout: string;
+}
+
+/** A module of an app without a server: no server.ts, server/ or actions/, no JSX outside UI folders, and hooks named use-<name>.ts(x). */
+export function checkClientModule(inside: readonly string[], layout: ModuleLayout, text: ClientModuleText): PathVerdict {
+  const folder = inside[0] ?? "";
+  if (["server", "actions"].includes(folder) || (inside.length === 1 && untested(folder) === "server.ts")) return deny("module-shape", text.noServer);
+  const verdict = checkModuleFiles(inside, layout);
+  if (!verdict.ok) return verdict;
+  const file = untested(inside.at(-1) ?? "");
+  if (text.tsOnly.includes(folder) && file.endsWith(".tsx")) return deny("file-name", text.noJsx(folder));
+  if (folder === "hooks" && !/^use-[a-z0-9-]+\.tsx?$/.test(file)) return deny("file-name", `Name hooks use-<name>.ts(x) in hooks/ ${text.layout}`);
   return ok;
 }
 
