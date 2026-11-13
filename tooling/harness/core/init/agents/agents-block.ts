@@ -11,6 +11,7 @@ export const BLOCK_END = "<!-- harness:end -->";
 const AGENTS = "AGENTS.md";
 const CLAUDE = "CLAUDE.md";
 const IMPORT = "@AGENTS.md";
+const IMPORT_TOKEN = /(?:^|\s)@(?:\.\/)?AGENTS\.md(?=\s|$)/m;
 /** Codex's default project_doc_max_bytes: it reads no further into the project's instruction files. */
 const CODEX_LIMIT = 32 * 1024;
 
@@ -108,13 +109,23 @@ export function agentsStep(root: string): Step {
   return { target: AGENTS, status: "updated", detail: "harness rules replaced, your text kept", apply };
 }
 
+function realPath(file: string): string | undefined {
+  try {
+    return fs.realpathSync(file);
+  } catch {
+    return undefined;
+  }
+}
+
 /** Claude Code reads CLAUDE.md, not AGENTS.md: the import line brings the harness rules in. */
 export function claudeStep(root: string): Step {
   const file = path.join(root, CLAUDE);
   const read = readFile(file);
   if (read === undefined) return { target: CLAUDE, status: "created", detail: `imports ${AGENTS}`, apply: writer(file, `${IMPORT}\n`) };
   if (typeof read === "object") return { target: CLAUDE, status: "kept", detail: read.problem, todo: true };
-  if (read.split(/\r?\n/).includes(IMPORT)) return { target: CLAUDE, status: "unchanged", detail: `imports ${AGENTS}` };
+  // Claude Code takes an @ import anywhere in the text, with or without ./; a link to AGENTS.md is the file itself.
+  if (IMPORT_TOKEN.test(read)) return { target: CLAUDE, status: "unchanged", detail: `imports ${AGENTS}` };
+  if (fs.realpathSync(file) === realPath(path.join(root, AGENTS))) return { target: CLAUDE, status: "unchanged", detail: `links to ${AGENTS}` };
   return { target: CLAUDE, status: "kept", detail: `add the line ${IMPORT} so Claude Code reads the harness rules`, todo: true };
 }
 

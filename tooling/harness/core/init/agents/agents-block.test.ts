@@ -186,6 +186,15 @@ describe("claudeStep", () => {
       todo: true,
     });
   });
+
+  it("sees the import inside a sentence or with ./, and a CLAUDE.md that links to AGENTS.md", () => {
+    for (const text of ["Read @./AGENTS.md first.\n", "Rules: @AGENTS.md\n"])
+      expect(claudeStep(makeRepo({ "CLAUDE.md": text }).root).status, text).toBe("unchanged");
+    expect(claudeStep(makeRepo({ "CLAUDE.md": "See me@AGENTS.md.\n" }).root).status).toBe("kept");
+    const linked = makeRepo({ "AGENTS.md": "# Rules\n" });
+    fs.symlinkSync("AGENTS.md", path.join(linked.root, "CLAUDE.md"));
+    expect(claudeStep(linked.root)).toEqual({ target: "CLAUDE.md", status: "unchanged", detail: "links to AGENTS.md" });
+  });
 });
 
 describe("agentsSizeNote", () => {
