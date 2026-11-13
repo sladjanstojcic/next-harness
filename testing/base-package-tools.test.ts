@@ -151,6 +151,21 @@ describe("tools the project's own lint config already brings", () => {
     expect(failure).toThrow("install it in that workspace");
   });
 
+  it("asks for ESLint where the installed one predates 9.37.0, whose no-restricted-imports first takes allowTypeImports in a pattern", () => {
+    const repo = project();
+    const [workspace] = expandWorkspaces(repo.root, loadConfig(repo.root));
+    if (workspace === undefined) throw new Error("no workspace");
+    const eslint = (version: string): void => {
+      const dir = path.join(repo.dir, "node_modules/eslint");
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "eslint", version }));
+    };
+    eslint("9.36.0");
+    expect(peerInstall(repo.root, loadConfig(repo.root), workspace)).toContain(" eslint@9.39.5");
+    eslint("9.37.0");
+    expect(peerInstall(repo.root, loadConfig(repo.root), workspace)).not.toContain(" eslint@");
+  });
+
   it("keeps a workspace's TypeScript 7 under a second name only when no folder above holds a typescript that brings `tsc`", () => {
     const repo = project();
     const [workspace] = expandWorkspaces(repo.root, loadConfig(repo.root));
