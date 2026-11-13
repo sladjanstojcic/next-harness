@@ -178,6 +178,14 @@ describe("per-workspace CI and fast gates", () => {
     expect(result.report).toContain("eslint (packages/a): passed");
   });
 
+  it("gives CI's jscpd only the folders a workspace below the root has", async () => {
+    const repo = workspacesRepo(ALL_TOOLS);
+    const calls = recordSteps(repo.real);
+    await ciGate(repo.real);
+    const jscpdCalls = calls.filter(({ name }) => name === "jscpd").map(({ cwd, command }) => `${cwd} ${command.split(" --config")[0] ?? ""}`);
+    expect(jscpdCalls).toEqual(["apps/web node_modules/.bin/jscpd src", "packages/a node_modules/.bin/jscpd src"]);
+  });
+
   it("formats and lints each workspace's edited files in its folder", async () => {
     const repo = workspacesRepo(ALL_TOOLS);
     const calls = recordSteps(repo.real);
