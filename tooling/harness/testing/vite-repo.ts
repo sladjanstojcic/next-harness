@@ -23,7 +23,7 @@ const VITE_MONOREPO_CONFIG = `export default {
 
 /** The app at the repository root, with the template's node_modules and the presets as a subtree holds them. */
 export function viteProject(): RepoFixture {
-  return consumerRepo({ ...AD_STUDIO, "harness.config.ts": VITE_CONFIG }, "", { agents: true });
+  return consumerRepo({ ...AD_STUDIO, "harness.config.ts": VITE_CONFIG }, "", { agents: true, stack: true });
 }
 
 /** The same app in apps/web, beside a supabase workspace, with a root package.json. */
@@ -39,6 +39,6 @@ export function viteMonorepo(): RepoFixture {
       "harness.config.ts": VITE_MONOREPO_CONFIG,
     },
     "",
-    { agents: true },
+    { agents: true, stack: true },
   );
 }

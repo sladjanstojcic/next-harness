@@ -68,7 +68,7 @@ describe("Done tool results", () => {
     const name = specifier.startsWith("@") ? specifier.split("/").slice(0, 2).join("/") : specifier.split("/")[0]!;
     const repo = makeRepo(
       { "package.json": JSON.stringify({ dependencies: declared ? { [name]: "1.0.0" } : {} }), ".gitignore": "node_modules/\n" },
-      { agents: true },
+      { agents: true, stack: true },
     );
     if (installed) repo.write(`node_modules/${name}/package.json`, JSON.stringify({ name }));
     const importer = "src/shared/lib/importer.ts";
