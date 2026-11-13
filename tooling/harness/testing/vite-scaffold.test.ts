@@ -97,6 +97,18 @@ describe("init in a create-vite react-ts project (vite-spa)", () => {
     expect(repo.read("package.json")).toContain('"lint": "oxlint --deny-warnings src"');
   });
 
+  it("keeps the template's TypeScript 7 under a second name beside the TypeScript 6 alias, so `tsc` stays", () => {
+    const repo = consumerRepo({ ...SCAFFOLD, "harness.config.ts": config(".") }, false);
+    fs.mkdirSync(path.join(repo.root, "node_modules/typescript"), { recursive: true });
+    fs.writeFileSync(path.join(repo.root, "node_modules/typescript/package.json"), JSON.stringify({ name: "typescript", version: "7.0.2" }));
+    const { report, ok } = initHarness(repo.root, { force: false, starter: false });
+    expect(ok, report).toBe(true);
+    const step = report.split("\n").find((line) => line.includes("Install the harness's tools")) ?? "";
+    const [lead, command] = [step.slice(0, step.indexOf(": ")), step.slice(step.indexOf(": ") + 2)];
+    expect(lead).toContain("the second alias keeps TypeScript 7 under the name typescript-native, whose binary `tsc` stays the project's own");
+    expect(command).toMatch(/ "typescript@npm:@typescript\/typescript6@\^6\.0\.2" typescript-native@npm:typescript@7\.0\.2$/);
+  });
+
   it("writes no starter files into a vite-spa workspace", () => {
     const repo = project(".", SCAFFOLD);
     const { report } = initHarness(repo.root, { force: false, starter: true });

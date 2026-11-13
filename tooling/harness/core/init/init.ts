@@ -10,8 +10,8 @@ import { resolveHarness, type Harness } from "../path-check.ts";
 import { ALL_TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { bin } from "../../tools/tool-set.ts";
 import { gitignoreStep, HARNESS_MODULES, rootIgnoreSteps } from "./ignore-files.ts";
-import { TYPESCRIPT_API_REASON } from "../../presets/load-tool.ts";
-import { needsTypescriptApi, peerInstall, starterInstall } from "./peers.ts";
+import { TYPESCRIPT_API_REASON, TYPESCRIPT_NATIVE_REASON } from "../../presets/load-tool.ts";
+import { nativeTypescript, needsTypescriptApi, peerInstall, starterInstall } from "./peers.ts";
 import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
 import { viteTodo } from "./vite/vite-steps.ts";
 import { CONFIG_FILE, isConfigOnly, type WorkspaceEntry } from "../../config.ts";
@@ -149,7 +149,8 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
     ...workspaces.flatMap((workspace) => {
       const command = peerInstall(root, harness.config, workspace);
       // A step ends with its command, so a copied line is one the shell takes: the reason goes before the colon.
-      const why = needsTypescriptApi(root, workspace) ? `; ${TYPESCRIPT_API_REASON}` : "";
+      const reason = nativeTypescript(root, workspace) === undefined ? TYPESCRIPT_API_REASON : TYPESCRIPT_NATIVE_REASON;
+      const why = needsTypescriptApi(root, workspace) ? `; ${reason}` : "";
       return command === undefined ? [] : [`Install the harness's tools (init does not install${why}): ${command}`];
     }),
     ...(starter ? workspaces.filter((workspace) => workspace.shape === "next-modules") : [])
