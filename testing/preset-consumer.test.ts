@@ -41,7 +41,7 @@ describe("a create-next-app project after init", () => {
     const lint = run(repo.root, "eslint", [".", "--max-warnings", "0"]);
     expect(lint.status, lint.output).toBe(0);
     expect(repo.report).toContain("formatted ");
-    expect(repo.report).toContain("  5. Format the app's own files once in the preset's style: pnpm exec prettier --write .");
+    expect(repo.report).toContain("  6. Format the app's own files once in the preset's style: pnpm exec prettier --write .");
     expect(run(repo.root, "prettier", ["--write", "."]).status).toBe(0);
     const format = run(repo.root, "prettier", ["--check", "."]);
     expect(format.status, format.output).toBe(0);
