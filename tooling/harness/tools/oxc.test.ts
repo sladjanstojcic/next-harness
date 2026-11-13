@@ -110,6 +110,14 @@ describe("oxc steps", () => {
     ]);
   });
 
+  it("runs tsc once per project in a workspace checked project by project", () => {
+    const projects = ["tsconfig.app.json", "tsconfig.node.json"];
+    for (const steps of [oxc.typecheck.incremental(DIR, false, projects), oxc.typecheck.all(DIR, false, projects)]) {
+      expect(steps.map((step) => step.command.slice(0, 2))).toEqual([["/bin/sh", "-c"]]);
+      expect(steps[0]?.command.slice(4)).toEqual([binOf("tsc"), "--pretty false", ...projects]);
+    }
+  });
+
   it("runs related tests and the whole suite with vitest", () => {
     expect(oxc.test.related(DIR, ["a.ts"]).command).toEqual([binOf("vitest"), "related", "--run", "--passWithNoTests", "a.ts"]);
     expect(oxc.test.all(DIR).command).toEqual([binOf("vitest"), "run"]);
