@@ -41,6 +41,9 @@ export const PACKAGE_SCRIPTS: Readonly<Record<string, string>> = {
   "harness:unlock": "node tooling/harness/cli.ts unlock",
 };
 
+/** The lint script a workspace gets when it has none. */
+export const LINT_SCRIPT = "eslint . --max-warnings 0";
+
 /** With a legacy list CI compares with the remote default branch, which a shallow checkout does not hold. */
 /** The browser install is for the smoke test, which runs only for a Next workspace at the root. */
 export const ciSteps = (legacy: boolean, smoke: boolean): string => `CI is not written. Add these steps to a job in .github/workflows/:

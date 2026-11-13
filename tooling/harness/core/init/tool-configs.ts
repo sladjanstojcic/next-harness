@@ -9,6 +9,7 @@ import { BUNDLE_IGNORED, developsHarness, gitignoreStep, HARNESS_MODULES, IGNORE
 import { checksByProject, typecheckProjects } from "../../tools/typescript.ts";
 import { tsconfigSteps } from "./tsconfig-step.ts";
 import { viteVitestText } from "./vite/vite-steps.ts";
+import { LINT_SCRIPT } from "./wiring.ts";
 
 interface ToolConfig {
   /** The names the tool reads its config from, init's own first; a project's own config is never replaced. */
@@ -211,7 +212,7 @@ export function toolScripts(workspace: WorkspaceEntry, dir = "", starter = false
     jscpd: `jscpd ${sources} --config ${presetImport(workspace.path, "jscpd.json")}${checksByProject(workspace.shape) ? ` --output ${JSCPD_CACHE}` : ""}`,
   };
   return {
-    lint: "eslint . --max-warnings 0",
+    lint: LINT_SCRIPT,
     typecheck: workspace.next ? "next typegen && tsc --noEmit" : projects.map((project) => `tsc --noEmit -p ${project}`).join(" && ") || "tsc --noEmit",
     test: "vitest run",
     ...analysis,
