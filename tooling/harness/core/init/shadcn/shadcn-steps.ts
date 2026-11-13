@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { sourceRootOf, type ShapeName, type WorkspaceEntry } from "../../../config.ts";
 import { usesShadcn } from "../../../presets/eslint-rules.ts";
@@ -15,10 +16,32 @@ const SOURCES: Partial<Record<ShapeName, (workspace: WorkspaceEntry) => string>>
   "electron-vite": () => "src/renderer/src/",
 };
 
-/** The CSS file the scaffold's entry imports, which Tailwind's import goes into, and where its Vite plugin goes. */
-const TAILWIND: Partial<Record<ShapeName, { css: string; plugins: (label: (file: string) => string) => string }>> = {
-  "vite-spa": { css: "src/index.css", plugins: (label) => `plugins in ${label("vite.config.ts")}` },
-  "electron-vite": { css: "src/renderer/src/assets/main.css", plugins: (label) => `renderer plugins in ${label("electron.vite.config.ts")}` },
+/** Where a Next app keeps its config; create-turbo's apps write JavaScript. */
+const nextConfig = (dir: string): string =>
+  ["next.config.ts", "next.config.mjs", "next.config.js"].find((name) => fs.existsSync(path.join(dir, name))) ?? "next.config.ts";
+
+/**
+ * The CSS file the scaffold's entry imports, which Tailwind's import goes into, the config edit that runs Tailwind on
+ * it, and its bundler package. A Next app takes the Turbopack loader, as create-next-app's own --tailwind writes it.
+ */
+const TAILWIND: Partial<
+  Record<ShapeName, (workspace: WorkspaceEntry, dir: string) => { css: string; edit: (label: (file: string) => string) => string; plugin: string }>
+> = {
+  "next-modules": (workspace, dir) => ({
+    css: `${sourceRootOf(workspace)}app/globals.css`,
+    edit: (label) => `turbopack: { rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } } } to the config in ${label(nextConfig(dir))}`,
+    plugin: "@tailwindcss/turbopack",
+  }),
+  "vite-spa": () => ({
+    css: "src/index.css",
+    edit: (label) => `tailwindcss() from "@tailwindcss/vite" to the plugins in ${label("vite.config.ts")}`,
+    plugin: "@tailwindcss/vite",
+  }),
+  "electron-vite": () => ({
+    css: "src/renderer/src/assets/main.css",
+    edit: (label) => `tailwindcss() from "@tailwindcss/vite" to the renderer plugins in ${label("electron.vite.config.ts")}`,
+    plugin: "@tailwindcss/vite",
+  }),
 };
 
 /** shadcn's own aliases, pointed into shared/, where the layout keeps vendored components and the cn helper. */
@@ -52,7 +75,7 @@ function workspaceTodo(root: string, workspace: WorkspaceEntry, source: string):
   const label = (file: string): string => path.posix.join(workspace.path, file);
   const { addDev, dlx, exec } = managerCommands(root);
   const inFolder = (command: string): string => (workspace.path === "" ? command : `(cd ${workspace.path} && ${command})`);
-  const tailwind = TAILWIND[workspace.shape];
+  const tailwind = TAILWIND[workspace.shape]?.(workspace, dir);
   const electron = workspace.shape === "electron-vite";
   const alias = electron ? (aliasesOf(dir).renderer[0] ?? "@/") : "@/";
   const init = `${dlx} shadcn@latest init -t ${workspace.shape === "next-modules" ? "next" : "vite"} -b base -p nova`;
@@ -63,7 +86,7 @@ function workspaceTodo(root: string, workspace: WorkspaceEntry, source: string):
     ...(tailwind === undefined || hasTailwind(dir, label("package.json"))
       ? []
       : [
-          `Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in ${label(tailwind.css)}, add tailwindcss() from "@tailwindcss/vite" to the ${tailwind.plugins(label)}, and run ${inFolder(`${addDev} tailwindcss @tailwindcss/vite`)}`,
+          `Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in ${label(tailwind.css)}, add ${tailwind.edit(label)}, and run ${inFolder(`${addDev} tailwindcss ${tailwind.plugin}`)}`,
         ]),
     // A vite-spa workspace gets this alias in its own Vite step, which also maps it for Vite.
     ...(!electron || rootMapped
