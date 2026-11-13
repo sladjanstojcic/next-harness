@@ -143,15 +143,24 @@ before the first commit. Init prints four steps for it and runs none. With `src/
 
 ```text
   4. Set up shadcn, whose components the lint rule then asks for (init does not run it): pnpm dlx shadcn@latest init -t next -b base -p nova
-  5. Delete the two files shadcn init wrote where the layout takes no code: rm src/components/ui/button.tsx src/lib/utils.ts
+  5. Delete the two files shadcn init wrote where the layout takes no code, and where its font setup imported cn from "@/lib/utils" in src/app/layout.tsx, import it from "@/shared/lib/utils": rm src/components/ui/button.tsx src/lib/utils.ts
   6. Point shadcn at src/shared/, by setting "aliases" in components.json to: { "components": "@/shared/components", "utils": "@/shared/lib/utils", "ui": "@/shared/ui", "lib": "@/shared/lib", "hooks": "@/shared/hooks" }
   7. Add the first component and the cn helper there: pnpm dlx shadcn@latest add button utils
 ```
 
 Without `src/`, the paths lose the prefix: `rm components/ui/button.tsx lib/utils.ts`, and `shared/`.
-`-b base` picks Base UI and `-p nova` the preset this template uses, so shadcn asks nothing. The last
-step writes `src/shared/ui/button.tsx` and `src/shared/lib/utils.ts`. The empty folders the deleted
-files leave behind do no harm, since git does not list an empty folder.
+`-b base` picks Base UI and `-p nova` the preset this template uses, so shadcn asks nothing. On
+create-next-app shadcn leaves `layout.tsx` alone; its font step edits a layout that loads local fonts.
+The last step writes `src/shared/ui/button.tsx` and `src/shared/lib/utils.ts`.
+
+A project made with `--no-tailwind` gets one step first, the setup create-next-app's `--tailwind` writes:
+
+```text
+  4. Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in src/app/globals.css, add turbopack: { rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } } } to the config in next.config.ts, and run pnpm add -D tailwindcss @tailwindcss/turbopack
+```
+
+Its template also has `src/app/page.module.css`, which the layout does not take in `app/`. Replace the
+page with your own before the check, or the audit reports that file.
 
 ## 9. Format once
 
@@ -190,22 +199,7 @@ pnpm run check
 ```
 
 On the fresh scaffold all twelve steps passed on the first run, in under a minute. After pnpm's echo
-of the command it prints:
-
-```text
-prettier: passed
-eslint: passed
-eslint-preset: passed
-typegen: passed
-tsc: passed
-audit: passed
-depcruise: passed
-knip: passed
-jscpd: passed
-vitest: passed
-build: passed
-playwright: passed
-```
+of the command it prints one line per step, from `prettier: passed` to `playwright: passed`.
 
 ## The backend client
 

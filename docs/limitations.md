@@ -24,28 +24,23 @@ parent: Reference
   It was run again with shadcn, a PocketBase client in `src/backend/` and a module with `data/`; the
   types file was written by hand, and no PocketBase server ran. No agent session has worked there yet.
 - Init's printed shadcn steps were run as printed on create-next-app with and without `src/`, the
-  electron-vite scaffold, create-vite, and a create-vite app at `apps/web` of a pnpm workspace. Init
-  prints them for a Next.js app without Tailwind too, and there they fail: on create-turbo's apps
-  `shadcn init` stops at `No Tailwind CSS configuration found`, and [the monorepo page](monorepo.md)
-  says to skip them. Not run: adding Tailwind to such an app first, Next.js with a Prettier config of
-  its own, and a nested Electron workspace. The steps pick Base UI; with Radix, knip reports `radix-ui`
-  as unused until app code imports a component, since the knip preset knows only `@base-ui/react`.
-- In a workspace below the root that has `src/` and no `tooling/` folder of its own, such as a
-  create-vite app at `apps/web`, the full check fails at jscpd, so pre-push and CI fail too:
+  electron-vite scaffold, create-vite, and a create-vite app at `apps/web` of a pnpm workspace. The
+  Tailwind steps for a Next.js app without Tailwind were run as printed on create-next-app made with
+  `--no-tailwind` and on create-turbo's two apps; both then passed the full check. On create-next-app
+  that needed one more change, not printed: the template's `src/app/page.module.css` fails the layout
+  with or without Tailwind, and the run replaced the page. Init prints these steps only before the
+  commit that adds the harness, or for a workspace folder no commit has held yet. Not run: Next.js
+  with a Prettier config of its own, and a nested Electron workspace. The steps pick Base UI; with
+  Radix, knip reports `radix-ui` as unused until app code imports a component, since the knip preset
+  knows only `@base-ui/react`.
+- The jscpd step of the full check now gets only the folders a workspace has. Before, a workspace
+  below the root with `src/`, such as a create-vite app at `apps/web`, failed it with
+  `Error: path does not exist: tooling`; the fix is covered by a unit test, not by a new real run.
 
-  ```text
-  jscpd (apps/web): failed
-  :1 jscpd-failed — Using config from ../../tooling/harness/presets/jscpd.json
-  Error: path does not exist: tooling
-  ```
-
-  The check passes jscpd the folders `src` and `tooling` without looking whether they exist. It was
-  seen on one vite-spa workspace; create-turbo's apps have no `src/` and pass.
-
-- The Electron shadcn step leaves its empty `vite.config.ts` behind when `shadcn init` fails, and
-  replaces a `vite.config.ts` that already exists.
-- The `AGENTS.md` block was run on create-vite projects: a fresh one, one with its own 30-line
-  `AGENTS.md` and a `CLAUDE.md` without the import, a changed guide, a file past 32 KiB and a stray
+- By reading the step, not from a run: the Electron shadcn step leaves its empty `vite.config.ts`
+  behind when `shadcn init` fails, and replaces a `vite.config.ts` that already exists.
+- The `AGENTS.md` block was run on create-vite projects, and written on create-next-app and
+  create-turbo: a fresh one, one with its own 30-line `AGENTS.md` and a `CLAUDE.md` without the import, a changed guide, a file past 32 KiB and a stray
   marker. No agent session has read the block on a real project yet. Init checks only the root
   `CLAUDE.md`; a `.claude/CLAUDE.md` is not looked at.
 - `backend-package` knows the built-in list and `backendPackages`. A backend package on neither is not

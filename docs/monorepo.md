@@ -10,9 +10,8 @@ A monorepo gets one file, `harness.config.ts`, that says which folder has which 
 workspace with its own shape; folders outside every workspace get only the root layout rules.
 
 The steps below were run on a fresh create-turbo project: two Next.js apps and three packages. It
-reached a passing check in the eleven steps below, which are thirteen commands, one
-file written and four edited by hand. Init also prints eight steps that set up shadcn; on this
-project they fail, as [the section after step 7](#the-shadcn-steps-fail-here) shows.
+reached a passing check in the twelve steps below, which run the 21 steps init printed, with
+Tailwind and shadcn set up in both apps.
 
 ## Before you start
 
@@ -91,7 +90,7 @@ node tooling/harness/cli.ts init --starter   # writes the wiring, prints the nex
 
 The first run prints `node tooling/harness/cli.ts init` as its own next step. Add `--starter` to it, as
 shown here, if you want the `shared/lib/` helpers in each app. With it init
-prints nineteen steps for a create-turbo project. Without it init leaves out the two install steps
+prints 21 steps for a create-turbo project. Without it init leaves out the two install steps
 for the starter files and the `turbo.json` step, and writes no starter files; running it again with
 `--starter` later is safe.
 
@@ -102,8 +101,7 @@ creates `CLAUDE.md` with the line that imports them; see
 Init also prints the steps for a CI job. They are optional for the local check; add them when the
 repository has GitHub Actions.
 
-Eleven of the printed steps are steps 4 to 11 here; printed steps 8 to 15 are shadcn's, covered after
-step 7. Run each printed line from the repository root. A line for one workspace comes in brackets,
+The printed steps are steps 4 to 12 here; step 8 holds ten of them. Run each printed line from the repository root. A line for one workspace comes in brackets,
 `(cd apps/docs && ...)`, so the shell is back at the root afterwards.
 
 ## 4. Install the harness's tools in each workspace
@@ -151,33 +149,39 @@ The starter `shared/lib/env.ts` reads `NODE_ENV`, and Turborepo's lint rule repo
 "globalEnv": ["NODE_ENV"],
 ```
 
-## The shadcn steps fail here
+## 8. Add Tailwind and shadcn to each app
 
-Printed steps 8 to 15 set up shadcn in each app, four steps per app:
-
-```text
-  8. Set up shadcn, whose components the lint rule then asks for (init does not run it): (cd apps/docs && pnpm dlx shadcn@latest init -t next -b base -p nova)
-  9. Delete the two files shadcn init wrote where the layout takes no code: rm apps/docs/components/ui/button.tsx apps/docs/lib/utils.ts
-  10. Point shadcn at apps/docs/shared/, by setting "aliases" in apps/docs/components.json to: { "components": "@/shared/components", "utils": "@/shared/lib/utils", "ui": "@/shared/ui", "lib": "@/shared/lib", "hooks": "@/shared/hooks" }
-  11. Add the first component and the cn helper there: (cd apps/docs && pnpm dlx shadcn@latest add button utils)
-```
-
-They do not work as printed on create-turbo, whose apps have no Tailwind. The first stops:
+create-turbo's apps have no Tailwind, which shadcn styles its components with. Init prints five steps
+per app, printed steps 8 to 17. These are the five for `apps/docs`:
 
 ```text
-✖ Validating Tailwind CSS.
-✔ Validating import alias.
-
-No Tailwind CSS configuration found at <the repository>/apps/docs.
-It is likely you do not have Tailwind CSS installed or have an invalid configuration.
+  8. Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in apps/docs/app/globals.css, add turbopack: { rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } } } to the config in apps/docs/next.config.js, and run (cd apps/docs && pnpm add -D tailwindcss @tailwindcss/turbopack)
+  9. Set up shadcn, whose components the lint rule then asks for (init does not run it): (cd apps/docs && pnpm dlx shadcn@latest init -t next -b base -p nova)
+  10. Delete the two files shadcn init wrote where the layout takes no code, and where its font setup imported cn from "@/lib/utils" in apps/docs/app/layout.tsx, import it from "@/shared/lib/utils": rm apps/docs/components/ui/button.tsx apps/docs/lib/utils.ts
+  11. Point shadcn at apps/docs/shared/, by setting "aliases" in apps/docs/components.json to: { "components": "@/shared/components", "utils": "@/shared/lib/utils", "ui": "@/shared/ui", "lib": "@/shared/lib", "hooks": "@/shared/hooks" }
+  12. Add the first component and the cn helper there: (cd apps/docs && pnpm dlx shadcn@latest add button utils)
 ```
 
-The delete and the `components.json` edit then find no file, and `add` asks
-`You need to create a components.json file to add components. Proceed?`. Skip all eight. The check
-below passed without them: the shadcn lint rule holds only in an app with a `components.json`. Adding
-Tailwind to a create-turbo app before these steps was not run.
+The Tailwind step is the setup create-next-app's own `--tailwind` writes: the Turbopack loader, no
+PostCSS config. After it, `next.config.js` reads:
 
-## 8. Format each workspace once
+```js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  turbopack: { rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } } },
+};
+
+export default nextConfig;
+```
+
+`shadcn init` then finds Tailwind (`Validating Tailwind CSS. Found v4.`). Its font step adds the Geist
+font to `app/layout.tsx`, with `import { cn } from "@/lib/utils";`. The next step deletes that file,
+so change the import to `@/shared/lib/utils` there. `add button utils` then writes
+`shared/ui/button.tsx` and `shared/lib/utils.ts`. Run the same five steps for `apps/web`.
+
+The run built `apps/web` with `pnpm build` afterwards, and its CSS held Tailwind's classes.
+
+## 9. Format each workspace once
 
 ```sh
 (cd apps/docs && pnpm exec prettier --write .); (cd apps/web && pnpm exec prettier --write .); (cd packages/ui && pnpm exec prettier --write .)
@@ -186,7 +190,7 @@ Tailwind to a create-turbo app before these steps was not run.
 Prettier prints a `MODULE_TYPELESS_PACKAGE_JSON` warning for `packages/ui`. It is harmless; do not
 add `"type": "module"` for it.
 
-## 9. Write the legacy list
+## 10. Write the legacy list
 
 ```sh
 node tooling/harness/cli.ts legacy init
@@ -196,13 +200,13 @@ It lists the 17 files create-turbo wrote outside the shapes: each app's fonts, `
 `page.tsx` and `next.config.js`, the three `packages/eslint-config/*.js`, the three components directly
 in `packages/ui/src/`, and `packages/ui/package.json` for two dependencies knip finds unused.
 
-## 10. Commit
+## 11. Commit
 
 ```sh
 git add -A && git commit -m "Add the harness"
 ```
 
-## 11. Run the full check
+## 12. Run the full check
 
 ```sh
 pnpm run check
