@@ -5,13 +5,14 @@ import { harnessRuleBlocks, HOOKS_PLUGIN, usesShadcn, type PresetLayout } from "
 import { call, defaultOf, isRecord, list, member, toolLoader } from "./load-tool.ts";
 
 const VENDORED = ["shared/ui/**", "shared/lib/utils.ts"];
-/** The Next layouts' backend/ folder holds generated database types. */
+/** The backend/ folder of the Next and Vite layouts holds generated database types. */
 const GENERATED: Partial<Record<PresetLayout, string[]>> = {
   app: GENERATED_TYPE_GLOBS.map((glob) => `src/backend/${glob}`),
   "app-root": GENERATED_TYPE_GLOBS.map((glob) => `backend/${glob}`),
+  spa: GENERATED_TYPE_GLOBS.map((glob) => `src/backend/${glob}`),
 };
 /** The folder that holds shared/, by layout. */
-const VENDORED_ROOT: Record<PresetLayout, string> = { app: "src/", "app-root": "", package: "src/", electron: "src/renderer/src/" };
+const VENDORED_ROOT: Record<PresetLayout, string> = { app: "src/", "app-root": "", package: "src/", electron: "src/renderer/src/", spa: "src/" };
 
 /** The TypeScript tool configs at a workspace top; a consumer's tsconfig leaves them out, so they are linted without types. */
 const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
@@ -21,7 +22,7 @@ const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
 export interface HarnessEslintOptions {
   /** The workspace folder holding tsconfig.json, for typed rules; ESLint and its plugins load from there. */
   root: string;
-  /** "app-root" for an app without src/ (app/, modules/, shared/ at its top), "package" for a shared package, "electron" for an electron-vite app; an app's src/ layout by default. */
+  /** "app-root" for an app without src/ (app/, modules/, shared/ at its top), "package" for a shared package, "electron" for an electron-vite app, "spa" for a Vite single-page app; an app's src/ layout by default. */
   layout?: PresetLayout;
   /** Adds the Next.js core-web-vitals and TypeScript configs. */
   next?: boolean;
@@ -69,7 +70,16 @@ export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
   ];
   const entries = [
     call(member(eslint, "globalIgnores"), [
-      [...ignored, ".next/**", "next-env.d.ts", "out/**", "build/**", ...(layout === "electron" ? ["dist/**"] : []), ".superpowers/**", ".serena/**"],
+      [
+        ...ignored,
+        ".next/**",
+        "next-env.d.ts",
+        "out/**",
+        "build/**",
+        ...(layout === "electron" || layout === "spa" ? ["dist/**"] : []),
+        ".superpowers/**",
+        ".serena/**",
+      ],
     ]),
     ...(base ? recommended() : []),
     { plugins: { [HOOKS_PLUGIN]: defaultOf(tool("eslint-plugin-react-hooks")) } },

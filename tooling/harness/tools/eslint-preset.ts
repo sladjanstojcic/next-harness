@@ -3,25 +3,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
-import type { WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
 import { harnessRuleBlocks, usesShadcn, type ElectronAliases as Aliases, type PresetLayout, type RuleBlock } from "../presets/eslint-rules.ts";
-import { ELECTRON_PROBES } from "../shapes/electron/electron-vite.ts";
-import { sourceProbes } from "../shapes/next-probes.ts";
-import { PACKAGE_PROBES } from "../shapes/package.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
+import { layoutOf, PRESET_PROBES, type PresetWorkspace } from "./eslint/preset-layout.ts";
 import { bin, CHECK_TIMEOUT_MS } from "./tool-set.ts";
 
 type Options = readonly unknown[];
-/** What the preset and its check read of a workspace. */
-export type PresetWorkspace = Pick<WorkspaceEntry, "path" | "shape" | "next" | "sourceRoot">;
-
-function layoutOf(workspace: PresetWorkspace): PresetLayout {
-  if (workspace.shape === "package") return "package";
-  if (workspace.shape === "electron-vite") return "electron";
-  return workspace.shape === "next-modules" && workspace.sourceRoot === "" ? "app-root" : "app";
-}
 type Setting = RuleBlock["rules"][string];
 type Expected = (probe: string) => Record<string, Setting>;
 
@@ -234,8 +223,7 @@ export const CONFIG_RUNNER = path.join(import.meta.dirname, "eslint-config-runne
  */
 export function eslintPreset(dir: string, workspace: PresetWorkspace, token: () => string = probeToken, aliases?: Aliases): ToolStep {
   const layout = layoutOf(workspace);
-  const templates = layout === "package" ? PACKAGE_PROBES : layout === "electron" ? ELECTRON_PROBES : sourceProbes(layout === "app-root" ? "" : "src/");
-  const probes = templates.map((template) => template.replaceAll("{name}", token()));
+  const probes = PRESET_PROBES[layout].map((template) => template.replaceAll("{name}", token()));
   return {
     name: "eslint-preset",
     command: [process.execPath, CONFIG_RUNNER, bin(dir, "eslint"), ...probes],

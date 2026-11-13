@@ -6,13 +6,15 @@ import { MAX_FILE_LINES } from "../shapes/limits.ts";
 import type { ElectronAliases } from "./electron-aliases.ts";
 
 export type { ElectronAliases };
-import { electronBoundaryBlocks } from "./eslint-electron.ts";
+import { electronBoundaryBlocks } from "./eslint-boundaries/electron.ts";
+import { viteBoundaryBlocks } from "./eslint-boundaries/vite.ts";
 
 /**
  * Where the workspace keeps its code: an app's src/modules/ and src/shared/, the same folders at the top of an app
- * without src/ ("app-root"), a shared package's src/, or an Electron app's src/main/, src/preload/, src/renderer/ and src/shared/.
+ * without src/ ("app-root"), a shared package's src/, an Electron app's src/main/, src/preload/, src/renderer/ and src/shared/,
+ * or a Vite single-page app's src/app/, src/modules/, src/backend/ and src/shared/ ("spa").
  */
-export type PresetLayout = "app" | "app-root" | "package" | "electron";
+export type PresetLayout = "app" | "app-root" | "package" | "electron" | "spa";
 
 /** The folder that may hold adapter casts, as the messages name it and as the rule blocks match it. */
 const ADAPTERS: Record<PresetLayout, string> = {
@@ -20,18 +22,21 @@ const ADAPTERS: Record<PresetLayout, string> = {
   "app-root": "modules/<module>/server/",
   package: "src/server/",
   electron: "src/main/ or a guard in src/shared/",
+  spa: "src/modules/<module>/data/ or src/backend/",
 };
 const ADAPTER_GLOBS: Record<PresetLayout, string> = {
   app: "src/modules/*/server/**",
   "app-root": "modules/*/server/**",
   package: "src/server/**",
   electron: "src/{main,shared}/**",
+  spa: "src/{modules/*/data,backend}/**",
 };
 /** Where console output is the point: automation, and an app's own log helper. */
 const CONSOLE: Record<Exclude<PresetLayout, "package">, string[]> = {
   app: ["tooling/**", "scripts/**", "src/shared/lib/log.ts"],
   "app-root": ["tooling/**", "scripts/**", "shared/lib/log.ts"],
   electron: ["tooling/**", "scripts/**", "src/main/**/log.ts"],
+  spa: ["tooling/**", "scripts/**", "src/shared/lib/log.ts"],
 };
 /** no-console has one fixed message, so in an Electron app the same ban is a rule that says where logging belongs. */
 const ELECTRON_CONSOLE = {
@@ -68,6 +73,7 @@ const UI: Record<Exclude<PresetLayout, "package">, string> = {
   app: "src/shared/ui/",
   "app-root": "shared/ui/",
   electron: "src/renderer/src/shared/ui/",
+  spa: "src/shared/ui/",
 };
 /** The raw elements shadcn has a component for under the same name. */
 export const RAW_CONTROLS: readonly string[] = ["button", "input", "select", "textarea", "label", "table", "dialog"];
@@ -208,5 +214,6 @@ export function harnessRuleBlocks(layout: PresetLayout = "app", aliases?: Electr
     layout === "package" ? PACKAGE_DOMAIN : { files: CONSOLE[layout], rules: { "no-console": "off" } },
     hooksIn(layout),
     ...(layout === "electron" ? [ELECTRON_CONSOLE_BLOCK, ELECTRON_CONSOLE_OUTSIDE_MAIN, ...electronBoundaryBlocks(aliases)] : []),
+    ...(layout === "spa" ? viteBoundaryBlocks() : []),
   ];
 }
