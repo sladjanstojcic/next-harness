@@ -2,10 +2,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { makeRepo, type RepoFixture } from "../../../testing/temp-repo.ts";
-import { agentsSizeNote, agentsStep, BLOCK_END, BLOCK_START, blockIn, claudeStep, harnessBlock } from "./agents-block.ts";
+import { agentsSizeNote, agentsStep, BLOCK_END, BLOCK_START, blockIn, claudeStep, harnessBlock, sameBlock } from "./agents-block.ts";
 
 const TWO = 'export default { workspaces: [{ path: "apps/web", shape: "vite-spa" }, { path: "packages/*", shape: "package" }] };\n';
 const count = (text: string, part: string): number => text.split(part).length - 1;
+
+/** Makes a file unreadable for the test; the fixture's cleanup removes it either way. */
+function unreadable(repo: RepoFixture, file: string): void {
+  fs.chmodSync(path.join(repo.root, file), 0o000);
+}
 
 function run(repo: RepoFixture, step = agentsStep(repo.root)) {
   step.apply?.();
@@ -103,6 +108,57 @@ describe("agentsStep", () => {
     const folder = makeRepo({ "AGENTS.md/notes.md": "x\n" });
     expect(agentsStep(folder.root)).toMatchObject({ status: "kept", todo: true });
     expect(agentsSizeNote(folder.root)).toEqual([]);
+  });
+});
+
+describe("agentsStep on markers that form no block", () => {
+  for (const [name, markers] of [
+    ["a lone end marker", BLOCK_END],
+    ["two blocks", `${BLOCK_START}\na\n${BLOCK_END}\n\n${BLOCK_START}\nb\n${BLOCK_END}`],
+    ["an end marker before the start", `${BLOCK_END}\na\n${BLOCK_START}`],
+  ]) {
+    it(`keeps a file with ${name ?? ""} and leaves it untouched`, () => {
+      const before = `# Project\n\n${markers ?? ""}\n`;
+      const repo = makeRepo({ "AGENTS.md": before });
+      const step = agentsStep(repo.root);
+      expect(step).toMatchObject({ status: "kept", todo: true });
+      expect(step.apply).toBeUndefined();
+      expect(repo.read("AGENTS.md")).toBe(before);
+    });
+  }
+});
+
+describe("sameBlock", () => {
+  it("sees a rewrapped, reindented block as unchanged and a changed word as an update", () => {
+    const repo = makeRepo();
+    const block = harnessBlock(repo.root);
+    const reflowed = block.replace(/^- /m, "-   ").replace(/^(- \S+ \S+) /m, "$1\n  ");
+    expect(reflowed).not.toBe(block);
+    expect(sameBlock(reflowed, block)).toBe(true);
+    repo.write("AGENTS.md", `${reflowed}\n`);
+    expect(agentsStep(repo.root).status).toBe("unchanged");
+    expect(repo.read("AGENTS.md")).toBe(`${reflowed}\n`);
+
+    const changed = block.replace("## Repair budget\n\n", "## Repair budget\n\nChanged ");
+    expect(sameBlock(changed, block)).toBe(false);
+    repo.write("AGENTS.md", `${changed}\n`);
+    expect(run(repo).status).toBe("updated");
+    expect(repo.read("AGENTS.md")).toBe(`${block}\n`);
+  });
+});
+
+describe("unreadable files", () => {
+  it("keeps an unreadable AGENTS.md and CLAUDE.md with the error, and notes no size", () => {
+    const repo = makeRepo({ "AGENTS.md": "# Project\n", "CLAUDE.md": "# Notes\n" });
+    unreadable(repo, "AGENTS.md");
+    unreadable(repo, "CLAUDE.md");
+    const agents = agentsStep(repo.root);
+    expect(agents).toMatchObject({ status: "kept", todo: true });
+    expect(agents.detail).toBe("AGENTS.md cannot be read (EACCES); make it readable and rerun init");
+    const claude = claudeStep(repo.root);
+    expect(claude).toMatchObject({ status: "kept", todo: true });
+    expect(claude.detail).toBe("CLAUDE.md cannot be read (EACCES); make it readable and rerun init");
+    expect(agentsSizeNote(repo.root)).toEqual([]);
   });
 });
 
