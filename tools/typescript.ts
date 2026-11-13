@@ -117,10 +117,10 @@ export function reportTypecheck(dir: string, next: boolean, projects: readonly s
 }
 
 /** oxc workspaces: the same order, plain project tsc in Done and CI, with parsed findings. */
-export function projectTypecheck(dir: string, next: boolean): ToolStep[] {
+export function projectTypecheck(dir: string, next: boolean, projects: readonly string[] = []): ToolStep[] {
   const tsc: ToolStep = {
     name: "tsc",
-    command: [bin(dir, "tsc"), "--noEmit", "--pretty", "false"],
+    command: tscCommand(dir, ["--pretty", "false"], projects),
     timeoutMs: CHECK_TIMEOUT_MS,
     findings: (stdout) => typeFindings(dir, stdout),
   };
