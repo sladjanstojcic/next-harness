@@ -4,7 +4,8 @@ import type { Finding } from "../../audit/finding.ts";
 import { blockIn, harnessBlock, sameBlock } from "./agents-block.ts";
 
 const AGENTS = "AGENTS.md";
-const MESSAGE = "The harness rules in AGENTS.md are missing or out of date. Run: node tooling/harness/cli.ts init";
+const MESSAGE =
+  "The harness rules in AGENTS.md are missing or out of date. Run: node tooling/harness/cli.ts init, then commit only AGENTS.md and CLAUDE.md; any other step init prints is the user's.";
 
 /** An agent reads the rules from AGENTS.md: a missing, broken or stale block means it works from rules the guards no longer hold. */
 export function auditAgentsBlock(root: string): Finding[] {

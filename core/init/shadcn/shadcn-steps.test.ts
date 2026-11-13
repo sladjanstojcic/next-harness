@@ -88,6 +88,15 @@ describe("the shadcn setup init prints", () => {
     ).toEqual([]);
   });
 
+  it("prints nothing once a commit holds the workspace as a harness workspace, and again for a new one below the root", () => {
+    const repo = makeRepo({ ".githooks/pre-push": "#!/bin/sh\n", ...NEXT });
+    expect(shadcnTodo(repo.root, [entry("next-modules")])).toEqual([]);
+    for (const [file, text] of Object.entries(NEXT)) repo.write(file.replace("apps/web", "apps/docs"), text);
+    expect(shadcnTodo(repo.root, [entry("next-modules", { path: "apps/docs" })])[0]).toBe(
+      `${SETUP}: (cd apps/docs && pnpm dlx shadcn@latest init -t next -b base -p nova)`,
+    );
+  });
+
   it("comes before the commit in init's numbered steps, after the alias it needs", () => {
     const repo = consumerRepo({
       ...fixture("create-vite-9.3.4.json"),
@@ -100,5 +109,8 @@ describe("the shadcn setup init prints", () => {
     expect(index("Map @/ to src/")).toBeLessThan(index(SETUP));
     expect(index("Add the first component")).toBeLessThan(index("Format the app's own files once"));
     expect(index("Format the app's own files once")).toBeLessThan(index("Commit the result"));
+    repo.git("add", "-A");
+    repo.git("commit", "-q", "-m", "Adopt the harness");
+    expect(initHarness(repo.root, { force: false, starter: false }).report).not.toContain(SETUP);
   });
 });

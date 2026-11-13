@@ -37,7 +37,7 @@ const unlockState = z.object({ until: z.number() });
  * A workspace folder no commit reachable from HEAD has ever held a file in: a new package or app, whose tool configs its
  * author creates. History, not the tree at HEAD, so that removing an existing workspace in a commit does not reopen it.
  */
-function isNewWorkspace(root: string, folder: string): boolean {
+export function isNewWorkspace(root: string, folder: string): boolean {
   const touched = spawnSync("git", ["log", "-1", "--format=%H", "HEAD", "--", `${folder}/`], { cwd: root, encoding: "utf8" });
   return touched.status === 0 && touched.stdout.trim() === "";
 }
