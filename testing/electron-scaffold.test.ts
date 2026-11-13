@@ -74,7 +74,6 @@ describe("the official electron-vite scaffold (react-ts), adopted with a legacy 
         ".vscode/settings.json:1 unknown-root",
         "electron.vite.config.ts:7 preload-bundle",
         "package.json:1 ui-stack",
-        "package.json:1 ui-stack",
         "src/main/index.ts:16 electron-security",
         "src/main/index.ts:25 electron-security",
         "src/main/index.ts:53 ipc-channel",
@@ -95,7 +94,7 @@ describe("the official electron-vite scaffold (react-ts), adopted with a legacy 
     expect(result.passed).toBe(true);
     expect(result.report).toContain("Pre-existing in legacy files (not blocking):");
     // The generator's own lint and type debt, and the toolkit helper its preload script imports, are old debt too.
-    for (const line of ["eslint: 11 findings in 4 files", "tsc: 1 finding in 1 file", "audit: 15 findings in 10 files", "depcruise: 2 findings in 2 files"]) {
+    for (const line of ["eslint: 11 findings in 4 files", "tsc: 1 finding in 1 file", "audit: 14 findings in 10 files", "depcruise: 2 findings in 2 files"]) {
       expect(result.report).toContain(line);
     }
     expect(result.report).toContain("A preload script is the bridge and nothing more: it imports electron and the contract in src/shared/ (Electron layout).");

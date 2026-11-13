@@ -12,15 +12,11 @@ const SITE = "https://sladjanstojcic.github.io/next-harness";
 const SHADCN = { "components.json": '{ "style": "base-nova" }\n' };
 const pkg = (fields: object): string => `${JSON.stringify({ name: "app", ...fields }, null, 2)}\n`;
 const WITH_DEV = pkg({ devDependencies: { tailwindcss: "4.1.0" } });
-const WITH_DEPENDENCY = pkg({ dependencies: { tailwindcss: "4.1.0" } });
-const WITH_VITE_PLUGIN = pkg({ dependencies: { "@tailwindcss/vite": "4.1.0" } });
 const WITHOUT = pkg({ dependencies: { react: "19.0.0" }, devDependencies: { "tailwind-merge": "3.0.0" } });
 const config = (shape: string, path = ".", extra = ""): string => `export default {\n  workspaces: [{ path: "${path}", shape: "${shape}" }],\n${extra}};\n`;
 
 const noShadcn = (page: string, suffix: string): string =>
   `This app has no components.json: every app is built with TypeScript, Tailwind and shadcn. Set shadcn up with the steps on ${SITE}/${page}; they change locked tool configs, so the user unlocks first${suffix}`;
-const noTailwind = (page: string, suffix: string): string =>
-  `This app has no Tailwind (tailwindcss) in its package.json: every app is built with TypeScript, Tailwind and shadcn. Add it with the steps on ${SITE}/${page}; they change locked tool configs, so the user unlocks first${suffix}`;
 
 describe.each([
   ["next-modules", "next-app.html", "."],
@@ -28,19 +24,13 @@ describe.each([
   ["electron-vite", "electron.html", " (Electron layout)"],
 ])("ui-stack in a %s workspace", (shape, page, suffix) => {
   it.each([
-    ["components.json and tailwindcss in devDependencies", true, WITH_DEV, []],
-    ["components.json and tailwindcss in dependencies", true, WITH_DEPENDENCY, []],
-    ["components.json and @tailwindcss/vite alone in dependencies", true, WITH_VITE_PLUGIN, ["tailwind"]],
-    ["components.json without Tailwind", true, WITHOUT, ["tailwind"]],
-    ["Tailwind without components.json", false, WITH_DEV, ["shadcn"]],
-    ["@tailwindcss/vite without components.json", false, WITH_VITE_PLUGIN, ["shadcn", "tailwind"]],
-    ["neither", false, WITHOUT, ["shadcn", "tailwind"]],
-  ])("%s", (_name, shadcn, packageJson, expected) => {
+    ["components.json and tailwindcss", true, WITH_DEV, false],
+    ["components.json and no tailwindcss", true, WITHOUT, false],
+    ["no components.json", false, WITH_DEV, true],
+    ["neither", false, WITHOUT, true],
+  ])("%s", (_name, shadcn, packageJson, reported) => {
     const repo = makeRepo({ "harness.config.ts": config(shape), "package.json": packageJson, ...(shadcn ? SHADCN : {}) });
-    const messages = { shadcn: noShadcn(page, suffix), tailwind: noTailwind(page, suffix) };
-    expect(auditUiStack(repo.root)).toEqual(
-      (expected as ("shadcn" | "tailwind")[]).map((kind) => ({ rule: "ui-stack", file: "package.json", message: messages[kind] })),
-    );
+    expect(auditUiStack(repo.root)).toEqual(reported ? [{ rule: "ui-stack", file: "package.json", message: noShadcn(page, suffix) }] : []);
   });
 });
 
@@ -64,7 +54,7 @@ describe("ui-stack, which workspaces", () => {
   it("is a harness rule in the full audit, not in the changed-files audit", () => {
     expect(HARNESS_RULES.has("ui-stack")).toBe(true);
     const repo = makeRepo({ "harness.config.ts": config("next-modules"), "package.json": WITHOUT });
-    expect(audit(repo.root).filter(({ rule }) => rule === "ui-stack")).toHaveLength(2);
+    expect(audit(repo.root).filter(({ rule }) => rule === "ui-stack")).toHaveLength(1);
     expect(auditChanged(repo.root, ["package.json"]).filter(({ rule }) => rule === "ui-stack")).toEqual([]);
   });
 });
@@ -72,12 +62,12 @@ describe("ui-stack, which workspaces", () => {
 describe("ui-stack in the CI gate", () => {
   const LEGACY = '  legacy: "tooling/harness-legacy.json",\n';
 
-  it("fails an app without the stack, and passes it while its package.json is on the legacy list and unchanged", async () => {
+  it("fails an app without components.json, and passes it while its package.json is on the legacy list and unchanged", async () => {
     vi.spyOn(runner, "runTool").mockResolvedValue([]);
     const bare = makeRepo({ "harness.config.ts": config("next-modules"), "package.json": WITHOUT, "e2e/smoke.test.ts": "" }, { agents: true });
     const failed = await ciGate(bare.root);
     expect(failed.passed).toBe(false);
-    expect(failed.findings.map(({ file, rule }) => `${file} ${rule}`)).toEqual(["package.json ui-stack", "package.json ui-stack"]);
+    expect(failed.findings.map(({ file, rule }) => `${file} ${rule}`)).toEqual(["package.json ui-stack"]);
 
     const listed = makeRepo(
       {
@@ -91,6 +81,6 @@ describe("ui-stack in the CI gate", () => {
     const passed = await ciGate(listed.root);
     expect(passed.findings).toEqual([]);
     expect(passed.passed).toBe(true);
-    expect(passed.preExisting.map(({ rule }) => rule)).toEqual(["ui-stack", "ui-stack"]);
+    expect(passed.preExisting.map(({ rule }) => rule)).toEqual(["ui-stack"]);
   });
 });
