@@ -35,8 +35,8 @@ function project(at: string, files: Readonly<Record<string, string>>) {
 
 const strictLine = (file: string): string =>
   `Turn strict type checking on (init does not edit ${file}, which has comments): add "strict": true to its compilerOptions`;
-const oxlintLine = (prefix: string, remove: string): string =>
-  `Remove the template's oxlint, which the ESLint preset replaces: delete ${prefix}.oxlintrc.json and run ${remove}`;
+const oxlintLine = (prefix: string, remove: string, script = true): string =>
+  `Remove the template's oxlint, which the ESLint preset replaces: delete ${prefix}.oxlintrc.json${script ? `, set the "lint" script in ${prefix}package.json to eslint . --max-warnings 0,` : ""} and run ${remove}`;
 const aliasLine = (prefix: string): string =>
   `Map @/ to src/ (init does not edit these files): add "paths": { "@/*": ["./src/*"] } to compilerOptions of ${prefix}tsconfig.app.json, and resolve: { tsconfigPaths: true } to ${prefix}vite.config.ts`;
 const count = (report: string, line: string): number => report.split("\n").filter((each) => each.endsWith(line)).length;
@@ -84,6 +84,17 @@ describe("init in a create-vite react-ts project (vite-spa)", () => {
     const { report, ok } = initHarness(repo.root, { force: false, starter: false });
     expect(ok, report).toBe(true);
     expect(report).toContain("created .gitignore: dist/, *.tsbuildinfo, tooling/harness/node_modules/\n");
+  });
+
+  it("leaves a lint script that is not the template's oxlint out of the oxlint step", () => {
+    const own = (SCAFFOLD["package.json"] ?? "").replace('"lint": "oxlint"', '"lint": "oxlint --deny-warnings src"');
+    const repo = project(".", { ...SCAFFOLD, "package.json": own });
+    const { report, ok } = initHarness(repo.root, { force: false, starter: false });
+    expect(ok, report).toBe(true);
+    expect(count(report, oxlintLine("", "pnpm remove oxlint", false)), report).toBe(1);
+    expect(report).not.toContain('set the "lint" script');
+    // Init still does not rewrite a script the project has.
+    expect(repo.read("package.json")).toContain('"lint": "oxlint --deny-warnings src"');
   });
 
   it("writes no starter files into a vite-spa workspace", () => {

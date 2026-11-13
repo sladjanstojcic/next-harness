@@ -4,6 +4,8 @@ import type { WorkspaceEntry } from "../../../config.ts";
 import { presetImport } from "../../../tools/eslint-preset.ts";
 import { compilerOptionsInForce, tsconfigFiles, typecheckProjects } from "../../../tools/typescript.ts";
 import { managerCommands } from "../bootstrap.ts";
+import { isObject, readJson } from "../files.ts";
+import { LINT_SCRIPT } from "../wiring.ts";
 
 /** create-vite's TypeScript templates write this name; the harness takes no JavaScript config. */
 const VITE_CONFIG = "vite.config.ts";
@@ -46,8 +48,11 @@ function workspaceTodo(root: string, workspace: WorkspaceEntry): string[] {
     });
   const { remove } = managerCommands(root);
   const removeOxlint = workspace.path === "" ? `${remove} oxlint` : `(cd ${workspace.path} && ${remove} oxlint)`;
+  // Init adds a lint script only where none exists, so the template's `oxlint` one would outlive the package.
+  const scripts = readJson(path.join(dir, "package.json"), label("package.json"))?.scripts;
+  const lintScript = isObject(scripts) && scripts.lint === "oxlint" ? `, set the "lint" script in ${label("package.json")} to ${LINT_SCRIPT},` : "";
   const oxlint = fs.existsSync(path.join(dir, ".oxlintrc.json"))
-    ? [`Remove the template's oxlint, which the ESLint preset replaces: delete ${label(".oxlintrc.json")} and run ${removeOxlint}`]
+    ? [`Remove the template's oxlint, which the ESLint preset replaces: delete ${label(".oxlintrc.json")}${lintScript} and run ${removeOxlint}`]
     : [];
   const sources = path.join(dir, "src") + path.sep;
   const app = projects.find((project) => tsconfigFiles(path.join(dir, project)).some((file) => file.startsWith(sources)));
