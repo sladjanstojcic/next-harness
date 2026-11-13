@@ -6,7 +6,8 @@ import { usesShadcn } from "../../../presets/eslint-rules.ts";
 import { aliasesOf, compilerOptionsInForce } from "../../../tools/typescript.ts";
 import { isNewWorkspace } from "../../lock.ts";
 import { managerCommands } from "../bootstrap.ts";
-import { isObject, readJson } from "../files.ts";
+import { readJson } from "../files.ts";
+import { declaresTailwind } from "./tailwind.ts";
 import { HOOKS_PATH } from "../wiring.ts";
 
 /** Where each shape keeps its React code, from the workspace folder; the shapes not listed get no setup. */
@@ -57,13 +58,7 @@ const sharedAliases = (prefix: string): string =>
     .join(", ")} }`;
 
 /** Whether the workspace's package.json declares Tailwind already, as create-next-app's --tailwind writes it. */
-function hasTailwind(dir: string, label: string): boolean {
-  const manifest = readJson(path.join(dir, "package.json"), label);
-  return ["dependencies", "devDependencies"].some((key) => {
-    const declared = manifest?.[key];
-    return isObject(declared) && declared.tailwindcss !== undefined;
-  });
-}
+const hasTailwind = (dir: string, label: string): boolean => declaresTailwind(readJson(path.join(dir, "package.json"), label));
 
 /**
  * The hand steps that set up shadcn in one workspace, run on a fresh project of each shape before its first commit,

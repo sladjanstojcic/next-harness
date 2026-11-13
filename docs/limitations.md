@@ -58,10 +58,13 @@ parent: Reference
   not a destructuring from `electron` itself. A constant as the address is reported, though it may hold
   a literal. `ipc-channel` does not see a literal passed through a
   generic bridge such as `window.api.invoke("…")`.
-- `ui-stack` checks that `components.json` exists at an app's top and that its `package.json` declares
-  `tailwindcss` or a `@tailwindcss/` package. It does not check that Tailwind is wired into the CSS and
-  the bundler, nor what `components.json` says. It ran on this repository and in its tests, not yet on an
-  adopted project.
+- `ui-stack` checks presence only: a `components.json` at an app's top and the `tailwindcss` package in
+  its `package.json`. A bare `components.json` and an installed `tailwindcss` clear it without the
+  setup; it reads neither what `components.json` says nor whether Tailwind is wired into the CSS and the
+  bundler. Updating an adopted project to a version with the rule fails its next push until each app
+  has the setup, or until the user adds the app's `package.json` to a committed legacy list
+  ([Update the harness](adopt.md#update-the-harness)). It ran on this repository and in its tests; no
+  adopted project has run it yet.
 - `preload-bundle` reads the config's text and evaluates nothing. A config built by a function, kept in a
   variable or spread from elsewhere is reported as not visible until the setting is written literally,
   and `externalizeDepsPlugin` imported under another name is not seen. Only the literal `false` passes:

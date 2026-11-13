@@ -12,6 +12,7 @@ const SITE = "https://sladjanstojcic.github.io/next-harness";
 const SHADCN = { "components.json": '{ "style": "base-nova" }\n' };
 const pkg = (fields: object): string => `${JSON.stringify({ name: "app", ...fields }, null, 2)}\n`;
 const WITH_DEV = pkg({ devDependencies: { tailwindcss: "4.1.0" } });
+const WITH_DEPENDENCY = pkg({ dependencies: { tailwindcss: "4.1.0" } });
 const WITH_VITE_PLUGIN = pkg({ dependencies: { "@tailwindcss/vite": "4.1.0" } });
 const WITHOUT = pkg({ dependencies: { react: "19.0.0" }, devDependencies: { "tailwind-merge": "3.0.0" } });
 const config = (shape: string, path = ".", extra = ""): string => `export default {\n  workspaces: [{ path: "${path}", shape: "${shape}" }],\n${extra}};\n`;
@@ -28,10 +29,11 @@ describe.each([
 ])("ui-stack in a %s workspace", (shape, page, suffix) => {
   it.each([
     ["components.json and tailwindcss in devDependencies", true, WITH_DEV, []],
-    ["components.json and @tailwindcss/vite alone in dependencies", true, WITH_VITE_PLUGIN, []],
+    ["components.json and tailwindcss in dependencies", true, WITH_DEPENDENCY, []],
+    ["components.json and @tailwindcss/vite alone in dependencies", true, WITH_VITE_PLUGIN, ["tailwind"]],
     ["components.json without Tailwind", true, WITHOUT, ["tailwind"]],
     ["Tailwind without components.json", false, WITH_DEV, ["shadcn"]],
-    ["@tailwindcss/vite without components.json", false, WITH_VITE_PLUGIN, ["shadcn"]],
+    ["@tailwindcss/vite without components.json", false, WITH_VITE_PLUGIN, ["shadcn", "tailwind"]],
     ["neither", false, WITHOUT, ["shadcn", "tailwind"]],
   ])("%s", (_name, shadcn, packageJson, expected) => {
     const repo = makeRepo({ "harness.config.ts": config(shape), "package.json": packageJson, ...(shadcn ? SHADCN : {}) });

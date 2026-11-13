@@ -63,6 +63,14 @@ node tooling/harness/cli.ts init    # adds wiring the new version needs, refresh
 Run both in your own terminal. `tooling/harness/` is locked for agents. Until init has run and its
 `AGENTS.md` change is committed, the Done gate, the pre-push hook and CI fail with `agents-block`.
 
+A version with the `ui-stack` rule also needs each app's Tailwind and shadcn setup before your next
+push. The pre-push hook and CI fail with `ui-stack` on an app without it, and init prints no setup
+steps for a project that is already adopted. Run the steps on the app's page:
+[Next.js](next-app.md#8-set-up-shadcn), [Vite](vite.md#shadcn) or [Electron](electron.md#shadcn).
+With a committed legacy list you may instead add the app's `package.json` to it yourself, after
+`pnpm harness:unlock`. `legacy init` refuses while a list exists, and an entry the agent adds is
+blocked as `legacy-append`.
+
 ## Before you commit to it
 
 Read [Known limitations](limitations.md). The short version: it was tried on a handful of real
