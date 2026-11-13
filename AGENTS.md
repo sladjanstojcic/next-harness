@@ -356,7 +356,9 @@ export default defineHarness({
   it brings Next's plugin; for an imported package it also prints `toolsFrom`, so the
   preset loads the tools that package brings from there and init does not ask to
   install them. Where a workspace resolves TypeScript 7 or newer, the install line adds
-  TypeScript 6 under the name `typescript`, whose JavaScript API typescript-eslint needs. A next-modules workspace whose tsconfig
+  TypeScript 6 under the name `typescript`, whose JavaScript API typescript-eslint needs; where no folder above the
+  workspace holds a TypeScript, as in a create-vite project, it also adds the installed TypeScript 7 under the name
+  `typescript-native`, so `tsc` stays the project's own. A next-modules workspace whose tsconfig
   chain maps no `@/*` gets that alias on its source root. In a workspace without `src/`
   the thin ESLint config passes `layout: "app-root"`,
   `--starter` copies the helpers to `shared/lib/`, and the depcruise and jscpd scripts
