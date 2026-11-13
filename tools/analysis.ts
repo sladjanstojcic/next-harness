@@ -8,7 +8,7 @@ import { shapeOf } from "../shapes/index.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
 import { presetImport } from "./eslint-preset.ts";
 import { bin, CHECK_TIMEOUT_MS, relativePath } from "./tool-set.ts";
-import { cruiserAliases } from "./typescript.ts";
+import { checksByProject, cruiserAliases } from "./typescript.ts";
 
 const dependencyOutput = z.object({
   modules: z.array(
@@ -83,8 +83,8 @@ function dependencyResult(root: string, workspace: WorkspaceEntry, stdout: strin
   // The preset's comments name src/ paths; a workspace without src/ reads them with its own.
   const advice = (comment = "Keep imports within the module or use its public API; cross-cutting code belongs in src/shared/lib/."): string =>
     sourceRootOf(workspace) === "" ? comment.replaceAll("src/", "") : comment;
-  // A violation names its rule without the rule's comment; the Electron preset's comments say which part may import what.
-  const rules = workspace.shape === "electron-vite" ? (result.summary.ruleSetUsed?.forbidden ?? []) : [];
+  // A violation names its rule without the rule's comment; the Electron and Vite presets' comments say which part may import what.
+  const rules = checksByProject(workspace.shape) ? (result.summary.ruleSetUsed?.forbidden ?? []) : [];
   const comments = new Map(rules.map(({ name, comment }) => [name, comment]));
   const findings = result.summary.violations.map(({ rule, from, to }) => ({
     rule: rule.name,
@@ -208,7 +208,7 @@ export const knip = {
   check: (dir: string): ToolStep => check(dir, "knip", "knip", []),
 };
 
-/** Where an Electron project's jscpd report goes: a folder every project ignores, since it has no .next/ for the preset's. */
+/** Where an Electron or Vite project's jscpd report goes: a folder every project ignores, since it has no .next/ for the preset's. */
 export const JSCPD_CACHE = "node_modules/.cache/jscpd";
 
 /** The workspace's own .jscpd.json, or the harness preset; jscpd has no `extends`. */
@@ -235,7 +235,7 @@ export const jscpd = {
   check: (dir: string, workspace: WorkspaceEntry): ToolStep => {
     const folders =
       sourceRootOf(workspace) === "" ? [...sources(dir, workspace), "tooling"].filter((file) => fs.existsSync(path.join(dir, file))) : ["src", "tooling"];
-    const output = workspace.shape === "electron-vite" ? ["--output", JSCPD_CACHE] : [];
+    const output = checksByProject(workspace.shape) ? ["--output", JSCPD_CACHE] : [];
     return check(dir, "jscpd", "jscpd", [...folders, "--config", jscpdConfig(dir, workspace.path), ...output]);
   },
 };
