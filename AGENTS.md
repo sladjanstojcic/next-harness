@@ -20,6 +20,7 @@ src/
     domain/                  pure rules with colocated tests; one optional area subfolder
     schemas.ts               Zod schemas
     types.ts                 module types
+  backend/                   the backend client and its generated types; flat, optional
   shared/
     ui/                      generated shadcn primitives
     components/              composed shared UI; one optional area subfolder
@@ -29,7 +30,7 @@ tooling/harness/
   cli.ts                     hook, check, audit, blocks, legacy init and prune, init, lock, unlock
   config.ts                  reads harness.config.ts; workspaces and their defaults
   core/                      guards, audit, gates, state, root layout, path classes
-  shapes/                    a workspace's paths, names, content rules, size limits; electron/ and makerkit/ hold those shapes
+  shapes/                    a workspace's paths, names, content rules, size limits; electron/, makerkit/ and vite/ hold those shapes
   tools/                     a workspace's formatter, linter, type checker, tests
 scripts/                     repository automation
 e2e/                         Playwright browser tests
@@ -43,14 +44,14 @@ rules inside a workspace, and `shapes/limits.ts` its size limits.
 The pre-write guard and the audit read both; change that source of truth when a
 rule must change.
 
-- A project without `src/` keeps the same shape one level up: `app/`, `modules/<module>/`
-  and `shared/{ui,components,lib,hooks}/` at the workspace top, with `proxy.ts` and
+- A project without `src/` keeps the same shape one level up: `app/`, `modules/<module>/`,
+  `backend/` and `shared/{ui,components,lib,hooks}/` at the workspace top, with `proxy.ts` and
   `instrumentation*.ts` beside `app/`. That layout applies when the workspace has `app/`
   and no `src/app/`, as create-next-app without `--src-dir` and create-turbo write it;
   every other workspace, an empty one too, uses `src/`. It is read from git, not
   configured: a folder counts once git lists a file under it, tracked or untracked and
   not ignored, so an empty folder from `mkdir` changes nothing and every clone agrees.
-  Without `src/`, `src` is not an approved entry, and with it the three folders at the
+  Without `src/`, `src` is not an approved entry, and with it the four folders at the
   top stay denied, so the Write tool cannot switch the layout; a shell command that
   moves or creates files under `app/` or `src/app/` can, and the full audit then reports
   the files left in the other layout. Rules, limits and messages
@@ -91,6 +92,11 @@ rule must change.
 - Need feature UI → put it in `src/modules/<module>/components/`.
 - Need a pure business rule → put it in the module's `domain/` with its test.
 - Need a query or I/O → put it in the module's `server/`, with `import "server-only"`.
+- Need a database or backend client → put it in `src/backend/`: flat `.ts` files, the
+  client and the types the backend's CLI generates (`*.types.ts`, `*-types.ts`, vendored;
+  regenerate them through the shell). Import it from the module's `server/`. `shared/`
+  and `domain/` do not import it, and it imports only `shared/lib/`. A backend package
+  imported anywhere else is `backend-package`, unless the import is `import type`.
 - Need a mutation callable from a client → put it in `actions/<name>-action.ts`,
   start with `"use server"`, and build it with `shared/lib/define-action.ts`.
 - Need a cross-cutting helper → reuse or add it in `src/shared/lib/`.
@@ -146,7 +152,7 @@ export default defineHarness({
   with the longest matching path, and its shape sees the path inside that workspace.
   A file in no workspace gets only the root layout rules from `core/root-layout.ts`.
   In a configured workspace `next` defaults to false and `tools` follows the shape:
-  `eslint-prettier` for next-modules, package and electron-vite, `oxc` for the Makerkit shapes and e2e, `none` for supabase.
+  `eslint-prettier` for next-modules, package, electron-vite and vite-spa, `oxc` for the Makerkit shapes and e2e, `none` for supabase.
 - Each file has a path class. Vendored files are the shape's generated code, such as
   `src/shared/ui/`. Legacy files are listed in the legacy file. Owned files match an
   `owned` prefix, or every file when `owned` is absent. All other files are upstream.
@@ -192,7 +198,7 @@ export default defineHarness({
   only related tests; a non-zero exit is `test-failed` with the end of the output.
   A failing Vitest run is `vitest-failed`, also with the end of its output, where the
   failed tests are named; a run cut off by the time limit starts with "Tool timed out".
-- depcruise and jscpd read `src/`, or `app/`, `modules/`, `shared/`, `proxy.ts` and
+- depcruise and jscpd read `src/`, or `app/`, `modules/`, `shared/`, `backend/`, `proxy.ts` and
   `instrumentation*.ts` in a next-modules workspace without `src/`. With a config file, a workspace that has neither `src/` nor
   `app/` yet skips them (`skipped (no src/)`).
 
@@ -200,7 +206,8 @@ export default defineHarness({
 
 - Shapes: `next-modules` (the layout above, at any workspace root), `package` (a shared
   package such as `packages/*` in a Turborepo, described below), `electron-vite` (an Electron
-  app built with electron-vite, described below), `makerkit-app`
+  app built with electron-vite, described below), `vite-spa` (a single-page React app built
+  with Vite, described below), `makerkit-app`
   (a Makerkit `apps/web`: `app/[locale]`, `_components/`, `_lib/server/`, `config/`,
   `lib/`), `makerkit-feature` (a package under `packages/features/*` with
   `components`, `hooks`, `schema`, `server/{actions,services,policies}`, `shared`) and
@@ -279,13 +286,48 @@ export default defineHarness({
   `electron.vite.config.ts`, `src/main/index.ts`, `src/preload/index.ts`, `src/renderer/index.html`
   and `src/renderer/src/main.tsx`. The code index lists the exports of `src/shared/`, each renderer
   module's `index.ts` and the renderer's `shared/lib/`. There are no starter files.
+- A `vite-spa` workspace needs the config file (`{ path: ".", shape: "vite-spa" }`); it is never
+  detected. Its top takes `index.html`, `vite.config.ts`, `components.json`, every `tsconfig*.json`, the
+  tool configs, `.env.example`, `public/` and `e2e/`. Under `src/`: `main.tsx`, `*.d.ts` and CSS;
+  `assets/` (no code); `app/` with `router.tsx` (the route tree, `createBrowserRouter`) and, in it and
+  in each route folder (`<segment>/`, `[param]/`, `(group)/`), only `page.tsx`, `layout.tsx`, `error.tsx`
+  and `not-found.tsx`; `modules/<module>/` (`index.ts`, `types.ts`, `schemas.ts`, `components/`,
+  `domain/`, `data/` with one area subfolder each, flat `hooks/` named `use-<name>.ts(x)`; no
+  `server.ts`, `server/` or `actions/`); `backend/` (flat `.ts`: the client and the generated types,
+  vendored as `*.types.ts` and `*-types.ts`); and `shared/{ui,components,lib,hooks}/`. Denials say
+  "(Vite layout)".
+- Vite boundaries, in the ESLint preset (`layout: "spa"`) and in the dependency-cruiser preset:
+  `src/backend/` is imported only from a module's `data/`, and anywhere with `import type`; it imports
+  no module, route or React. `src/shared/` imports no module, route or backend; `domain/` imports no
+  React and no backend; a module is used from outside through its `index.ts`; no Node built-in under
+  `src/`; no cycles. Content rules: `import.meta.env` is read only in `src/shared/lib/env.ts`
+  (`env-access`), `process.env` under `src/` is reported, `"use server"`, `"use client"` and
+  `server-only` are reported anywhere, and console output belongs in `src/shared/lib/log.ts`. Every
+  `VITE_*` value is public in the built bundle: a service key never gets that prefix.
+- Vite tools: the tsc step runs `tsc --noEmit -p` for each project the root `tsconfig.json` refers to,
+  and `tsconfig-strict` judges each. CI also runs `vite build`; there is no Next type generation and
+  no browser smoke, and the shape takes no `next: true`. Init's `vitest.config.ts` merges
+  `vite.config.ts` and runs `src/**/*.test.{ts,tsx}` only. Knip's entries are `index.html`,
+  `src/main.tsx` and `vite.config.ts`. Init prints the hand steps for create-vite's template: `strict`
+  in `tsconfig.app.json` and `tsconfig.node.json`, oxlint removed and the `lint` script set to ESLint,
+  and the `@/` alias in `tsconfig.app.json` and `vite.config.ts`. shadcn needs more, which init does
+  not print: see `docs/vite.md`. The code index lists `src/backend/`, each module's `index.ts` and
+  `shared/lib/`. There are no starter files.
+- `backendPackages` adds package names to the built-in list the `backend-package` rule knows
+  (`@supabase/`, `pocketbase`, `appwrite`, `node-appwrite`, `convex`, `@prisma/`, `drizzle-orm`, `pg`,
+  `postgres`, `mysql2`, `mongodb`, `mongoose`, `better-sqlite3`, `@libsql/client`,
+  `@neondatabase/serverless`, `redis`, `ioredis`, `@upstash/`); an entry is a package name, whose
+  subpaths match too, or a scope ending in `/`. Such a package may be imported only in `src/backend/`
+  (vite-spa; next-modules, or `backend/` without `src/`), `src/main/` (electron-vite) or `src/server/`
+  (package); the Makerkit, e2e and supabase shapes are not judged. A type-only import, a test file and
+  code outside the workspace's source pass. A package on neither list is not seen.
 - Tool sets: `eslint-prettier` (ESLint, Prettier, tsc and Vitest, as without a config),
   `oxc` (`oxlint -f json`, `oxfmt --list-different`, project `tsc`, Vitest) and `none`.
 - `env: "local"` denies only `.env*.local` and allows the committed `.env`,
   `.env.development`, `.env.production` and `.env.test`. Without it every `.env*`
   but `.env.example` is denied.
 - `analysis` lists which of `depcruise`, `knip` and `jscpd` run in Done and CI, in each
-  next-modules, package and electron-vite workspace's folder: all three unless listed, never in the
+  next-modules, package, electron-vite and vite-spa workspace's folder: all three unless listed, never in the
   Makerkit, supabase and e2e shapes.
 - An applied migration under a supabase workspace's `migrations/` cannot be edited,
   deleted or moved, by tool or by shell; add a new one with
@@ -353,14 +395,15 @@ export default defineHarness({
 - The harness is locked: `tooling/harness/`, the hook settings, `.githooks/`, `.github/`,
   the tool configs (`tsconfig.json`, `next.config.ts`, ESLint, Prettier, knip, Vitest,
   Playwright, dependency-cruiser, jscpd), `harness.config.ts`, its legacy list and the
-  paths in its `locked` list, and in an electron-vite workspace `electron.vite.config.ts`,
-  `electron-builder.yml` and every `tsconfig*.json`, cannot be edited, by tool or by shell, until the
+  paths in its `locked` list, in an electron-vite workspace `electron.vite.config.ts`,
+  `electron-builder.yml` and every `tsconfig*.json`, and in a vite-spa workspace `vite.config.ts` and
+  every `tsconfig*.json`, cannot be edited, by tool or by shell, until the
   user runs `pnpm harness:unlock` in their own terminal (valid four hours; `pnpm
 harness:lock` ends it). Running the unlock yourself is denied. One exception: in a
   workspace folder that no commit has ever held a file in, a new package or app, the workspace's own tool
   configs and `tsconfig.json` may be created and changed, by tool, by shell and by plain
   `node tooling/harness/cli.ts init`; they are locked from the commit that adds the
-  workspace. The audit holds every next-modules, package and electron-vite `tsconfig.json` to
+  workspace. The audit holds every next-modules, package, electron-vite and vite-spa `tsconfig.json` to
   `strict: true` with `noImplicitAny` and `strictNullChecks` left on, no `noCheck`, and
   sources to check (`tsconfig-strict`). When a harness rule is
   wrong, say so in the handoff instead of working around it.

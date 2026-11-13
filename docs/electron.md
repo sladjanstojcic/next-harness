@@ -163,6 +163,9 @@ src/
 - Console output is allowed in a file named `log.ts` in a `src/main/` area folder, such as
   `src/main/logging/log.ts`, and nowhere else in the app. The lint message says so.
 - jscpd writes its report to `node_modules/.cache/jscpd` here, so nothing new needs ignoring.
+- **Backend packages.** A database or backend SDK such as `pg` or `@supabase/supabase-js` is imported in
+  `src/main/` only; elsewhere the audit reports it as `backend-package`, unless the import is
+  `import type`. The list and how to extend it are in [the reference](reference.md#shapes-and-backend-packages).
 
 ## The first feature with a channel
 

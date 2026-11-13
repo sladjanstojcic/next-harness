@@ -39,6 +39,9 @@ packages/<name>/
   `src/`. `root.jsExceptions` cannot name them, since it covers the repository root only. Name such a
   file in `locked` when agents should not edit it.
 - `src/domain/` takes `.ts` files only.
+- A backend package such as `pg` or `@supabase/supabase-js` is imported in `src/server/` only; elsewhere
+  the audit reports it as `backend-package`, unless the import is `import type`. See
+  [the reference](reference.md#shapes-and-backend-packages).
 - depcruise, knip and jscpd run in each package with `src/`, as in an app. dependency-cruiser uses a
   package preset: no cycles, a pure `src/domain/`, `src/server/` internals reached only through
   `src/server.ts`, and `src/index.ts` never reaching server code. Knip takes the files the package's
