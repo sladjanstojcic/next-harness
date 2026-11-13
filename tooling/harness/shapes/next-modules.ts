@@ -104,7 +104,7 @@ function checkShared(parts: string[], root: SourceRoot): PathVerdict {
 
 function content(root: SourceRoot): ContentProfile {
   const under = (pattern: string): RegExp => new RegExp(`^${root}${pattern}`);
-  const envScope = root === "" ? /^(?:(?:app|modules|shared)\/|(?:proxy|instrumentation(?:-client)?)\.ts$)/ : /^src\//;
+  const envScope = root === "" ? /^(?:(?:app|modules|shared|backend)\/|(?:proxy|instrumentation(?:-client)?)\.ts$)/ : /^src\//;
   return {
     actionFile: under("modules/[^/]+/actions/[^/]+-action\\.ts$"),
     actionBuilders: ["defineAction"],

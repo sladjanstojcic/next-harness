@@ -5,7 +5,8 @@ import * as runner from "../core/gates/run-tool.ts";
 import { parseEvent } from "../core/hooks/event.ts";
 import { handleEvent } from "../core/hooks/handle.ts";
 import { STARTER_HELPERS } from "../shapes/next-probes.ts";
-import { depcruise } from "../tools/analysis.ts";
+import { stateDir } from "../core/state/state-file.ts";
+import { depcruise, jscpd } from "../tools/analysis.ts";
 import { eslintPreset } from "../tools/eslint-preset.ts";
 import { APP, APP_WITHOUT_SRC, initialised, run } from "./preset-fixture.ts";
 import { makeRepo, type RepoFixture } from "./temp-repo.ts";
@@ -169,5 +170,61 @@ describe("init --starter in that project", () => {
       depcruise.report(repo.root, { ...WORKSPACE, sourceRoot: "src/" }, new Set(), () => undefined),
     );
     expect(findings.map(({ file, rule }) => `${file} ${rule}`)).toEqual(["src/proxy.ts module-public-api"]);
+  }, 120_000);
+});
+
+const COPIED =
+  "export function total(cents: number, rate: number): number {\n  const gross = cents * rate;\n  const rounded = Math.round(gross);\n  const capped = Math.min(rounded, 1_000_000);\n  const floored = Math.max(capped, 0);\n  const fee = floored > 500 ? 25 : 10;\n  return floored + fee;\n}\n";
+
+describe.each([
+  ["without src/", APP_WITHOUT_SRC, ""],
+  ["with src/", APP, "src/"],
+] as const)("the backend folder %s, with the real dependency-cruiser and jscpd", (_name, files, root) => {
+  const workspace = { ...WORKSPACE, sourceRoot: root };
+
+  it("holds shared/ and domain/ off the backend, and the backend to itself and shared/lib/", async () => {
+    const repo = initialised(files);
+    const client = 'import { format } from "../shared/lib/format";\n\nexport const client = { format };\n';
+    repo.write(`${root}shared/lib/format.ts`, "export const format = (value: number): string => String(value);\n");
+    repo.write(`${root}backend/client.ts`, client);
+    repo.write(
+      `${root}modules/billing/server/rows.ts`,
+      'import "server-only";\nimport { client } from "../../../backend/client";\n\nexport const rows = client;\n',
+    );
+    expect(
+      await runner.runTool(
+        repo.root,
+        depcruise.report(repo.root, workspace, new Set(), () => undefined),
+      ),
+    ).toEqual([]);
+
+    repo.write(`${root}shared/lib/uses-backend.ts`, 'import { client } from "../../backend/client";\n\nexport const usesBackend = client;\n');
+    repo.write(`${root}modules/billing/domain/stored.ts`, 'import { client } from "../../../backend/client";\n\nexport const stored = client;\n');
+    repo.write(`${root}modules/billing/index.ts`, "export const billing = 1;\n");
+    repo.write(`${root}shared/components/badge.tsx`, "export const badge = 1;\n");
+    repo.write(
+      `${root}backend/reach.ts`,
+      'import { billing } from "../modules/billing/index";\nimport { badge } from "../shared/components/badge";\n\nexport const reach = [billing, badge];\n',
+    );
+    const findings = await runner.runTool(
+      repo.root,
+      depcruise.report(repo.root, workspace, new Set(), () => undefined),
+    );
+    expect(findings.map(({ file, rule }) => `${file} ${rule}`).sort()).toEqual([
+      `${root}backend/reach.ts backend-self-contained`,
+      `${root}backend/reach.ts backend-self-contained`,
+      `${root}modules/billing/domain/stored.ts domain-not-backend`,
+      `${root}shared/lib/uses-backend.ts shared-not-backend`,
+    ]);
+  }, 120_000);
+
+  it("leaves the generated types out of jscpd and still finds copied code", async () => {
+    const repo = initialised(files);
+    for (const file of ["backend/database.types.ts", "backend/pocketbase-types.ts", "shared/lib/copy-one.ts", "shared/lib/copy-two.ts"])
+      repo.write(`${root}${file}`, COPIED);
+    const real = fs.realpathSync(repo.root);
+    const output = fs.mkdtempSync(path.join(stateDir(real), "jscpd-"));
+    const findings = await runner.runTool(real, jscpd.report(real, output, workspace));
+    expect(findings.map(({ file, rule }) => `${file} ${rule}`).sort()).toEqual([`${root}shared/lib/copy-one.ts jscpd`, `${root}shared/lib/copy-two.ts jscpd`]);
   }, 120_000);
 });

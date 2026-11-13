@@ -212,6 +212,20 @@ describe("the backend folder", () => {
     expect(shape.content.backend?.scope).toEqual(shape.content.envScope);
   });
 
+  it.each([
+    ["src/", (files: Record<string, string>) => makeRepo({ "src/app/page.tsx": PAGE, ...files })],
+    ["", rootLayout],
+  ])("is in the environment and backend scope under %j, as the rest of the source is", (root, layout) => {
+    const client = 'import PocketBase from "pocketbase";\n\nexport const client = new PocketBase(process.env.DB_URL);\n';
+    const repo = layout({ [`${root}backend/client.ts`]: client, [`${root}modules/ads/server/rows.ts`]: `import "server-only";\n${client}` });
+    const found = audit(repo.root).filter(({ rule }) => rule === "env-access" || rule === "backend-package");
+    expect(found.map(({ file, rule }) => `${file} ${rule}`).sort()).toEqual([
+      `${root}backend/client.ts env-access`,
+      `${root}modules/ads/server/rows.ts backend-package`,
+      `${root}modules/ads/server/rows.ts env-access`,
+    ]);
+  });
+
   it("is a vendored path through the harness in both layouts, and a top entry without src/", () => {
     const withSrc = resolveHarness(makeRepo({ "src/app/page.tsx": PAGE }).root);
     expect(isVendoredIn(withSrc, "src/backend/database.types.ts")).toBe(true);
