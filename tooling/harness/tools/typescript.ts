@@ -38,18 +38,18 @@ export function tsconfigInForce(file: string): TsconfigInForce | undefined {
   };
 }
 
+/** Whether a shape's tsconfig.json refers to the projects that hold its files and aliases, as electron-vite and create-vite write it. */
+export const checksByProject = (shape: ShapeName): boolean => shape === "electron-vite" || shape === "vite-spa";
+
 /**
- * An electron-vite workspace's tsconfig.json names no file itself: its type check is that of each project it refers to,
- * as paths from the workspace folder. Every other workspace is checked through its tsconfig.json alone.
+ * An electron-vite or vite-spa workspace's tsconfig.json names no file itself: its type check is that of each project it
+ * refers to, as paths from the workspace folder. Every other workspace is checked through its tsconfig.json alone.
  */
 export function typecheckProjects(dir: string, workspace: Pick<WorkspaceEntry, "shape">): string[] {
-  if (workspace.shape !== "electron-vite") return [];
+  if (!checksByProject(workspace.shape)) return [];
   const config = tsconfigInForce(path.join(dir, "tsconfig.json"));
   return config?.checksNothing === true ? config.references.map((file) => relativePath(dir, file)) : [];
 }
-
-/** Whether a shape's tsconfig.json refers to the projects that hold its files and aliases, as electron-vite and create-vite write it. */
-export const checksByProject = (shape: ShapeName): boolean => shape === "electron-vite" || shape === "vite-spa";
 
 /** The aliases an electron-vite workspace declares, in its tsconfig.json or in a project that file refers to. */
 export const aliasesOf = (dir: string): ElectronAliases => electronAliases(ts, dir);

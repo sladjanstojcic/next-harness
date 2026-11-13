@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { loadConfig } from "../config.ts";
 import { isLocked, lock, lockFindings, shellLockFindings, unlock, unlocked } from "./lock.ts";
 import { makeRepo } from "../testing/temp-repo.ts";
 
@@ -84,5 +85,30 @@ describe("harness lock", () => {
       { rule: "harness-lock", file: "harness.config.ts", message },
     ]);
     expect(shellLockFindings(repo.root, files.slice(0, 3))).toEqual(lockFindings(repo.root, files.slice(0, 3)));
+  });
+});
+
+describe("the lock of a vite-spa workspace", () => {
+  const APPS =
+    'export default { workspaces: [{ path: "apps/web", shape: "vite-spa" }, { path: "apps/shop", shape: "vite-spa" }, { path: "apps/docs", shape: "next-modules" }] };\n';
+
+  it("locks the Vite config and every tsconfig*.json, at the root and in a nested workspace, and leaves index.html open", () => {
+    const top = makeRepo({ "harness.config.ts": 'export default { workspaces: [{ path: ".", shape: "vite-spa" }] };\n' });
+    const locked = (repo: ReturnType<typeof makeRepo>, file: string): boolean => isLocked(file, loadConfig(repo.root), repo.root);
+    for (const file of ["vite.config.ts", "tsconfig.app.json"]) expect(locked(top, file), file).toBe(true);
+    expect(locked(top, "index.html")).toBe(false);
+    const apps = makeRepo({ "harness.config.ts": APPS, "apps/web/package.json": "{}\n", "apps/docs/package.json": "{}\n" });
+    for (const file of ["apps/web/vite.config.ts", "apps/web/tsconfig.app.json"]) expect(locked(apps, file), file).toBe(true);
+    for (const file of ["apps/web/index.html", "apps/docs/vite.config.ts"]) expect(locked(apps, file), file).toBe(false);
+  });
+
+  it("opens a new workspace's configs until a commit holds a file of it", () => {
+    const repo = makeRepo({ "harness.config.ts": APPS, "apps/web/package.json": "{}\n" });
+    const configs = ["apps/shop/vite.config.ts", "apps/shop/tsconfig.app.json"];
+    for (const file of configs) expect(isLocked(file, loadConfig(repo.root), repo.root), file).toBe(false);
+    repo.write("apps/shop/package.json", "{}\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-q", "-m", "Add shop");
+    for (const file of configs) expect(isLocked(file, loadConfig(repo.root), repo.root), file).toBe(true);
   });
 });

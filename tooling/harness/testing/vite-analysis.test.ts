@@ -1,8 +1,13 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { auditTsconfigs } from "../core/audit/tsconfig-rules.ts";
+import { prettierIgnored } from "../core/init/ignore-files.ts";
+import { toolConfigSteps } from "../core/init/tool-configs.ts";
 import { runTool } from "../core/gates/run-tool.ts";
 import { harnessKnipVite } from "../presets/knip.ts";
 import { depcruise } from "../tools/analysis.ts";
-import { checksByProject } from "../tools/typescript.ts";
+import { checksByProject, typecheckProjects } from "../tools/typescript.ts";
 import { consumerRepo } from "./template-repo.ts";
 import { makeRepo } from "./temp-repo.ts";
 
@@ -83,6 +88,27 @@ describe("dependency-cruiser for a vite-spa workspace", () => {
     for (const { message, rule } of findings) expect(message, rule).toMatch(/\(Vite layout\)\.?$/);
   }, 120_000);
 
+  it("does not take a package's own data/, components/ or hooks/ folder for the module's", async () => {
+    const repo = consumerRepo({ ...PASSING, [`${ADS}/domain/rows.ts`]: 'import { rows } from "tables/data/rows";\n\nexport const count = rows.length;\n' });
+    // A package beside the repository, as a monorepo's hoisted node_modules holds it.
+    const table = path.join(path.dirname(repo.root), "node_modules/tables");
+    fs.mkdirSync(path.join(table, "data"), { recursive: true });
+    fs.writeFileSync(path.join(table, "package.json"), '{ "name": "tables", "version": "1.0.0" }\n');
+    fs.writeFileSync(path.join(table, "data/rows.js"), "export const rows = [];\n");
+    expect(await cruise(repo.root)).toEqual([]);
+  }, 120_000);
+
+  it("reads the @/ alias from the project tsconfig.json refers to, and finds a boundary written with it", async () => {
+    const repo = consumerRepo({
+      ...PASSING,
+      "tsconfig.json": '{ "files": [], "references": [{ "path": "./tsconfig.app.json" }] }\n',
+      "tsconfig.app.json":
+        '{ "compilerOptions": { "strict": true, "jsx": "react-jsx", "module": "esnext", "moduleResolution": "bundler", "paths": { "@/*": ["./src/*"] } }, "include": ["src"] }\n',
+      "src/app/page.tsx": 'import { price } from "@/modules/ads/domain/price";\n\nexport const page = price;\n',
+    });
+    expect(await cruise(repo.root)).toEqual(["module-public-api src/app/page.tsx"]);
+  }, 120_000);
+
   it("is checked project by project, as an Electron workspace is", () => {
     expect([checksByProject("vite-spa"), checksByProject("electron-vite"), checksByProject("next-modules"), checksByProject("package")]).toEqual([
       true,
@@ -90,6 +116,36 @@ describe("dependency-cruiser for a vite-spa workspace", () => {
       false,
       false,
     ]);
+  });
+});
+
+describe("the type check of a vite-spa workspace", () => {
+  const SOLUTION = '{ "files": [], "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }] }\n';
+  const project = (app: string) =>
+    makeRepo({
+      "harness.config.ts": 'export default { workspaces: [{ path: ".", shape: "vite-spa" }] };\n',
+      "tsconfig.json": SOLUTION,
+      "tsconfig.app.json": `{ "compilerOptions": { ${app}"jsx": "react-jsx" }, "include": ["src"] }\n`,
+      "tsconfig.node.json": '{ "compilerOptions": { "strict": true }, "include": ["vite.config.ts"] }\n',
+    });
+
+  it("runs tsc for each project its tsconfig.json refers to", () => {
+    expect(typecheckProjects(project('"strict": true, ').root, VITE)).toEqual(["tsconfig.app.json", "tsconfig.node.json"]);
+  });
+
+  it("judges each referenced project's strictness", () => {
+    expect(auditTsconfigs(project('"strict": true, ').root)).toEqual([]);
+    expect(auditTsconfigs(project("").root).map(({ rule, file }) => `${rule} ${file}`)).toEqual(["tsconfig-strict tsconfig.app.json"]);
+  });
+});
+
+describe("the ignore files of a vite-spa workspace", () => {
+  it("keep Vite's build output and tsc's build info out of git, and the build output and generated code out of the format check", () => {
+    const web = { ...VITE, path: "apps/web" };
+    const repo = makeRepo({ "apps/web/package.json": "{}\n" });
+    const gitignore = toolConfigSteps(repo.root, web, false, false).find(({ target }) => target === "apps/web/.gitignore");
+    expect(gitignore?.detail).toBe("dist/, *.tsbuildinfo");
+    expect(prettierIgnored(web)).toEqual(["pnpm-lock.yaml", "src/shared/ui", "dist", "src/backend/*.types.ts", "src/backend/*-types.ts"]);
   });
 });
 

@@ -50,7 +50,14 @@
       "comment": "A domain/ rule is plain TypeScript: React belongs in the module's components/ or hooks/, backend calls in its data/ (Vite layout).",
       "severity": "error",
       "from": { "path": "^src/modules/[^/]+/domain/", "pathNot": "\\.test\\.tsx?$" },
-      "to": { "path": ["^(react|react-dom)(/|$)|(^|/)node_modules/(react|react-dom)/", "/(components|hooks|data)/", "^src/backend/"] }
+      "to": {
+        "path": [
+          "^(react|react-dom)(/|$)|(^|/)node_modules/(react|react-dom)/",
+          "^src/modules/[^/]+/(components|hooks|data)/",
+          "^src/shared/(components|hooks)/",
+          "^src/backend/"
+        ]
+      }
     },
     {
       "name": "not-to-test",
