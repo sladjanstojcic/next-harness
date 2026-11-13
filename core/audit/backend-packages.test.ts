@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { ContentProfile } from "../../shapes/shape.ts";
+import { makeRepo } from "../../testing/temp-repo.ts";
 import { ts } from "../../tools/typescript.ts";
 import { BACKEND_PACKAGES, backendPackageFindings, isBackendPackage } from "./backend-packages.ts";
+import { auditContent } from "./content-rules.ts";
 
 const plain: ContentProfile = {
   actionBuilders: [],
@@ -65,5 +67,19 @@ describe("backendPackageFindings", () => {
   it("reports nothing for a profile without a backend folder", () => {
     const source = ts.createSourceFile("src/a.ts", 'import PocketBase from "pocketbase";', ts.ScriptTarget.Latest, true);
     expect(backendPackageFindings({ file: "src/a.ts", path: "src/a.ts", profile: plain }, source, BACKEND_PACKAGES)).toEqual([]);
+  });
+});
+
+describe("the backend-package rule in a next-modules workspace", () => {
+  it("reports a built-in and a configured package outside backend/, and neither inside it", () => {
+    const imports = 'import PocketBase from "pocketbase";\nimport sdk from "my-sdk";\nexport const both = [PocketBase, sdk];\n';
+    const repo = makeRepo({
+      "harness.config.ts": 'export default { workspaces: [{ path: ".", shape: "next-modules", next: true }], backendPackages: ["my-sdk"] };\n',
+      "src/backend/client.ts": imports,
+      "src/modules/ads/server/list-ads.ts": `import "server-only";\n${imports}`,
+    });
+    const found = auditContent(repo.root, ["src/backend/client.ts", "src/modules/ads/server/list-ads.ts"]).filter(({ rule }) => rule === "backend-package");
+    expect(found.map(({ file, line }) => `${file}:${line}`)).toEqual(["src/modules/ads/server/list-ads.ts:2", "src/modules/ads/server/list-ads.ts:3"]);
+    expect(found[0]?.message).toContain("Import a backend package only in src/backend/");
   });
 });

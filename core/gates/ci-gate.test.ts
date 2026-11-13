@@ -1,7 +1,7 @@
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as auditor from "../audit/audit.ts";
-import { SOURCE_PROBES } from "../../shapes/next-modules.ts";
+import { SOURCE_PROBES } from "../../shapes/next-probes.ts";
 import { normaliseProbes } from "../../testing/preset-fixture.ts";
 import { CONFIG_RUNNER } from "../../tools/eslint-preset.ts";
 import { makerkitRepo } from "../../testing/makerkit-repo.ts";

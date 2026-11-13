@@ -8,7 +8,7 @@ import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
 import { harnessRuleBlocks, usesShadcn, type ElectronAliases as Aliases, type PresetLayout, type RuleBlock } from "../presets/eslint-rules.ts";
 import { ELECTRON_PROBES } from "../shapes/electron/electron-vite.ts";
-import { sourceProbes } from "../shapes/next-modules.ts";
+import { sourceProbes } from "../shapes/next-probes.ts";
 import { PACKAGE_PROBES } from "../shapes/package.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import { bin, CHECK_TIMEOUT_MS } from "./tool-set.ts";

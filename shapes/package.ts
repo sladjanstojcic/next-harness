@@ -1,3 +1,4 @@
+import { backendProfile } from "./backend-folder.ts";
 import { checkModuleFiles, MODULE_ENTRIES, type ModuleLayout } from "./next-modules.ts";
 import { deny, exportLine, KEBAB, onlyGitkeepHidden, PLAIN_SHAPE, type ContentProfile, type PathVerdict, type Shape } from "./shape.ts";
 import { ALL_TOOL_CONFIG_NAMES, JS_TOOL_CONFIG_NAMES } from "./tool-config-names.ts";
@@ -77,6 +78,7 @@ const content: ContentProfile = {
   publicIndex: /^src\/index\.ts$/,
   aliases: {},
   envScope: /^src\//,
+  backend: backendProfile(/^src\//, /^src\/server\//, "src/server/", LAYOUT),
   domainFile: /^src\/domain\/(?:[^/]+\/)?[^/]+\.ts$/,
   packageBoundary: `Keep relative imports inside src/: import another package by its name through its package.json exports, and keep code out of the package's top level ${LAYOUT}`,
   sourceRoot: "src/",

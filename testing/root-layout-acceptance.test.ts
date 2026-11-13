@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import * as runner from "../core/gates/run-tool.ts";
 import { parseEvent } from "../core/hooks/event.ts";
 import { handleEvent } from "../core/hooks/handle.ts";
-import { STARTER_HELPERS } from "../shapes/next-modules.ts";
+import { STARTER_HELPERS } from "../shapes/next-probes.ts";
 import { depcruise } from "../tools/analysis.ts";
 import { eslintPreset } from "../tools/eslint-preset.ts";
 import { APP, APP_WITHOUT_SRC, initialised, run } from "./preset-fixture.ts";

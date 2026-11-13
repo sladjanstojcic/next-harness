@@ -7,7 +7,7 @@ import { runTool } from "../core/gates/run-tool.ts";
 import { initHarness } from "../core/init/init.ts";
 import { eslintPreset } from "../tools/eslint-preset.ts";
 import type { Finding } from "../core/audit/finding.ts";
-import { SOURCE_PROBES } from "../shapes/next-modules.ts";
+import { SOURCE_PROBES } from "../shapes/next-probes.ts";
 import { consumerRepo } from "./template-repo.ts";
 
 /** The files create-next-app 16.4.5 generates (`--typescript --eslint --app --src-dir --no-tailwind --use-pnpm`), but its lockfile and assets. */

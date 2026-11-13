@@ -1,12 +1,15 @@
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { audit } from "../core/audit/audit.ts";
 import { codeIndex } from "../core/code-index.ts";
 import { expandWorkspaces, DEFAULT_CONFIG } from "../config.ts";
 import { checkPath, isVendoredIn, resolveHarness } from "../core/path-check.ts";
+import { harnessEslint } from "../presets/eslint.ts";
 import { harnessKnipWorkspace } from "../presets/knip.ts";
 import { makeRepo } from "../testing/temp-repo.ts";
 import { eslintPreset, eslintPresetLines, expectedRules } from "../tools/eslint-preset.ts";
-import { sourceProbes } from "./next-modules.ts";
+import { nextModules, nextModulesAtRoot } from "./next-modules.ts";
+import { sourceProbes } from "./next-probes.ts";
 
 const PAGE = "export default function Page() {\n  return null;\n}\n";
 /** create-next-app without --src-dir, and no harness.config.ts. */
@@ -177,8 +180,45 @@ describe("the presets without src/", () => {
     expect(eslintPresetLines(WORKSPACE, "export default [];\n")[1]).toBe('...harnessEslint({ root: import.meta.dirname, layout: "app-root", next: true }),');
   });
 
+  it("leaves the generated backend types to ESLint's ignores in both Next layouts", () => {
+    const template = path.resolve(import.meta.dirname, "../../..");
+    const ignores = (layout: "app" | "app-root") =>
+      harnessEslint({ root: template, layout }).flatMap((entry) =>
+        Array.isArray(entry.ignores) ? entry.ignores.filter((glob): glob is string => typeof glob === "string") : [],
+      );
+    expect(ignores("app")).toEqual(expect.arrayContaining(["src/backend/*.types.ts", "src/backend/*-types.ts"]));
+    expect(ignores("app-root")).toEqual(expect.arrayContaining(["backend/*.types.ts", "backend/*-types.ts"]));
+  });
+
   it("gives knip the helpers and vendored code where they are", () => {
     const repo = rootLayout({ "shared/lib/env.ts": "export const env = {};\n", "shared/ui/button.tsx": "" });
     expect(harnessKnipWorkspace({ harness: "analyse" }, repo.root)).toMatchObject({ entry: ["shared/lib/env.ts"], ignore: ["shared/ui/**"] });
+    const withBackend = rootLayout({ "shared/ui/button.tsx": "", "backend/client.ts": "" });
+    expect(harnessKnipWorkspace({ harness: "analyse" }, withBackend.root).ignore).toEqual(["shared/ui/**", "backend/*.types.ts", "backend/*-types.ts"]);
+  });
+});
+
+describe("the backend folder", () => {
+  it.each([
+    ["src/", nextModules],
+    ["", nextModulesAtRoot],
+  ])("holds the one client under %j and treats its generated types as vendored", (root, shape) => {
+    expect(shape.checkPath(`${root}backend/client.ts`)).toEqual({ ok: true });
+    expect(shape.checkPath(`${root}backend/db/client.ts`)).toMatchObject({ ok: false, rule: "nesting" });
+    expect(shape.vendoredPattern?.test(`${root}backend/database.types.ts`)).toBe(true);
+    expect(shape.vendoredPattern?.test(`${root}backend/client.ts`)).toBe(false);
+    expect(shape.content.backend?.allowed.test(`${root}backend/client.ts`)).toBe(true);
+    expect(shape.content.backend?.allowed.test(`${root}modules/ads/server/q.ts`)).toBe(false);
+    expect(shape.content.backend?.scope).toEqual(shape.content.envScope);
+  });
+
+  it("is a vendored path through the harness in both layouts, and a top entry without src/", () => {
+    const withSrc = resolveHarness(makeRepo({ "src/app/page.tsx": PAGE }).root);
+    expect(isVendoredIn(withSrc, "src/backend/database.types.ts")).toBe(true);
+    expect(isVendoredIn(withSrc, "src/backend/client.ts")).toBe(false);
+    const atRoot = resolveHarness(rootLayout().root);
+    expect(checkPath("backend/client.ts", atRoot)).toEqual({ ok: true });
+    expect(isVendoredIn(atRoot, "backend/pocketbase-types.ts")).toBe(true);
+    expect(nextModulesAtRoot.topEntries).toContain("backend");
   });
 });

@@ -39,6 +39,27 @@
       "to": { "path": ["(^|/)(react|react-dom|next)(/|$)", "/(components|server|actions)/", "^(?:src/)?modules/[^/]+/server\\.ts$"] }
     },
     {
+      "name": "shared-not-backend",
+      "comment": "Call the backend client from src/modules/<module>/server/; shared/ code stays independent of the backend.",
+      "severity": "error",
+      "from": { "path": "^(?:src/)?shared/" },
+      "to": { "path": "^(?:src/)?backend/" }
+    },
+    {
+      "name": "domain-not-backend",
+      "comment": "Read data through the backend client in src/modules/<module>/server/ and pass it into domain/; keep domain/ functions pure.",
+      "severity": "error",
+      "from": { "path": "^(?:src/)?modules/[^/]+/domain/", "pathNot": "\\.test\\.tsx?$" },
+      "to": { "path": "^(?:src/)?backend/" }
+    },
+    {
+      "name": "backend-self-contained",
+      "comment": "Keep src/backend/ to the client and its generated types, using only src/shared/lib/; feature code that calls it belongs in src/modules/<module>/server/.",
+      "severity": "error",
+      "from": { "path": "^(?:src/)?backend/" },
+      "to": { "path": "^(?:src/)?(?:(?:app|modules|shared)/|(?:proxy|instrumentation(?:-client)?)\\.ts$)", "pathNot": "^(?:src/)?shared/lib/" }
+    },
+    {
       "name": "not-to-test",
       "comment": "Keep test fixtures and assertions in colocated *.test.ts(x) files; move reusable production logic to domain/ or src/shared/lib/.",
       "severity": "error",

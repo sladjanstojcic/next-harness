@@ -1,9 +1,15 @@
+import { GENERATED_TYPE_GLOBS } from "../shapes/backend-folder.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import { electronAliases } from "./electron-aliases.ts";
 import { harnessRuleBlocks, HOOKS_PLUGIN, usesShadcn, type PresetLayout } from "./eslint-rules.ts";
 import { call, defaultOf, isRecord, list, member, toolLoader } from "./load-tool.ts";
 
 const VENDORED = ["shared/ui/**", "shared/lib/utils.ts"];
+/** The Next layouts' backend/ folder holds generated database types. */
+const GENERATED: Partial<Record<PresetLayout, string[]>> = {
+  app: GENERATED_TYPE_GLOBS.map((glob) => `src/backend/${glob}`),
+  "app-root": GENERATED_TYPE_GLOBS.map((glob) => `backend/${glob}`),
+};
 /** The folder that holds shared/, by layout. */
 const VENDORED_ROOT: Record<PresetLayout, string> = { app: "src/", "app-root": "", package: "src/", electron: "src/renderer/src/" };
 
@@ -46,7 +52,7 @@ const isEntry = (value: unknown): value is EslintEntry => isRecord(value) && (va
 /** The harness's ESLint rules for a next-modules or package workspace; a project with its own config appends these after its entries. */
 export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
   const { root, layout = "app", next = false, base = true, harness = "ignore" } = options;
-  const vendored = options.vendored ?? VENDORED.map((glob) => `${VENDORED_ROOT[layout]}${glob}`);
+  const vendored = options.vendored ?? [...VENDORED.map((glob) => `${VENDORED_ROOT[layout]}${glob}`), ...(GENERATED[layout] ?? [])];
   // An Electron project's tsconfig projects name src/ and its own configs, so harness.config.ts is in none of them.
   const untyped = layout === "electron" ? [...CONFIG_FILES, "harness.config.ts"] : CONFIG_FILES;
   const tool = toolLoader(root, options.toolsFrom);

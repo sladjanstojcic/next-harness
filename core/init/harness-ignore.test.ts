@@ -49,7 +49,7 @@ describe("block 790f94: a project's formatter and linter leave the harness alone
   it("leaves the harness formatted and linted in the repository that develops it", () => {
     const repo = unhooked(makeRepo({ "package.json": "{}\n", "eslint.config.ts": 'export default harnessEslint({ root: ".", harness: "lint" });\n' }));
     expect(initHarness(repo.root, OFF).ok).toBe(true);
-    expect(repo.read(".prettierignore")).toBe("pnpm-lock.yaml\nsrc/shared/ui\n.next\n");
+    expect(repo.read(".prettierignore")).toBe("pnpm-lock.yaml\nsrc/shared/ui\nsrc/backend/*.types.ts\nsrc/backend/*-types.ts\n.next\n");
     expect(fs.existsSync(path.join(repo.root, ".eslintignore"))).toBe(false);
   });
 });

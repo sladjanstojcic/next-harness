@@ -142,6 +142,16 @@ describe("electron-vite paths", () => {
   });
 });
 
+describe("backend packages in an electron-vite workspace", () => {
+  it("allows them in the main process and judges the renderer", () => {
+    const backend = electronVite.content.backend;
+    expect(backend?.allowed.test("src/main/storage/client.ts")).toBe(true);
+    expect(backend?.scope.test(`${R}/app.tsx`)).toBe(true);
+    expect(backend?.allowed.test(`${R}/app.tsx`)).toBe(false);
+    expect(backend?.message.endsWith(LAYOUT)).toBe(true);
+  });
+});
+
 describe("the lock in an electron-vite workspace", () => {
   it.each([
     "electron.vite.config.ts",

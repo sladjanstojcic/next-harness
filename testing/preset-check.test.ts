@@ -6,7 +6,7 @@ import * as runner from "../core/gates/run-tool.ts";
 import { parseEvent } from "../core/hooks/event.ts";
 import { checkGuards } from "../core/hooks/guards.ts";
 import { unlock } from "../core/lock.ts";
-import { SOURCE_PROBES } from "../shapes/next-modules.ts";
+import { SOURCE_PROBES } from "../shapes/next-probes.ts";
 import { doubleCast, harnessRuleBlocks, HOOK_RULES, HOOKS_PLUGIN, workarounds } from "../presets/eslint-rules.ts";
 import { eslintPreset, eslintPresetLines, expectedRules, probeToken } from "../tools/eslint-preset.ts";
 import { harnessEslint } from "../presets/eslint.ts";
@@ -38,6 +38,7 @@ describe("the preset presence check", () => {
       "src/shared/components/N.tsx",
       "src/shared/lib/N.ts",
       "src/shared/hooks/N.ts",
+      "src/backend/N.ts",
       "scripts/N.ts",
       "src/app/N/page.tsx",
       "src/app/N/layout.tsx",

@@ -47,7 +47,7 @@ export interface HarnessConfig {
 
 /** Where a next-modules workspace keeps app/, modules/ and shared/: under src/, or at its own top. */
 export type SourceRoot = "src/" | "";
-export const SOURCE_AREAS: readonly string[] = ["app", "modules", "shared"];
+export const SOURCE_AREAS: readonly string[] = ["app", "modules", "shared", "backend"];
 /** Non-route files Next reads beside app/. */
 export const BESIDE_APP: readonly string[] = ["proxy.ts", "instrumentation.ts", "instrumentation-client.ts"];
 

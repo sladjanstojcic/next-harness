@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SOURCE_PROBES } from "../shapes/next-modules.ts";
+import { SOURCE_PROBES } from "../shapes/next-probes.ts";
 import { expectedRules } from "../tools/eslint-preset.ts";
 import { APP, initialised, presetFindings } from "./preset-fixture.ts";
 
@@ -19,8 +19,8 @@ const ANY = "@typescript-eslint/no-explicit-any";
 const OFF_ANY = `"${ANY}": "off"`;
 const ALL = SOURCE_PROBES.map((probe) => probe.replaceAll("{name}", "N"));
 const [APP_TS, APP_TSX, MODULE_TOP, COMPONENT_TS, COMPONENT_TSX, SERVER, ACTION, DOMAIN, COMPONENT_AREA, SERVER_AREA, DOMAIN_AREA, DOMAIN_TEST] = ALL;
-const [SHARED_COMPONENT, , HOOK, SCRIPT, APP_PAGE, APP_LAYOUT, APP_ROUTE, DEEP_PAGE, GROUP_PAGE, DYNAMIC_PAGE] = ALL.slice(12);
-const [MODULE_INDEX, MODULE_SERVER, MODULE_SCHEMAS, MODULE_TYPES, ...STARTER] = ALL.slice(22);
+const [SHARED_COMPONENT, , HOOK, , SCRIPT, APP_PAGE, APP_LAYOUT, APP_ROUTE, DEEP_PAGE, GROUP_PAGE, DYNAMIC_PAGE] = ALL.slice(12);
+const [MODULE_INDEX, MODULE_SERVER, MODULE_SCHEMAS, MODULE_TYPES, ...STARTER] = ALL.slice(23);
 const LOG = STARTER.at(-1);
 const MODULE_CODE = ALL.filter((probe) => probe.startsWith("src/modules/"));
 const SHORT_NAMED_MODULE_CODE = MODULE_CODE.filter((probe) => ALL.indexOf(probe) % 2 === 0);
