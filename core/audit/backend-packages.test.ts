@@ -28,13 +28,16 @@ function findings(path: string, text: string, added: readonly string[] = []) {
 }
 
 describe("isBackendPackage", () => {
-  it.each(["pg", "pg/lib/x", "firebase/firestore", "@supabase/ssr", "@supabase/supabase-js", "pocketbase"])("lists %s", (name) => {
+  it.each(["pg", "pg/lib/x", "@prisma/client", "@prisma/adapter-pg", "@supabase/ssr", "@supabase/supabase-js", "pocketbase"])("lists %s", (name) => {
     expect(isBackendPackage(name, BACKEND_PACKAGES)).toBe(true);
   });
 
-  it.each(["pg-format", "postgres-array", "firebase-tools", "react", "./pg", "@/backend/client"])("does not list %s", (name) => {
-    expect(isBackendPackage(name, BACKEND_PACKAGES)).toBe(false);
-  });
+  it.each(["pg-format", "postgres-array", "firebase/firestore", "firebase-tools", "kysely", "react", "./pg", "@/backend/client"])(
+    "does not list %s",
+    (name) => {
+      expect(isBackendPackage(name, BACKEND_PACKAGES)).toBe(false);
+    },
+  );
 });
 
 describe("backendPackageFindings", () => {
