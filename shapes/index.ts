@@ -7,6 +7,7 @@ import { nextModules, nextModulesAtRoot } from "./next-modules.ts";
 import { packageShape } from "./package.ts";
 import type { Shape } from "./shape.ts";
 import { supabase } from "./supabase.ts";
+import { viteSpa } from "./vite/vite-spa.ts";
 
 const SHAPES: Partial<Record<ShapeName, Shape>> = {
   "next-modules": nextModules,
@@ -16,6 +17,7 @@ const SHAPES: Partial<Record<ShapeName, Shape>> = {
   "makerkit-feature": makerkitFeature,
   supabase,
   e2e,
+  "vite-spa": viteSpa,
 };
 
 /** A next-modules workspace whose source root is its own top gets that shape's root layout. */
