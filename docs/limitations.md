@@ -19,13 +19,35 @@ parent: Reference
   there, nine forbidden attempts were all stopped and none was false. Nothing was opened in a window on
   Windows or macOS, and packaging was not run. In this repository's own tests the build is a stub, since
   Electron is not installed here.
-- The `vite-spa` shape was run on a fresh create-vite 9.3.4 project: init's nine printed steps, the
+- The `vite-spa` shape was run on a fresh create-vite 9.3.4 project: init's fourteen printed steps, the
   template's `App.tsx` replaced by routes, then all ten gate steps passed, with the real `vite build`.
   It was run again with shadcn, a PocketBase client in `src/backend/` and a module with `data/`; the
   types file was written by hand, and no PocketBase server ran. No agent session has worked there yet.
-- shadcn on a create-vite project needs Tailwind, the `@/` alias in the root `tsconfig.json` and its
-  `components.json` pointed at `src/shared/`. Init prints none of this; [the Vite page](vite.md#shadcn)
-  shows the steps as run.
+- Init's printed shadcn steps were run as printed on create-next-app with and without `src/`, the
+  electron-vite scaffold, create-vite, and a create-vite app at `apps/web` of a pnpm workspace. Init
+  prints them for a Next.js app without Tailwind too, and there they fail: on create-turbo's apps
+  `shadcn init` stops at `No Tailwind CSS configuration found`, and [the monorepo page](monorepo.md)
+  says to skip them. Not run: adding Tailwind to such an app first, Next.js with a Prettier config of
+  its own, and a nested Electron workspace. The steps pick Base UI; with Radix, knip reports `radix-ui`
+  as unused until app code imports a component, since the knip preset knows only `@base-ui/react`.
+- In a workspace below the root that has `src/` and no `tooling/` folder of its own, such as a
+  create-vite app at `apps/web`, the full check fails at jscpd, so pre-push and CI fail too:
+
+  ```text
+  jscpd (apps/web): failed
+  :1 jscpd-failed — Using config from ../../tooling/harness/presets/jscpd.json
+  Error: path does not exist: tooling
+  ```
+
+  The check passes jscpd the folders `src` and `tooling` without looking whether they exist. It was
+  seen on one vite-spa workspace; create-turbo's apps have no `src/` and pass.
+
+- The Electron shadcn step leaves its empty `vite.config.ts` behind when `shadcn init` fails, and
+  replaces a `vite.config.ts` that already exists.
+- The `AGENTS.md` block was run on create-vite projects: a fresh one, one with its own 30-line
+  `AGENTS.md` and a `CLAUDE.md` without the import, a changed guide, a file past 32 KiB and a stray
+  marker. No agent session has read the block on a real project yet. Init checks only the root
+  `CLAUDE.md`; a `.claude/CLAUDE.md` is not looked at.
 - `backend-package` knows the built-in list and `backendPackages`. A backend package on neither is not
   seen until it is added to `backendPackages`.
 - `env-access` follows `import.meta.env`, `import.meta["env"]` and `const { env } = import.meta`. It

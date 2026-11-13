@@ -5,6 +5,9 @@ nav_order: 6
 
 # Reference
 
+The fields of the config file are on [harness.config.ts](configuration.md), and what runs before and
+after each edit on [Guards and gates](gates.md).
+
 ## Four classes of file
 
 Not every file in an adopted project is yours to fix, so each file has a class:
@@ -75,6 +78,13 @@ export default defineHarness({
 });
 ```
 
+## The rules in AGENTS.md
+
+The agent reads the rules from a block in `AGENTS.md` that init writes, from the guides in
+`tooling/harness/guides/`. The audit rule `agents-block` fails while the block is missing, broken or
+differs from what init would write now, so the rules the agent reads match the ones the guards hold.
+[What init writes](init.md#agentsmd-and-claudemd) shows each case.
+
 ## Measuring the harness
 
 A rule that blocks good code is worse than no rule, so every denial and block is appended to
@@ -112,6 +122,7 @@ shapes/
   supabase.ts       a Supabase folder: migration, schema, seed and test names
   limits.ts         file, folder and page size limits
   shape.ts          the contract every shape implements
+guides/             the AGENTS.md block: one guide per shape and common.md, each with a line limit
 presets/            the rule sets the tool configs import: ESLint, Prettier, Vitest, Knip, Playwright,
                     depcruise, jscpd; starter/ holds the src/shared/lib/ helpers and the e2e smoke test
                     as text for `init --starter`
@@ -133,6 +144,7 @@ core/
   lock.ts           what is locked, and the four-hour unlock
   telemetry.ts      the block log and the false-block marker
   code-index.ts     the public-export index handed over at session start
+  init/             init's steps; agents/ writes the AGENTS.md block and holds the agents-block rule
   hooks/            event parsing for both clients, guards, responses, apply_patch paths
   audit/            path rules, content rules, duplicate exports, the tsconfig check
   gates/            fast, done and ci gates, the tool runner, the repair budget

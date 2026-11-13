@@ -28,19 +28,77 @@ project's `prettier --write .`, `oxfmt` or `oxlint --fix` then leaves the locked
 `vitest.config.ts`, `knip.config.ts` and `.dependency-cruiser.json` files over `tooling/harness/presets/`,
 the missing tool scripts, and `.prettierignore` entries (`pnpm-lock.yaml`, `src/shared/ui`, `.next`). It
 sets `allowImportingTsExtensions` in `tsconfig.json` and excludes `tooling/harness` and the thin configs
-from the project's type check. A next-modules workspace whose tsconfig, with the files it extends, maps
-no `@/*` gets `"@/*": ["./src/*"]` (or `["./*"]` without `src/`), since the starter files and the
-content rules use that alias. Where a `baseUrl` other than the tsconfig's folder is in force, or a file
-it extends sets other `paths`, init prints the alias to add by hand instead. A root Next workspace also gets `playwright.config.ts`, which runs only
+from the project's type check, so ESLint lints those configs without types. A next-modules workspace
+whose tsconfig, with the files it extends, maps no `@/*` gets `"@/*": ["./src/*"]` (or `["./*"]`
+without `src/`), since the starter files and the content rules use that alias. Where a `baseUrl`
+other than the tsconfig's folder is in force, or a file it extends sets other `paths`, init prints the
+alias to add by hand instead. A root Next workspace also gets `playwright.config.ts`, which runs only
 `e2e/**/*.test.ts`; the CI browser step reports `playwright: skipped` until such a file exists. A `test`
 script that does not run Vitest gets no `vitest.config.ts`; init prints the `test: "test"` line for
 `harness.config.ts` instead. In a workspace without `src/`, the ESLint config passes
 `layout: "app-root"`, the ignore entry is `shared/ui`, and depcruise and jscpd read `app/`, `modules/`
 and `shared/`.
 
+**Agent rules.** `AGENTS.md` gets the harness's rules for the agent, and `CLAUDE.md` the line that
+brings them to Claude Code; see [below](#agentsmd-and-claudemd).
+
 **Tools.** Init prints one install line: only tools that are missing, or below the minimum the presets
 work with. An installed tool at or above the minimum stays, also when newer. The presets import no tool
 package; they load each tool from the workspace that calls them.
+
+## AGENTS.md and CLAUDE.md
+
+Init writes the rules the agent reads into `AGENTS.md`, between two marker lines. The block holds the
+shape's layout and "where code goes" sections, then the checks, the lock, the repair budget and what
+linters cannot see. Every
+path and rule in it comes from the shape's code. With several workspaces it has one pair of sections
+per workspace, each heading naming its folder. Your own text stays outside the markers:
+
+```text
+created AGENTS.md: harness rules
+updated AGENTS.md: harness rules appended, your text kept
+updated AGENTS.md: harness rules replaced, your text kept
+unchanged AGENTS.md: harness rules
+```
+
+The first is a project without the file, the second one with its own text. On a project with a
+30-line `AGENTS.md` those 30 lines stayed as they were, and the block followed them. The third line
+comes after a harness update changed a rule. The block is compared with every run of spaces and line
+breaks counted as one, so your own Prettier may rewrap it.
+
+The audit rule `agents-block` keeps the block current. A missing, broken or stale block fails the
+audit, and with it the gate:
+
+```text
+AGENTS.md:1 agents-block — The harness rules in AGENTS.md are missing or out of date. Run: node tooling/harness/cli.ts init
+```
+
+The agent can fix this itself. Plain `node tooling/harness/cli.ts init` passes the shell guard while
+the harness is locked, and `AGENTS.md` is not locked; `init --force` is denied.
+
+Init leaves the file alone when its markers do not form one block, and says what to do:
+
+```text
+kept AGENTS.md: holds harness markers that do not form one block; remove the stray marker and rerun init
+```
+
+Claude Code reads `CLAUDE.md`, not `AGENTS.md`. Init creates `CLAUDE.md` with the one line
+`@AGENTS.md`, which imports the other file. A `CLAUDE.md` of your own without that line is kept, and
+its change becomes a printed step:
+
+```text
+kept CLAUDE.md: add the line @AGENTS.md so Claude Code reads the harness rules
+  2. Make the change each kept file above asks for: CLAUDE.md, tsconfig.node.json
+```
+
+Until that line is in, Claude Code works without the harness's rules. Init checks only `CLAUDE.md` at
+the root, not `.claude/CLAUDE.md` or a file in a subfolder.
+
+Codex reads `AGENTS.md` itself, up to 32 KiB. Past that, init prints a note:
+
+```text
+AGENTS.md is 48307 bytes; Codex stops reading project instructions at 32 KiB (project_doc_max_bytes). Shorten the part outside the harness block.
+```
 
 ## Your own ESLint config
 

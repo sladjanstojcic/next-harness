@@ -10,7 +10,7 @@ For a single app at the repository root, such as `create-next-app` output, with 
 folder. No config file is needed: the whole repository is one `next-modules` workspace.
 
 The steps below were run on a fresh create-next-app 16 project, once with `src/` and once without.
-Both reached a passing check in eleven steps, with one file edited by hand.
+Both reached a passing check in twelve steps, with two files edited by hand.
 
 ## Before you start
 
@@ -93,10 +93,14 @@ adds `allowImportingTsExtensions` and an `exclude` list to `tsconfig.json`.
 A tool config you already had is kept. For `eslint.config.mjs` init prints the three lines to add; you
 use them in step 7.
 
+It writes the harness's rules for the agent into `AGENTS.md`, between two marker lines, below the text
+create-next-app put there, and prints `updated AGENTS.md: harness rules appended, your text kept`. It
+creates `CLAUDE.md` with the line `@AGENTS.md`, so Claude Code reads the same rules.
+
 It then prints the steps for a CI job. They are optional for now: add them to `.github/workflows/`
 when the project has a remote.
 
-Last, it prints seven numbered steps. They are steps 5 to 11 here.
+Last, it prints eleven numbered steps. They are steps 5 to 12 here; step 8 holds four of them.
 
 ## 5. Install the harness's tools
 
@@ -132,13 +136,31 @@ from this page.
 Your config stays where it is and keeps its rules. See
 [your own ESLint config](init.md#your-own-eslint-config) for what the options mean.
 
-## 8. Format once
+## 8. Set up shadcn
+
+The lint rule asks for shadcn's components in place of a raw `button` or `input`, so shadcn comes
+before the first commit. Init prints four steps for it and runs none. With `src/` they read:
+
+```text
+  4. Set up shadcn, whose components the lint rule then asks for (init does not run it): pnpm dlx shadcn@latest init -t next -b base -p nova
+  5. Delete the two files shadcn init wrote where the layout takes no code: rm src/components/ui/button.tsx src/lib/utils.ts
+  6. Point shadcn at src/shared/, by setting "aliases" in components.json to: { "components": "@/shared/components", "utils": "@/shared/lib/utils", "ui": "@/shared/ui", "lib": "@/shared/lib", "hooks": "@/shared/hooks" }
+  7. Add the first component and the cn helper there: pnpm dlx shadcn@latest add button utils
+```
+
+Without `src/`, the paths lose the prefix: `rm components/ui/button.tsx lib/utils.ts`, and `shared/`.
+`-b base` picks Base UI and `-p nova` the preset this template uses, so shadcn asks nothing. The last
+step writes `src/shared/ui/button.tsx` and `src/shared/lib/utils.ts`. The empty folders the deleted
+files leave behind do no harm, since git does not list an empty folder.
+
+## 9. Format once
 
 ```sh
 pnpm exec prettier --write .
 ```
 
-This puts the app's own files in the preset's style, once. On a fresh scaffold it rewrote three files.
+This puts the app's own files in the preset's style, once. On a fresh scaffold it rewrote five files,
+among them `utils.ts` as shadcn wrote it.
 
 Node prints a `MODULE_TYPELESS_PACKAGE_JSON` warning about `prettier.config.ts` and suggests adding
 `"type": "module"` to `package.json`. The warning is harmless. Do not change the module type for it.
@@ -147,7 +169,7 @@ Vitest prints a warning of its own about `vitest.config.ts` when you run `pnpm t
 (`unsupported by configLoader: 'native'`), suggesting a `.mjs` extension or `"type": "module"`. Do
 neither.
 
-## 9. Install the browser for the smoke test
+## 10. Install the browser for the smoke test
 
 ```sh
 pnpm exec playwright install chromium
@@ -155,13 +177,13 @@ pnpm exec playwright install chromium
 
 It prints nothing when that browser is already downloaded.
 
-## 10. Commit
+## 11. Commit
 
 ```sh
 git add -A && git commit -m "Add the harness"
 ```
 
-## 11. Run the full check
+## 12. Run the full check
 
 ```sh
 pnpm run check
@@ -204,21 +226,20 @@ An import of a backend package such as `@supabase/supabase-js` or `pg` anywhere 
 src/modules/billing/server/load-invoices.ts:1 backend-package — Import a backend package only in src/backend/, which holds the one client; elsewhere import that client, or the package's types with "import type".
 ```
 
-An existing project that imports one elsewhere gets these findings in step 11; the legacy list holds
+An existing project that imports one elsewhere gets these findings in step 12; the legacy list holds
 them as for any other rule. [The reference](reference.md#shapes-and-backend-packages) has the list of
 packages and how to extend it.
 
 ## A project with code in it
 
-A real project has code that does not fit the shape yet. It shows up in step 11. Move it, or give the
+A real project has code that does not fit the shape yet. It shows up in step 12. Move it, or give the
 project a legacy list as [a monorepo](monorepo.md#the-legacy-list) does: old files are then tolerated
 and new ones are held to the rules.
 
 ## After the check passes
 
-- **AGENTS.md.** create-next-app already writes one. Keep it, and append the sections you want from
-  [the template's file](https://github.com/sladjanstojcic/next-harness/blob/main/AGENTS.md) below what
-  is there. The check does not need it; your agent does.
+- **AGENTS.md.** Write your project's own rules outside the marker lines; init rewrites only the part
+  between them. [What init writes](init.md#agentsmd-and-claudemd) has the details.
 - **Without `src/`.** The `depcruise` and `jscpd` package scripts list only the folders that exist
   today (`app shared`). Add `modules` to both when you create it, as in `depcruise app modules shared ...`.
   `pnpm run check` finds the folders itself on every run, and it covers files you have not committed

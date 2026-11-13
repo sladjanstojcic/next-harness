@@ -7,8 +7,8 @@ Dependencies are pinned exactly. The harness in `tooling/harness/` runs as TypeS
 the same rules as application code.
 
 `next.config.ts` sets `agentRules: false`, so Next writes no instruction block of its own and the Next.js rule below is
-this repository's. It also forwards development browser warnings and errors to the terminal
-(`logging.browserToTerminal`).
+this repository's. Where an installed guide marks an API deprecated, use its replacement. It also forwards development
+browser warnings and errors to the terminal (`logging.browserToTerminal`).
 
 <!-- harness:start — written by `node tooling/harness/cli.ts init`; edit outside this block -->
 

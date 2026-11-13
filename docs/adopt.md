@@ -45,14 +45,15 @@ files that have no finding left off the list. See
 - **Claude Code:** accept the workspace trust dialog. `.claude/settings.json` wires the hooks.
 - **Codex:** trust the project's `.codex/` configuration and review the hooks in `/hooks`.
 
-Init does not write an `AGENTS.md` into an adopting project. Copy the sections that apply from
-[this template's file](https://github.com/sladjanstojcic/next-harness/blob/main/AGENTS.md).
+Init writes the harness's rules for the agent into `AGENTS.md`, below any text of your own, and
+makes `CLAUDE.md` import that file for Claude Code. [What init writes](init.md#agentsmd-and-claudemd)
+shows each case.
 
 ## Update the harness
 
 ```sh
 git subtree pull --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
-node tooling/harness/cli.ts init    # adds wiring the new version needs; keeps what is already there
+node tooling/harness/cli.ts init    # adds wiring the new version needs, refreshes the rules in AGENTS.md
 ```
 
 Run both in your own terminal. `tooling/harness/` is locked for agents.

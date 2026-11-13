@@ -52,9 +52,9 @@ The script changes three files and nothing else:
 It prints nothing when it succeeds; `git status` shows the three files.
 
 Still yours to change by hand, because they describe the template and not your product: the heading
-in `src/app/page.tsx`, the body of `README.md`, the name in `LICENSE`, the first section of
-`AGENTS.md`, and the `docs/` folder. That folder is the harness's own documentation site; delete it or
-replace it with your own.
+in `src/app/page.tsx`, the body of `README.md`, the name in `LICENSE`, the text of `AGENTS.md`
+outside the harness markers, and the `docs/` folder. That folder is the harness's own documentation
+site; delete it or replace it with your own.
 
 ## 4. Install the test browser and start
 
@@ -92,7 +92,15 @@ named. Each step is also a script in `package.json`, such as `pnpm test`, if you
   user level.
 
 `AGENTS.md` at the root is what the agent reads: the shape, where each kind of code goes and when
-the checks run. Edit it as your product grows.
+the checks run. Add your product's own rules outside the harness markers as it grows; init rewrites
+only the part between them. `CLAUDE.md` imports the file for Claude Code.
+
+## shadcn
+
+The template comes with shadcn set up: `components.json` with the Base UI style `base-nova`, its
+aliases pointed at `src/shared/`, and the button in `src/shared/ui/`. Add a component with
+`pnpm dlx shadcn add <name>`. An adopted project gets the same setup from steps that init prints,
+shown on [the Next.js page](next-app.md#8-set-up-shadcn).
 
 ## A first test
 

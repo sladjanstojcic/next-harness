@@ -146,8 +146,8 @@ shrink. `node tooling/harness/cli.ts legacy prune` takes the files with no findi
   git worktree Codex skips project hooks, so run `pnpm codex:hooks` once to install them at user level.
 
 [AGENTS.md](AGENTS.md) is what the agent reads in this template: the shape, where each kind of code
-goes and when the checks run. Init does not write one into an adopting project; copy the sections that
-apply.
+goes and when the checks run. Init writes the same rules into an adopting project's `AGENTS.md`, below
+its own text, and makes `CLAUDE.md` import them.
 
 ## Daily use
 
@@ -167,7 +167,7 @@ good code is a bug in the harness, and you can mark such a block false.
 
 ```sh
 git subtree pull --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
-node tooling/harness/cli.ts init    # adds wiring the new version needs; keeps what is already there
+node tooling/harness/cli.ts init    # adds wiring the new version needs, refreshes the rules in AGENTS.md
 ```
 
 Run both in your own terminal, since `tooling/harness/` is locked for agents.

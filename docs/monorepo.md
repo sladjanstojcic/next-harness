@@ -11,7 +11,8 @@ workspace with its own shape; folders outside every workspace get only the root 
 
 The steps below were run on a fresh create-turbo project: two Next.js apps and three packages. It
 reached a passing check in the eleven steps below, which are thirteen commands, one
-file written and four edited by hand.
+file written and four edited by hand. Init also prints eight steps that set up shadcn; on this
+project they fail, as [the section after step 7](#the-shadcn-steps-fail-here) shows.
 
 ## Before you start
 
@@ -90,15 +91,20 @@ node tooling/harness/cli.ts init --starter   # writes the wiring, prints the nex
 
 The first run prints `node tooling/harness/cli.ts init` as its own next step. Add `--starter` to it, as
 shown here, if you want the `shared/lib/` helpers in each app. With it init
-prints eleven steps for a create-turbo project. Without it init prints eight and writes no starter
-files; running it again with `--starter` later is safe.
+prints nineteen steps for a create-turbo project. Without it init leaves out the two install steps
+for the starter files and the `turbo.json` step, and writes no starter files; running it again with
+`--starter` later is safe.
+
+Init also writes the harness's rules for the agent into `AGENTS.md`, below create-turbo's text, and
+creates `CLAUDE.md` with the line that imports them; see
+[What init writes](init.md#agentsmd-and-claudemd).
 
 Init also prints the steps for a CI job. They are optional for the local check; add them when the
 repository has GitHub Actions.
 
-The eleven printed steps are steps 4 to 11 here. Run each printed line from the repository root. A
-line for one workspace comes in brackets, `(cd apps/docs && ...)`, so the shell is back at the root
-afterwards.
+Eleven of the printed steps are steps 4 to 11 here; printed steps 8 to 15 are shadcn's, covered after
+step 7. Run each printed line from the repository root. A line for one workspace comes in brackets,
+`(cd apps/docs && ...)`, so the shell is back at the root afterwards.
 
 ## 4. Install the harness's tools in each workspace
 
@@ -144,6 +150,32 @@ The starter `shared/lib/env.ts` reads `NODE_ENV`, and Turborepo's lint rule repo
 ```json
 "globalEnv": ["NODE_ENV"],
 ```
+
+## The shadcn steps fail here
+
+Printed steps 8 to 15 set up shadcn in each app, four steps per app:
+
+```text
+  8. Set up shadcn, whose components the lint rule then asks for (init does not run it): (cd apps/docs && pnpm dlx shadcn@latest init -t next -b base -p nova)
+  9. Delete the two files shadcn init wrote where the layout takes no code: rm apps/docs/components/ui/button.tsx apps/docs/lib/utils.ts
+  10. Point shadcn at apps/docs/shared/, by setting "aliases" in apps/docs/components.json to: { "components": "@/shared/components", "utils": "@/shared/lib/utils", "ui": "@/shared/ui", "lib": "@/shared/lib", "hooks": "@/shared/hooks" }
+  11. Add the first component and the cn helper there: (cd apps/docs && pnpm dlx shadcn@latest add button utils)
+```
+
+They do not work as printed on create-turbo, whose apps have no Tailwind. The first stops:
+
+```text
+✖ Validating Tailwind CSS.
+✔ Validating import alias.
+
+No Tailwind CSS configuration found at <the repository>/apps/docs.
+It is likely you do not have Tailwind CSS installed or have an invalid configuration.
+```
+
+The delete and the `components.json` edit then find no file, and `add` asks
+`You need to create a components.json file to add components. Proceed?`. Skip all eight. The check
+below passed without them: the shadcn lint rule holds only in an app with a `components.json`. Adding
+Tailwind to a create-turbo app before these steps was not run.
 
 ## 8. Format each workspace once
 

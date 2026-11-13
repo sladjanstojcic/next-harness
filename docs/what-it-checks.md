@@ -20,7 +20,8 @@ Inside a module the folders are fixed too: `components/`, `server/`, `domain/` a
 `index.ts` and `server.ts` as its public entries. A module needs an entry only once something outside
 it imports it. An optional, flat `src/backend/` holds the connection to a database or hosted backend:
 the client and the types its CLI generates. A folder named `utils`, `helpers`, `common` or
-`misc` is refused wherever it appears.
+`misc` is refused wherever it appears. Area folders go one level deep; past that, the agent splits a
+new module when the responsibility warrants it, and says why in its report.
 
 A closed shape means there is one answer to "where does this go?". Without it, every helper folder
 becomes a second architecture beside the first.
