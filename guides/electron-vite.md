@@ -73,6 +73,7 @@ src/
 - Need a window → keep `nodeIntegration`, `contextIsolation`, `sandbox`, `webSecurity`, `webviewTag` and
   `enableRemoteModule` at their safe defaults. `electron-security` reports each loosened one, a `<webview>` element
   and `@electron/remote`.
+- Need UI → build it with Tailwind classes and the shadcn components in `src/renderer/src/shared/ui/`.
 - Need a form control, table or dialog → use the shadcn component in `src/renderer/src/shared/ui/`, or add it with
   `pnpm dlx shadcn add <name>`, and customise it in `src/renderer/src/shared/components/`.
 - `"use client"`, `"use server"` and `server-only` belong to Next and are reported here.
