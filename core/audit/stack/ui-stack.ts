@@ -4,7 +4,7 @@ import type { ShapeName } from "../../../config.ts";
 import { usesShadcn } from "../../../presets/eslint-rules.ts";
 import { ELECTRON_LAYOUT } from "../../../shapes/electron/source-rules.ts";
 import { VITE_LAYOUT } from "../../../shapes/vite/source-rules.ts";
-import { isObject } from "../../init/files.ts";
+import { declaresTailwind } from "../../init/shadcn/tailwind.ts";
 import { resolveHarness } from "../../path-check.ts";
 import type { Finding } from "../finding.ts";
 
@@ -23,16 +23,11 @@ const ending = (text: string, layout: string): string => (layout === "" ? `${tex
 
 /** A package.json that does not parse declares nothing; the package manager reports it on its own. */
 function hasTailwind(text: string): boolean {
-  let parsed: unknown;
   try {
-    parsed = JSON.parse(text);
+    return declaresTailwind(JSON.parse(text));
   } catch {
     return false;
   }
-  if (!isObject(parsed)) return false;
-  return [parsed.dependencies, parsed.devDependencies].some(
-    (list) => isObject(list) && Object.keys(list).some((name) => name === "tailwindcss" || name.startsWith("@tailwindcss/")),
-  );
 }
 
 /**
