@@ -40,6 +40,10 @@ down as work passes through the old code. `node tooling/harness/cli.ts legacy pr
 files that have no finding left off the list. See
 [the legacy list](monorepo.md#the-legacy-list).
 
+An app without Tailwind and shadcn gets the `ui-stack` finding on its `package.json`. Run the
+Tailwind and shadcn steps init prints before your first commit, or `legacy init` puts that
+`package.json` on the list until you do.
+
 ## Let the agent in
 
 - **Claude Code:** accept the workspace trust dialog. `.claude/settings.json` wires the hooks.

@@ -123,6 +123,19 @@ harness says   src/modules/billing/components/save-bar.tsx:14 no-restricted-synt
                the handoff before building it by hand.
 ```
 
+Every app is built with TypeScript, Tailwind and shadcn. The full audit, which Done, the pre-push
+hook and CI run, reports a Next, Vite or Electron app without shadcn's `components.json` at its top
+or without Tailwind in its `package.json`. Without that file the rule above is off, so an app that
+skipped the setup would pass every check.
+
+```text
+agent adds     apps/admin/, a Next app, without the shadcn setup
+harness says   apps/admin/package.json:1 ui-stack — This app has no components.json: every app is
+               built with TypeScript, Tailwind and shadcn. Set shadcn up with the steps on
+               https://sladjanstojcic.github.io/next-harness/next-app.html; they change locked
+               tool configs, so the user unlocks first.
+```
+
 ## The lock
 
 The agent cannot edit the harness itself, the hook settings, the git hooks, the CI workflow or the

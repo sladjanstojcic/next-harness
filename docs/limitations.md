@@ -14,8 +14,8 @@ parent: Reference
   tests only.
 - The `electron-vite` shape was also run on two real projects, an app already laid out this way and the
   official electron-vite scaffold: init's six printed steps, then all ten gate steps passed, with the real
-  `electron-vite build`. The first needed no legacy list, the scaffold one of 11 files; both runs predate `preload-bundle`, which
-  adds the scaffold's `electron.vite.config.ts` as a twelfth. In an agent session
+  `electron-vite build`. The first needed no legacy list, the scaffold one of 11 files; both runs predate `preload-bundle` and
+  `ui-stack`, which add the scaffold's `electron.vite.config.ts` and `package.json` as a twelfth and thirteenth. In an agent session
   there, nine forbidden attempts were all stopped and none was false. Nothing was opened in a window on
   Windows or macOS, and packaging was not run. In this repository's own tests the build is a stub, since
   Electron is not installed here.
@@ -58,6 +58,10 @@ parent: Reference
   not a destructuring from `electron` itself. A constant as the address is reported, though it may hold
   a literal. `ipc-channel` does not see a literal passed through a
   generic bridge such as `window.api.invoke("…")`.
+- `ui-stack` checks that `components.json` exists at an app's top and that its `package.json` declares
+  `tailwindcss` or a `@tailwindcss/` package. It does not check that Tailwind is wired into the CSS and
+  the bundler, nor what `components.json` says. It ran on this repository and in its tests, not yet on an
+  adopted project.
 - `preload-bundle` reads the config's text and evaluates nothing. A config built by a function, kept in a
   variable or spread from elsewhere is reported as not visible until the setting is written literally,
   and `externalizeDepsPlugin` imported under another name is not seen. Only the literal `false` passes:

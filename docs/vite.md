@@ -138,8 +138,9 @@ createRoot(container).render(
 
 ## shadcn
 
-The lint rule asks for shadcn's components in place of a raw `button` or `input`, so shadcn comes
-before the first commit. Init prints five steps for it and runs none:
+The lint rule asks for shadcn's components in place of a raw `button` or `input`, and the audit rule
+`ui-stack` for `components.json` and Tailwind, so both come before the first commit. Init prints five
+steps for them and runs none:
 
 ```text
   7. Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in src/index.css, add tailwindcss() from "@tailwindcss/vite" to the plugins in vite.config.ts, and run pnpm add -D tailwindcss @tailwindcss/vite
