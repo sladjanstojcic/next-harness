@@ -50,14 +50,15 @@ describe("init tool configs", () => {
     expect(nextSteps(result.report)).toEqual([
       expect.stringMatching(/^ {2}1\. Install the harness's tools \(init does not install\): pnpm add -D @eslint\/js@9\.39\.5 .*vitest@5\.1\.0$/),
       "  2. Make the change each kept file above asks for: tsconfig.json",
-      "  3. Set up shadcn, whose components the lint rule then asks for (init does not run it): pnpm dlx shadcn@latest init -t next -b base -p nova",
-      "  4. Delete the two files shadcn init wrote where the layout takes no code: rm src/components/ui/button.tsx src/lib/utils.ts",
-      '  5. Point shadcn at src/shared/, by setting "aliases" in components.json to: { "components": "@/shared/components", "utils": "@/shared/lib/utils", "ui": "@/shared/ui", "lib": "@/shared/lib", "hooks": "@/shared/hooks" }',
-      "  6. Add the first component and the cn helper there: pnpm dlx shadcn@latest add button utils",
-      "  7. Format the app's own files once in the preset's style: pnpm exec prettier --write .",
-      "  8. Install the smoke test's browser: pnpm exec playwright install chromium",
-      '  9. Commit the result: git add -A && git commit -m "Add the harness"',
-      "  10. Run the full gate: pnpm run check",
+      '  3. Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in src/app/globals.css, add turbopack: { rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } } } to the config in next.config.ts, and run pnpm add -D tailwindcss @tailwindcss/turbopack',
+      "  4. Set up shadcn, whose components the lint rule then asks for (init does not run it): pnpm dlx shadcn@latest init -t next -b base -p nova",
+      "  5. Delete the two files shadcn init wrote where the layout takes no code: rm src/components/ui/button.tsx src/lib/utils.ts",
+      '  6. Point shadcn at src/shared/, by setting "aliases" in components.json to: { "components": "@/shared/components", "utils": "@/shared/lib/utils", "ui": "@/shared/ui", "lib": "@/shared/lib", "hooks": "@/shared/hooks" }',
+      "  7. Add the first component and the cn helper there: pnpm dlx shadcn@latest add button utils",
+      "  8. Format the app's own files once in the preset's style: pnpm exec prettier --write .",
+      "  9. Install the smoke test's browser: pnpm exec playwright install chromium",
+      '  10. Commit the result: git add -A && git commit -m "Add the harness"',
+      "  11. Run the full gate: pnpm run check",
     ]);
   });
 
@@ -179,13 +180,14 @@ describe("init tool configs", () => {
     expect(exists(repo.root, ".eslintignore")).toBe(false);
     expect(nextSteps(result.report).slice(1)).toEqual([
       "  2. Make the change each kept file above asks for: apps/dashboard/tsconfig.json",
-      "  3. Set up shadcn, whose components the lint rule then asks for (init does not run it): (cd apps/dashboard && pnpm dlx shadcn@latest init -t next -b base -p nova)",
-      "  4. Delete the two files shadcn init wrote where the layout takes no code: rm apps/dashboard/src/components/ui/button.tsx apps/dashboard/src/lib/utils.ts",
-      '  5. Point shadcn at apps/dashboard/src/shared/, by setting "aliases" in apps/dashboard/components.json to: { "components": "@/shared/components", "utils": "@/shared/lib/utils", "ui": "@/shared/ui", "lib": "@/shared/lib", "hooks": "@/shared/hooks" }',
-      "  6. Add the first component and the cn helper there: (cd apps/dashboard && pnpm dlx shadcn@latest add button utils)",
-      "  7. Format the app's own files once in the preset's style: (cd apps/dashboard && pnpm exec prettier --write .)",
-      '  8. Commit the result: git add -A && git commit -m "Add the harness"',
-      "  9. Run the full gate: pnpm run check",
+      '  3. Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in apps/dashboard/src/app/globals.css, add turbopack: { rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } } } to the config in apps/dashboard/next.config.ts, and run (cd apps/dashboard && pnpm add -D tailwindcss @tailwindcss/turbopack)',
+      "  4. Set up shadcn, whose components the lint rule then asks for (init does not run it): (cd apps/dashboard && pnpm dlx shadcn@latest init -t next -b base -p nova)",
+      "  5. Delete the two files shadcn init wrote where the layout takes no code: rm apps/dashboard/src/components/ui/button.tsx apps/dashboard/src/lib/utils.ts",
+      '  6. Point shadcn at apps/dashboard/src/shared/, by setting "aliases" in apps/dashboard/components.json to: { "components": "@/shared/components", "utils": "@/shared/lib/utils", "ui": "@/shared/ui", "lib": "@/shared/lib", "hooks": "@/shared/hooks" }',
+      "  7. Add the first component and the cn helper there: (cd apps/dashboard && pnpm dlx shadcn@latest add button utils)",
+      "  8. Format the app's own files once in the preset's style: (cd apps/dashboard && pnpm exec prettier --write .)",
+      '  9. Commit the result: git add -A && git commit -m "Add the harness"',
+      "  10. Run the full gate: pnpm run check",
     ]);
     expect(nextSteps(result.report)[0]).toContain("cd apps/dashboard && pnpm add -D ");
     expect(exists(repo.root, "supabase/eslint.config.ts")).toBe(false);

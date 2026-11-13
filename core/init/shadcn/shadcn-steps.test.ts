@@ -21,6 +21,7 @@ const entry = (shape: ShapeName, extra: Partial<WorkspaceEntry> = {}): Workspace
 });
 
 const NEXT = { "apps/web/package.json": '{ "name": "web" }\n', "apps/web/tsconfig.json": '{ "compilerOptions": { "paths": { "@/*": ["./src/*"] } } }\n' };
+const NEXT_TAILWIND = { ...NEXT, "apps/web/package.json": '{ "name": "web", "devDependencies": { "tailwindcss": "4.3.3" } }\n' };
 const VITE = at("apps/web", fixture("create-vite-9.3.4.json"));
 const ELECTRON = at("apps/web", fixture("electron-vite-scaffold.json"));
 
@@ -29,6 +30,8 @@ const aliases = (prefix: string): string =>
 const SETUP = "Set up shadcn, whose components the lint rule then asks for (init does not run it)";
 const tailwind = (css: string, plugins: string): string =>
   `Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in apps/web/${css}, add tailwindcss() from "@tailwindcss/vite" to the ${plugins}, and run (cd apps/web && pnpm add -D tailwindcss @tailwindcss/vite)`;
+const nextTailwind = (css: string, config: string): string =>
+  `Add Tailwind, which shadcn styles its components with (init does not edit these files): put @import "tailwindcss"; first in apps/web/${css}, add turbopack: { rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } } } to the config in apps/web/${config}, and run (cd apps/web && pnpm add -D tailwindcss @tailwindcss/turbopack)`;
 const remove = (source: string): string =>
   `Delete the two files shadcn init wrote where the layout takes no code: rm apps/web/${source}components/ui/button.tsx apps/web/${source}lib/utils.ts`;
 const point = (source: string, prefix: string): string =>
@@ -41,7 +44,7 @@ describe("the shadcn setup init prints", () => {
       [undefined, "src/"],
       ["", ""],
     ] as const) {
-      const repo = makeRepo(NEXT);
+      const repo = makeRepo(NEXT_TAILWIND);
       expect(shadcnTodo(repo.root, [entry("next-modules", sourceRoot === undefined ? {} : { sourceRoot })])).toEqual([
         `${SETUP}: (cd apps/web && pnpm dlx shadcn@latest init -t next -b base -p nova)`,
         remove(source),
@@ -49,6 +52,12 @@ describe("the shadcn setup init prints", () => {
         ADD,
       ]);
     }
+  });
+
+  it("adds Tailwind first in a Next workspace without it, through the Turbopack loader in its own Next config", () => {
+    expect(shadcnTodo(makeRepo(NEXT).root, [entry("next-modules")])[0]).toBe(nextTailwind("src/app/globals.css", "next.config.ts"));
+    const turbo = makeRepo({ ...NEXT, "apps/web/next.config.js": "export default {};\n" });
+    expect(shadcnTodo(turbo.root, [entry("next-modules", { sourceRoot: "" })])[0]).toBe(nextTailwind("app/globals.css", "next.config.js"));
   });
 
   it("adds Tailwind first in a create-vite workspace", () => {
@@ -89,9 +98,9 @@ describe("the shadcn setup init prints", () => {
   });
 
   it("prints nothing once a commit holds the workspace as a harness workspace, and again for a new one below the root", () => {
-    const repo = makeRepo({ ".githooks/pre-push": "#!/bin/sh\n", ...NEXT });
+    const repo = makeRepo({ ".githooks/pre-push": "#!/bin/sh\n", ...NEXT_TAILWIND });
     expect(shadcnTodo(repo.root, [entry("next-modules")])).toEqual([]);
-    for (const [file, text] of Object.entries(NEXT)) repo.write(file.replace("apps/web", "apps/docs"), text);
+    for (const [file, text] of Object.entries(NEXT_TAILWIND)) repo.write(file.replace("apps/web", "apps/docs"), text);
     expect(shadcnTodo(repo.root, [entry("next-modules", { path: "apps/docs" })])[0]).toBe(
       `${SETUP}: (cd apps/docs && pnpm dlx shadcn@latest init -t next -b base -p nova)`,
     );
