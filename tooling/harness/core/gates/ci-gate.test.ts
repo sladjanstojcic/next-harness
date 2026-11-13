@@ -15,7 +15,7 @@ const SMOKE = { "e2e/smoke.test.ts": "" };
 
 describe("CI gate", () => {
   it("runs all checks in order with full typed lint even after middle failures", async () => {
-    const repo = makeRepo({ ...SMOKE, "src/utils/date.ts": "export const today = 1;" });
+    const repo = makeRepo({ ...SMOKE, "src/utils/date.ts": "export const today = 1;", "tooling/scripts/seed.ts": "" });
     const calls: string[] = [];
     const audit = vi.spyOn(auditor, "audit");
     audit.mockImplementation((root) => {
