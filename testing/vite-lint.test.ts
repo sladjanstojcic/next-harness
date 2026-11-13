@@ -78,6 +78,16 @@ describe("the ESLint boundaries of a vite-spa workspace", () => {
       for (const { ruleId, message } of found(file)) if (ruleId === "no-restricted-imports") expect(message.endsWith("(Vite layout)"), message).toBe(true);
     for (const file of UI_ENTRIES) expect(found(file).map(({ line }) => line)).toEqual([2]);
   }, 120_000);
+
+  it("lints harness.config.ts without types, since create-vite's projects do not include it", () => {
+    const { root } = consumerRepo({
+      ...TARGETS,
+      "harness.config.ts": 'export default { workspaces: [{ path: ".", shape: "vite-spa" }] };\n',
+      "eslint.config.ts": THIN,
+    });
+    const results = JSON.parse(run(root, "eslint", ["-f", "json", "harness.config.ts"]).output) as Result[];
+    expect(results.flatMap(({ messages }) => messages.map(({ message }) => message))).toEqual([]);
+  }, 120_000);
 });
 
 describe("the preset presence check of a vite-spa workspace", () => {

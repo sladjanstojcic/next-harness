@@ -54,8 +54,8 @@ const isEntry = (value: unknown): value is EslintEntry => isRecord(value) && (va
 export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
   const { root, layout = "app", next = false, base = true, harness = "ignore" } = options;
   const vendored = options.vendored ?? [...VENDORED.map((glob) => `${VENDORED_ROOT[layout]}${glob}`), ...(GENERATED[layout] ?? [])];
-  // An Electron project's tsconfig projects name src/ and its own configs, so harness.config.ts is in none of them.
-  const untyped = layout === "electron" ? [...CONFIG_FILES, "harness.config.ts"] : CONFIG_FILES;
+  // An Electron or create-vite project's tsconfig projects name src/ and its own configs, so harness.config.ts is in none of them.
+  const untyped = layout === "electron" || layout === "spa" ? [...CONFIG_FILES, "harness.config.ts"] : CONFIG_FILES;
   const tool = toolLoader(root, options.toolsFrom);
   const eslint = tool("eslint/config");
   const tseslint = defaultOf(tool("typescript-eslint"));
