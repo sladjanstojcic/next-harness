@@ -46,6 +46,8 @@ const BREAKING: Record<string, string> = {
   "src/modules/cart/index.ts": 'import { price } from "../ads/domain/price";\n\nexport const cart = price;\n',
   [`${ADS}/domain/bad.ts`]:
     'import { useState } from "react";\nimport { adsList } from "../data/ads";\nimport { client } from "../../../backend/client";\n\nexport const bad = [useState, adsList, client];\n',
+  "src/shared/ui/badge.tsx": "export const Badge = (): null => null;\n",
+  [`${ADS}/domain/styled.ts`]: 'import { Badge } from "../../../shared/ui/badge";\n\nexport const styled = Badge;\n',
   [`${ADS}/domain/price.test.ts`]: 'import { price } from "./price";\n\nexport const doubled = price(1);\n',
   [`${ADS}/domain/uses-test.ts`]: 'import { doubled } from "./price.test";\n\nexport const usesTest = doubled;\n',
 };
@@ -79,6 +81,8 @@ describe("dependency-cruiser for a vite-spa workspace", () => {
       "module-public-api src/modules/cart/index.ts": 1,
       // React, data/ and the backend client.
       [`domain-pure-path ${ADS}/domain/bad.ts`]: 3,
+      // A generated shadcn component is React too.
+      [`domain-pure-path ${ADS}/domain/styled.ts`]: 1,
       [`not-to-test ${ADS}/domain/uses-test.ts`]: 1,
     });
     const findings = await runTool(
