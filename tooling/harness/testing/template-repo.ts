@@ -12,7 +12,7 @@ function filesUnder(dir: string): string[] {
   });
 }
 
-/** The presets, the harness files they import and the harness's package.json, as a subtree holds them. */
+/** The presets, the harness files they import, the guides init writes from and the harness's package.json, as a subtree holds them. */
 const PRESETS = [
   "tooling/harness/package.json",
   "tooling/harness/shapes/backend-folder.ts",
@@ -22,6 +22,8 @@ const PRESETS = [
   "tooling/harness/core/init/bootstrap.ts",
   "tooling/harness/core/init/files.ts",
   ...filesUnder("tooling/harness/presets"),
+  // The guides' own test imports the shapes, which a fixture does not hold; a related-test run there would fail on it.
+  ...filesUnder("tooling/harness/guides").filter((file) => !file.endsWith(".test.ts")),
 ];
 
 export function templateRepo(files: Record<string, string> = {}) {
