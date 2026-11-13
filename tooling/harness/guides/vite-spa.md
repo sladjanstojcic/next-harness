@@ -64,6 +64,7 @@ src/
   reported. Every `VITE_*` value is public in the built bundle: a service key never gets that prefix.
 - Need logging → console output belongs in `src/shared/lib/log.ts`. Show the user a message written for them, and keep
   raw error details in that file.
+- Need UI → build it with Tailwind classes and the shadcn components in `src/shared/ui/`.
 - Need a form control, table or dialog → use the shadcn component in `src/shared/ui/`, and customise it in
   `src/shared/components/`.
 - Need a shadcn component that is missing → add it with `pnpm dlx shadcn add <name>`.

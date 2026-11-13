@@ -67,7 +67,10 @@ public/                 static files
 - Need user-facing errors → use `UserError` from `src/shared/lib/user-error.ts`; keep raw error details in
   `src/shared/lib/log.ts`, the one file where console output is allowed.
 - Need formatting → reuse `src/shared/lib/format.ts`.
+- `init --starter` writes the `env`, `log`, `user-error`, `define-action` and `format` helpers in
+  `src/shared/lib/`; without it, create the one you need there.
 - Need a generic hook or a composed component → use `src/shared/hooks/` or `src/shared/components/`.
+- Need UI → build it with Tailwind classes and the shadcn components in `src/shared/ui/`.
 - Need a form control, table or dialog → use the shadcn component in `src/shared/ui/`, and customise it in
   `src/shared/components/`.
 - Need a shadcn component that is missing → add it with `pnpm dlx shadcn add <name>`.
