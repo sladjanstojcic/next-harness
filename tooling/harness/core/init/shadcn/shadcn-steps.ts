@@ -1,9 +1,12 @@
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { sourceRootOf, type ShapeName, type WorkspaceEntry } from "../../../config.ts";
 import { usesShadcn } from "../../../presets/eslint-rules.ts";
 import { aliasesOf, compilerOptionsInForce } from "../../../tools/typescript.ts";
+import { isNewWorkspace } from "../../lock.ts";
 import { managerCommands } from "../bootstrap.ts";
 import { isObject, readJson } from "../files.ts";
+import { HOOKS_PATH } from "../wiring.ts";
 
 /** Where each shape keeps its React code, from the workspace folder; the shapes not listed get no setup. */
 const SOURCES: Partial<Record<ShapeName, (workspace: WorkspaceEntry) => string>> = {
@@ -80,10 +83,21 @@ function workspaceTodo(root: string, workspace: WorkspaceEntry, source: string):
   ];
 }
 
-/** The shadcn setup of every React app workspace without components.json, for init's numbered list. */
+/**
+ * Whether no commit yet holds the workspace as a harness workspace: HEAD lacks the pre-push hook init writes, or the
+ * workspace is a new folder below the root, as the lock judges it. Later the steps would edit locked configs.
+ */
+function beforeAdoption(root: string, workspace: WorkspaceEntry): boolean {
+  const adopted = spawnSync("git", ["cat-file", "-e", `HEAD:${HOOKS_PATH}/pre-push`], { cwd: root, stdio: "ignore" }).status === 0;
+  return !adopted || (workspace.path !== "" && isNewWorkspace(root, workspace.path));
+}
+
+/** The shadcn setup of every React app workspace without components.json that no commit holds yet, for init's numbered list. */
 export function shadcnTodo(root: string, workspaces: readonly WorkspaceEntry[]): string[] {
   return workspaces.flatMap((workspace) => {
     const source = SOURCES[workspace.shape]?.(workspace);
-    return source === undefined || usesShadcn(path.join(root, workspace.path)) ? [] : workspaceTodo(root, workspace, source);
+    return source === undefined || usesShadcn(path.join(root, workspace.path)) || !beforeAdoption(root, workspace)
+      ? []
+      : workspaceTodo(root, workspace, source);
   });
 }

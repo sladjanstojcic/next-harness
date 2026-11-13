@@ -9,7 +9,12 @@ import { auditAgentsBlock } from "./agents-rule.ts";
 afterEach(() => vi.restoreAllMocks());
 
 const STALE = [
-  { rule: "agents-block", file: "AGENTS.md", message: "The harness rules in AGENTS.md are missing or out of date. Run: node tooling/harness/cli.ts init" },
+  {
+    rule: "agents-block",
+    file: "AGENTS.md",
+    message:
+      "The harness rules in AGENTS.md are missing or out of date. Run: node tooling/harness/cli.ts init, then commit only AGENTS.md and CLAUDE.md; any other step init prints is the user's.",
+  },
 ];
 
 describe("auditAgentsBlock", () => {
