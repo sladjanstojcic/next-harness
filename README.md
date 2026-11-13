@@ -127,6 +127,7 @@ guide has numbered steps that were run on a fresh project of that kind, from an 
 | Turborepo or other monorepo  | [docs/monorepo.md](docs/monorepo.md) |
 | A new shared package         | [docs/packages.md](docs/packages.md) |
 | Electron app (electron-vite) | [docs/electron.md](docs/electron.md) |
+| Vite single-page React app   | [docs/vite.md](docs/vite.md)         |
 | Makerkit project             | [docs/makerkit.md](docs/makerkit.md) |
 
 The Makerkit page has no numbered walkthrough yet.

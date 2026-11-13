@@ -15,7 +15,9 @@ function filesUnder(dir: string): string[] {
 /** The presets, the harness files they import and the harness's package.json, as a subtree holds them. */
 const PRESETS = [
   "tooling/harness/package.json",
+  "tooling/harness/shapes/backend-folder.ts",
   "tooling/harness/shapes/limits.ts",
+  "tooling/harness/shapes/shape.ts",
   "tooling/harness/shapes/tool-config-names.ts",
   "tooling/harness/core/init/bootstrap.ts",
   "tooling/harness/core/init/files.ts",

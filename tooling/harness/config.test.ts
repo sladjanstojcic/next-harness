@@ -41,6 +41,7 @@ describe("loadConfig", () => {
     ["makerkit-app", "oxc"],
     ["makerkit-feature", "oxc"],
     ["supabase", "none"],
+    ["vite-spa", "eslint-prettier"],
   ] as const)("parses the %s shape with %s tools by default", (shape, tools) => {
     const repo = makeRepo({ "harness.config.ts": `export default { workspaces: [{ path: "a", shape: "${shape}" }] };\n` });
     expect(expandWorkspaces(repo.root, loadConfig(repo.root))).toEqual([{ path: "a", shape, tools, next: false }]);
@@ -53,13 +54,20 @@ describe("loadConfig", () => {
     expect(loadConfig(repo.root)).toMatchObject({ env: "local", analysis: ["knip"] });
   });
 
+  it("parses backendPackages", () => {
+    const repo = makeRepo({ "harness.config.ts": 'export default { workspaces: [{ path: "a", shape: "next-modules" }], backendPackages: ["my-sdk"] };\n' });
+    expect(loadConfig(repo.root)).toMatchObject({ backendPackages: ["my-sdk"] });
+  });
+
   it.each([
     ['{ workspaces: [{ path: "a", shape: "nope" }] }', /harness\.config\.ts: workspaces\.0\.shape/],
     ['{ workspaces: [{ path: "a", shape: "supabase", tools: "oxc" }] }', /^harness\.config\.ts: workspaces\.0\.tools /],
     ['{ workspaces: [{ path: "a", shape: "next-modules" }], analysis: ["eslint"] }', /^harness\.config\.ts: analysis\.0 /],
+    ['{ workspaces: [{ path: "a", shape: "next-modules" }], backendPackages: [""] }', /^harness\.config\.ts: backendPackages\.0 /],
     ['{ workspaces: [{ path: "a", shape: "next-modules" }], extra: true }', /^harness\.config\.ts: default export Unrecognized key: "extra"$/],
     ['{ workspaces: [{ path: "../x", shape: "next-modules" }] }', /harness\.config\.ts: workspaces\.0\.path/],
     ['{ workspaces: [{ path: "a/*/b", shape: "next-modules" }] }', /harness\.config\.ts: workspaces\.0\.path/],
+    ['{ workspaces: [{ path: ".", shape: "vite-spa", next: true }] }', /^harness\.config\.ts: workspaces\.0\.next must not be true for the vite-spa shape/],
   ])("rejects %s naming the field", (config, message) => {
     const repo = makeRepo({ "harness.config.ts": `export default ${config};\n` });
     expect(() => loadConfig(repo.root)).toThrow(message);

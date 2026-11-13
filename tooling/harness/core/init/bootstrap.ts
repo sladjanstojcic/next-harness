@@ -18,12 +18,13 @@ export interface ManagerCommands {
   exec: string;
   /** Runs a package script; yarn's own `check` command would shadow the harness's. */
   run: string;
+  remove: string;
 }
 
 const COMMANDS: Readonly<Record<Manager, ManagerCommands>> = {
-  pnpm: { install: "pnpm install", add: "pnpm add", addDev: "pnpm add -D", exec: "pnpm exec", run: "pnpm run" },
-  npm: { install: "npm install", add: "npm install", addDev: "npm install -D", exec: "npx", run: "npm run" },
-  yarn: { install: "yarn install", add: "yarn add", addDev: "yarn add -D", exec: "yarn", run: "yarn run" },
+  pnpm: { install: "pnpm install", add: "pnpm add", addDev: "pnpm add -D", exec: "pnpm exec", run: "pnpm run", remove: "pnpm remove" },
+  npm: { install: "npm install", add: "npm install", addDev: "npm install -D", exec: "npx", run: "npm run", remove: "npm uninstall" },
+  yarn: { install: "yarn install", add: "yarn add", addDev: "yarn add -D", exec: "yarn", run: "yarn run", remove: "yarn remove" },
 };
 
 /** The package manager the repository root declares or its lockfile shows; pnpm when nothing says. */

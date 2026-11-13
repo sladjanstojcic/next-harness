@@ -1,6 +1,16 @@
 {
   "format": ["typescript", "tsx"],
-  "ignore": ["**/*.test.ts", "**/*.test.tsx", "src/shared/ui/**", "shared/ui/**", "src/renderer/src/shared/ui/**"],
+  "ignore": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "src/shared/ui/**",
+    "shared/ui/**",
+    "src/renderer/src/shared/ui/**",
+    "src/backend/*.types.ts",
+    "src/backend/*-types.ts",
+    "backend/*.types.ts",
+    "backend/*-types.ts"
+  ],
   "threshold": 0,
   "reporters": ["json"],
   "output": ".next/jscpd/"

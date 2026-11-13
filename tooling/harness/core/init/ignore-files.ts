@@ -1,20 +1,26 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { sourceRootOf, type WorkspaceEntry } from "../../config.ts";
+import { sourceRootOf, type ShapeName, type WorkspaceEntry } from "../../config.ts";
+import { GENERATED_TYPE_GLOBS } from "../../shapes/backend-folder.ts";
 import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { writer, type Step } from "./files.ts";
 
 export const IGNORED = [".next/", "test-results/"];
-/** electron-vite's build output, and the build info `tsc` writes beside each composite project it checks. */
-export const ELECTRON_IGNORED = ["out/", "*.tsbuildinfo"];
+/** The build output of the shapes a bundler builds, electron-vite's and Vite's, and the build info `tsc` writes beside each composite project it checks. */
+export const BUNDLE_IGNORED: Partial<Record<ShapeName, readonly string[]>> = {
+  "electron-vite": ["out/", "*.tsbuildinfo"],
+  "vite-spa": ["dist/", "*.tsbuildinfo"],
+};
 /** pnpm links the harness's own dependencies here once it is a workspace package; create-next-app ignores only `/node_modules`. */
 export const HARNESS_MODULES = "tooling/harness/node_modules/";
-/** Files the format check must skip: pnpm's own lockfile style, the vendored shadcn primitives and the build output. */
-export const prettierIgnored = (workspace: WorkspaceEntry): string[] =>
-  workspace.shape === "electron-vite"
-    ? ["pnpm-lock.yaml", "src/renderer/src/shared/ui", "out", "dist"]
-    : ["pnpm-lock.yaml", `${sourceRootOf(workspace)}shared/ui`, ".next"];
+/** Files the format check must skip: pnpm's own lockfile style, the vendored shadcn primitives, generated database types and the build output. */
+export function prettierIgnored(workspace: WorkspaceEntry): string[] {
+  if (workspace.shape === "electron-vite") return ["pnpm-lock.yaml", "src/renderer/src/shared/ui", "out", "dist"];
+  const generated = GENERATED_TYPE_GLOBS.map((glob) => `${sourceRootOf(workspace)}backend/${glob}`);
+  if (workspace.shape === "vite-spa") return ["pnpm-lock.yaml", "src/shared/ui", "dist", ...generated];
+  return ["pnpm-lock.yaml", `${sourceRootOf(workspace)}shared/ui`, ...generated, ".next"];
+}
 /**
  * The vendored harness and its locked config. A project's `prettier --write .`, `oxfmt` or `oxlint --fix` would rewrite
  * them in the project's style, which the lock then reports; formatting harness.config.ts is the user's, during an unlock.

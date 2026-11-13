@@ -3,7 +3,7 @@
   "@playwright/test": { "version": "1.64.1", "minimum": "1.31.0", "when": "browser" },
   "@types/node": { "version": "24.19.2", "minimum": "22.0.0", "when": "vitest" },
   "dependency-cruiser": { "version": "18.7.2", "minimum": "18.0.0", "when": "depcruise" },
-  "eslint": { "version": "9.39.5", "minimum": "9.22.0" },
+  "eslint": { "version": "9.39.5", "minimum": "9.37.0" },
   "eslint-config-next": { "version": "16.4.5", "minimum": "16.0.0", "when": "eslint-config-next" },
   "eslint-config-prettier": { "version": "10.1.8", "minimum": "10.1.1" },
   "eslint-plugin-react-hooks": { "version": "7.1.1", "minimum": "5.0.0" },

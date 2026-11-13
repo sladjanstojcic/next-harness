@@ -16,6 +16,7 @@ There are two ways in. A new project starts from this template. An existing proj
 | Existing Next.js app         | [An existing Next.js project](next-app.md) |
 | Turborepo or other monorepo  | [A monorepo](monorepo.md)                  |
 | Electron app (electron-vite) | [An Electron project](electron.md)         |
+| Vite single-page React app   | [A Vite single-page app](vite.md)          |
 | Makerkit project             | [A Makerkit project](makerkit.md)          |
 
 Each guide also starts from nothing: it names the command that creates such a project, and then the

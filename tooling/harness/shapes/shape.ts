@@ -27,6 +27,8 @@ export interface Shape {
   isNameExempt(parts: readonly string[], index: number): boolean;
   checkPath(path: string): PathVerdict;
   vendored: readonly string[];
+  /** Generated files matched by name rather than by path, such as a backend's database types; tested beside `vendored`. */
+  vendoredPattern?: RegExp;
   jsExceptions: readonly string[];
   routeRoot?: string;
   limits: { fileLines: number; folderFiles: number; pageLines: number };
@@ -38,6 +40,8 @@ export interface Shape {
   ciAdvice?: string;
 }
 
+/** A colocated test, which sits beside the file it tests and counts towards no folder's size. */
+export const TEST_FILE = /\.test\.tsx?$/;
 export const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 export const ROUTE_SEGMENT = /^(?:\[(?:\.\.\.)?[^.[\]]+\]|\[\[\.\.\.[^.[\]]+\]\]|\([^)]+\)|@[a-zA-Z0-9_-]+)$/;
 export const INTERCEPTING_SEGMENT = /^(?:\(\.{1,3}\))+[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -124,6 +128,8 @@ export interface ContentProfile {
   packageBoundary?: string;
   /** With packageBoundary: only files under this folder are judged, and their relative imports must also stay under it. */
   sourceRoot?: string;
+  /** A backend package may be imported in `allowed` only, of the files in `scope`; absent leaves backend packages unjudged. */
+  backend?: { scope: RegExp; allowed: RegExp; message: string };
   /**
    * Rules only this shape has, on the parsed file at a workspace-relative path. The audit hands the compiler in, so a
    * shape loads without it: the hooks resolve shapes on every tool call.
@@ -178,4 +184,34 @@ export function exportLine(base: string, file: string): string | undefined {
       .map((name) => `\`${name}\``)
       .join(", ") || "(no named exports)"
   }`;
+}
+
+/** A code index in the making: `section` adds a titled list of the files' exports, `sources` names a folder's source files without tests. */
+export function codeIndexBuilder(workspaceDir: string) {
+  const lines: string[] = [];
+  const section = (title: string, base: string, files: readonly string[]): void => {
+    const found = files.flatMap((file) => exportLine(join(workspaceDir, base), file) ?? []);
+    if (found.length > 0) lines.push("", `## ${title}`, "", ...found);
+  };
+  const sources = (folder: string): string[] =>
+    sortedEntries(join(workspaceDir, folder))
+      .filter((entry) => entry.isFile() && /\.tsx?$/.test(entry.name) && !TEST_FILE.test(entry.name))
+      .map((entry) => entry.name);
+  return { lines, section, sources };
+}
+
+/** The denials of a shared/ folder in a React app's source; each shape words them with its own paths and layout. */
+export interface SharedFolderText {
+  shape: string;
+  nesting: string;
+  generic: PathVerdict;
+}
+
+/** A React app's shared/, relative to that folder: generated primitives in ui/, flat lib/ and hooks/, and components/ with one area subfolder. */
+export function checkSharedFolder(parts: readonly string[], text: SharedFolderText): PathVerdict {
+  const folder = parts[0] ?? "";
+  if (folder === "ui" && parts.length >= 2) return { ok: true };
+  if (!["components", "lib", "hooks"].includes(folder) || parts.length < 2) return deny("shared-shape", text.shape);
+  if (parts.length > (folder === "components" ? 3 : 2)) return deny("nesting", text.nesting);
+  return parts.length === 3 && GENERIC_FOLDERS.includes(parts[1] ?? "") ? text.generic : { ok: true };
 }

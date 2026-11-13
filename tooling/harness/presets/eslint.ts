@@ -1,11 +1,18 @@
+import { GENERATED_TYPE_GLOBS } from "../shapes/backend-folder.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import { electronAliases } from "./electron-aliases.ts";
 import { harnessRuleBlocks, HOOKS_PLUGIN, usesShadcn, type PresetLayout } from "./eslint-rules.ts";
 import { call, defaultOf, isRecord, list, member, toolLoader } from "./load-tool.ts";
 
 const VENDORED = ["shared/ui/**", "shared/lib/utils.ts"];
+/** The backend/ folder of the Next and Vite layouts holds generated database types. */
+const GENERATED: Partial<Record<PresetLayout, string[]>> = {
+  app: GENERATED_TYPE_GLOBS.map((glob) => `src/backend/${glob}`),
+  "app-root": GENERATED_TYPE_GLOBS.map((glob) => `backend/${glob}`),
+  spa: GENERATED_TYPE_GLOBS.map((glob) => `src/backend/${glob}`),
+};
 /** The folder that holds shared/, by layout. */
-const VENDORED_ROOT: Record<PresetLayout, string> = { app: "src/", "app-root": "", package: "src/", electron: "src/renderer/src/" };
+const VENDORED_ROOT: Record<PresetLayout, string> = { app: "src/", "app-root": "", package: "src/", electron: "src/renderer/src/", spa: "src/" };
 
 /** The TypeScript tool configs at a workspace top; a consumer's tsconfig leaves them out, so they are linted without types. */
 const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
@@ -15,7 +22,7 @@ const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
 export interface HarnessEslintOptions {
   /** The workspace folder holding tsconfig.json, for typed rules; ESLint and its plugins load from there. */
   root: string;
-  /** "app-root" for an app without src/ (app/, modules/, shared/ at its top), "package" for a shared package, "electron" for an electron-vite app; an app's src/ layout by default. */
+  /** "app-root" for an app without src/ (app/, modules/, shared/ at its top), "package" for a shared package, "electron" for an electron-vite app, "spa" for a Vite single-page app; an app's src/ layout by default. */
   layout?: PresetLayout;
   /** Adds the Next.js core-web-vitals and TypeScript configs. */
   next?: boolean;
@@ -46,9 +53,9 @@ const isEntry = (value: unknown): value is EslintEntry => isRecord(value) && (va
 /** The harness's ESLint rules for a next-modules or package workspace; a project with its own config appends these after its entries. */
 export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
   const { root, layout = "app", next = false, base = true, harness = "ignore" } = options;
-  const vendored = options.vendored ?? VENDORED.map((glob) => `${VENDORED_ROOT[layout]}${glob}`);
-  // An Electron project's tsconfig projects name src/ and its own configs, so harness.config.ts is in none of them.
-  const untyped = layout === "electron" ? [...CONFIG_FILES, "harness.config.ts"] : CONFIG_FILES;
+  const vendored = options.vendored ?? [...VENDORED.map((glob) => `${VENDORED_ROOT[layout]}${glob}`), ...(GENERATED[layout] ?? [])];
+  // An Electron or create-vite project's tsconfig projects name src/ and its own configs, so harness.config.ts is in none of them.
+  const untyped = layout === "electron" || layout === "spa" ? [...CONFIG_FILES, "harness.config.ts"] : CONFIG_FILES;
   const tool = toolLoader(root, options.toolsFrom);
   const eslint = tool("eslint/config");
   const tseslint = defaultOf(tool("typescript-eslint"));
@@ -63,7 +70,16 @@ export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
   ];
   const entries = [
     call(member(eslint, "globalIgnores"), [
-      [...ignored, ".next/**", "next-env.d.ts", "out/**", "build/**", ...(layout === "electron" ? ["dist/**"] : []), ".superpowers/**", ".serena/**"],
+      [
+        ...ignored,
+        ".next/**",
+        "next-env.d.ts",
+        "out/**",
+        "build/**",
+        ...(layout === "electron" || layout === "spa" ? ["dist/**"] : []),
+        ".superpowers/**",
+        ".serena/**",
+      ],
     ]),
     ...(base ? recommended() : []),
     { plugins: { [HOOKS_PLUGIN]: defaultOf(tool("eslint-plugin-react-hooks")) } },

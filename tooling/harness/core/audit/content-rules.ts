@@ -5,6 +5,7 @@ import { TEST_FILE } from "../../shapes/next-modules.ts";
 import type { ContentMessage, ContentProfile } from "../../shapes/shape.ts";
 import { ts } from "../../tools/typescript.ts";
 import { isVendoredIn, resolveHarness, type Harness } from "../path-check.ts";
+import { BACKEND_PACKAGES, backendPackageFindings } from "./backend-packages.ts";
 import type { Finding } from "./finding.ts";
 import { inlineDisableFindings } from "./inline-disable.ts";
 
@@ -13,13 +14,14 @@ export interface ContentTarget {
   path: string;
   profile?: ContentProfile;
   pageLines?: number;
+  backendPackages?: readonly string[];
 }
 
 function message(profile: ContentProfile, key: ContentMessage, values: Record<string, string> = {}): string {
   return profile.messages[key].replace(/\{(\w+)\}/g, (placeholder, name: string) => values[name] ?? placeholder);
 }
 
-function importTarget(node: ts.Node): string | undefined {
+export function importTarget(node: ts.Node): string | undefined {
   if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
     return node.moduleSpecifier.text;
   }
@@ -44,7 +46,7 @@ export function resolveTarget(profile: ContentProfile, file: string, target: str
 }
 
 /** An import erased at compile time: `import type`, or named imports that are all `type`. */
-function isTypeOnlyImport(node: ts.Node): boolean {
+export function isTypeOnlyImport(node: ts.Node): boolean {
   if (!ts.isImportDeclaration(node) || node.importClause === undefined) return false;
   const clause = node.importClause;
   if (clause.isTypeOnly) return true;
@@ -162,6 +164,7 @@ export function auditSource(root: string, target: ContentTarget, text: string): 
   const findings = auditDirectives(target, source);
   if (profile?.inlineDisable !== undefined) findings.push(...inlineDisableFindings(file, source, profile.inlineDisable));
   for (const found of profile?.sourceRules?.(path, source, ts) ?? []) findings.push({ file, ...found });
+  findings.push(...backendPackageFindings(target, source, target.backendPackages ?? []));
   const add = (rule: string, message: string, node?: ts.Node): void => {
     findings.push({ rule, file, line: node ? source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 : 1, message });
   };
@@ -198,7 +201,8 @@ function targetOf(harness: Harness, file: string): ContentTarget {
   const found = workspaceOf(harness.workspaces, file);
   if (found === undefined) return { file, path: file };
   const shape = found.entry.shapeImpl;
-  return { file, path: found.path, profile: shape.content, pageLines: shape.limits.pageLines };
+  const backendPackages = [...BACKEND_PACKAGES, ...(harness.config.backendPackages ?? [])];
+  return { file, path: found.path, profile: shape.content, pageLines: shape.limits.pageLines, backendPackages };
 }
 
 export function auditContent(root: string, files: string[]): Finding[] {

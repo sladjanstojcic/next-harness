@@ -3,7 +3,7 @@ import path from "node:path";
 import { z } from "zod";
 import { analysisOf, type HarnessConfig, type WorkspaceEntry } from "../../config.ts";
 import { managerCommands } from "./bootstrap.ts";
-import { lacksTypescriptApi, TYPESCRIPT_API } from "../../presets/load-tool.ts";
+import { lacksTypescriptApi, TYPESCRIPT_API, typescriptNative, typescriptVersion } from "../../presets/load-tool.ts";
 import { broughtByBase, bringsOwnBase, bringsOwnNext } from "../../tools/eslint-preset.ts";
 import { runsOwnTests } from "./tool-configs.ts";
 
@@ -76,6 +76,19 @@ function needs(root: string, config: HarnessConfig, workspace: WorkspaceEntry): 
 export const needsTypescriptApi = (root: string, workspace: WorkspaceEntry): boolean => lacksTypescriptApi(path.join(root, workspace.path));
 
 /**
+ * The workspace's TypeScript 7 version when the alias would take its only `tsc`: no folder above the workspace, up to the
+ * git root, holds a typescript. create-turbo keeps one at its root; a project at the root has no folder above.
+ */
+export function nativeTypescript(root: string, workspace: WorkspaceEntry): string | undefined {
+  if (!needsTypescriptApi(root, workspace)) return undefined;
+  for (let dir = path.join(root, workspace.path); path.relative(root, dir) !== "";) {
+    dir = path.dirname(dir);
+    if (fs.existsSync(path.join(dir, "node_modules/typescript/package.json"))) return undefined;
+  }
+  return typescriptVersion(path.join(root, workspace.path));
+}
+
+/**
  * The install line for the tools the workspace needs and no folder up to the git root provides at the harness's minimum
  * or above. An installed tool at or above the minimum stays as it is, also when it is newer than the template's; init
  * does not install.
@@ -88,7 +101,12 @@ export function peerInstall(root: string, config: HarnessConfig, workspace: Work
     ([name, peer]) =>
       (peer.when === undefined || needed.has(peer.when)) && !brought.includes(name) && !atLeast(reachableVersion(root, workspace, name) ?? "", peer.minimum),
   );
-  const packages = [...missing.map(([name, peer]) => `${name}@${peer.version}`), ...(needsTypescriptApi(root, workspace) ? [`"${TYPESCRIPT_API}"`] : [])];
+  const native = nativeTypescript(root, workspace);
+  const packages = [
+    ...missing.map(([name, peer]) => `${name}@${peer.version}`),
+    ...(needsTypescriptApi(root, workspace) ? [`"${TYPESCRIPT_API}"`] : []),
+    ...(native === undefined ? [] : [typescriptNative(native)]),
+  ];
   if (packages.length === 0) return undefined;
   return inWorkspace(workspace, `${managerCommands(root).addDev} ${packages.join(" ")}`);
 }

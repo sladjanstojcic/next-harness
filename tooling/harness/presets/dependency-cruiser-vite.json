@@ -1,0 +1,74 @@
+{
+  "forbidden": [
+    {
+      "name": "no-circular",
+      "comment": "Break cycles by moving the shared rule to src/shared/lib/, or keep the dependency in one direction between module public APIs (Vite layout).",
+      "severity": "error",
+      "from": {},
+      "to": { "circular": true }
+    },
+    {
+      "name": "src-no-node",
+      "comment": "The app runs in the browser without Node; a server task belongs to the backend (Vite layout).",
+      "severity": "error",
+      "from": { "path": "^src/" },
+      "to": { "dependencyTypes": ["core"] }
+    },
+    {
+      "name": "backend-from-data-only",
+      "comment": "Call the backend through the module's data/, which alone imports the client from src/backend/; elsewhere import its types with \"import type\" (Vite layout).",
+      "severity": "error",
+      "from": { "path": "^src/", "pathNot": ["^src/modules/[^/]+/data/", "^src/backend/"] },
+      "to": { "path": "^src/backend/", "dependencyTypesNot": ["type-only"] }
+    },
+    {
+      "name": "backend-own-code",
+      "comment": "src/backend/ holds the client and its types only: no React, module or route code (Vite layout).",
+      "severity": "error",
+      "from": { "path": "^src/backend/" },
+      "to": { "path": ["^src/(app|modules)/", "^(react|react-dom)(/|$)|(^|/)node_modules/(react|react-dom)/"] }
+    },
+    {
+      "name": "shared-not-up",
+      "comment": "Code in src/shared/ is used by every module and may import no module, route or backend client; the code that needs one belongs in src/modules/<module>/ (Vite layout).",
+      "severity": "error",
+      "from": { "path": "^src/shared/" },
+      "to": { "path": "^src/(modules|app|backend)/" }
+    },
+    {
+      "name": "module-public-api",
+      "comment": "Import another module through its index.ts; keep internal imports inside their own module (Vite layout).",
+      "severity": "error",
+      "from": { "path": "^src/(?:modules/([^/]+)/|app/|main\\.tsx$)" },
+      "to": {
+        "path": "^src/modules/([^/]+)/",
+        "pathNot": ["^src/modules/$1/", "^src/modules/[^/]+/index\\.ts$"]
+      }
+    },
+    {
+      "name": "domain-pure-path",
+      "comment": "A domain/ rule is plain TypeScript: React belongs in the module's components/ or hooks/, backend calls in its data/ (Vite layout).",
+      "severity": "error",
+      "from": { "path": "^src/modules/[^/]+/domain/", "pathNot": "\\.test\\.tsx?$" },
+      "to": {
+        "path": [
+          "^(react|react-dom)(/|$)|(^|/)node_modules/(react|react-dom)/",
+          "^src/modules/[^/]+/(components|hooks|data)/",
+          "^src/shared/(components|hooks|ui)/"
+        ]
+      }
+    },
+    {
+      "name": "not-to-test",
+      "comment": "Keep test fixtures and assertions in colocated *.test.ts(x) files; move reusable production logic to domain/ or src/shared/lib/ (Vite layout).",
+      "severity": "error",
+      "from": { "pathNot": "\\.test\\.tsx?$" },
+      "to": { "path": "\\.test\\.tsx?$" }
+    }
+  ],
+  "options": {
+    "tsConfig": { "fileName": "tsconfig.json" },
+    "tsPreCompilationDeps": true,
+    "doNotFollow": { "path": "node_modules" }
+  }
+}

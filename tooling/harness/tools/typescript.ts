@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
-import type { WorkspaceEntry } from "../config.ts";
+import type { ShapeName, WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
 import { electronAliases, type ElectronAliases } from "../presets/electron-aliases.ts";
@@ -38,12 +38,15 @@ export function tsconfigInForce(file: string): TsconfigInForce | undefined {
   };
 }
 
+/** Whether a shape's tsconfig.json refers to the projects that hold its files and aliases, as electron-vite and create-vite write it. */
+export const checksByProject = (shape: ShapeName): boolean => shape === "electron-vite" || shape === "vite-spa";
+
 /**
- * An electron-vite workspace's tsconfig.json names no file itself: its type check is that of each project it refers to,
- * as paths from the workspace folder. Every other workspace is checked through its tsconfig.json alone.
+ * An electron-vite or vite-spa workspace's tsconfig.json names no file itself: its type check is that of each project it
+ * refers to, as paths from the workspace folder. Every other workspace is checked through its tsconfig.json alone.
  */
 export function typecheckProjects(dir: string, workspace: Pick<WorkspaceEntry, "shape">): string[] {
-  if (workspace.shape !== "electron-vite") return [];
+  if (!checksByProject(workspace.shape)) return [];
   const config = tsconfigInForce(path.join(dir, "tsconfig.json"));
   return config?.checksNothing === true ? config.references.map((file) => relativePath(dir, file)) : [];
 }
@@ -56,7 +59,7 @@ export const aliasesOf = (dir: string): ElectronAliases => electronAliases(ts, d
  * that extends it and carries every alias in force, into a folder git ignores, and returns the arguments that name it.
  */
 export function cruiserAliases(dir: string, workspace: Pick<WorkspaceEntry, "shape">): string[] {
-  const { paths } = workspace.shape === "electron-vite" ? aliasesOf(dir) : { paths: {} };
+  const { paths } = checksByProject(workspace.shape) ? aliasesOf(dir) : { paths: {} };
   if (Object.keys(paths).length === 0) return [];
   const file = path.join(dir, "node_modules/.cache/harness/tsconfig.aliases.json");
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -114,10 +117,10 @@ export function reportTypecheck(dir: string, next: boolean, projects: readonly s
 }
 
 /** oxc workspaces: the same order, plain project tsc in Done and CI, with parsed findings. */
-export function projectTypecheck(dir: string, next: boolean): ToolStep[] {
+export function projectTypecheck(dir: string, next: boolean, projects: readonly string[] = []): ToolStep[] {
   const tsc: ToolStep = {
     name: "tsc",
-    command: [bin(dir, "tsc"), "--noEmit", "--pretty", "false"],
+    command: tscCommand(dir, ["--pretty", "false"], projects),
     timeoutMs: CHECK_TIMEOUT_MS,
     findings: (stdout) => typeFindings(dir, stdout),
   };

@@ -22,15 +22,17 @@ An agent that can edit the harness can switch it off, so it cannot. Locked: `too
 `.claude/settings.json`, `.codex/`, `.githooks/`, `.github/`, `tsconfig.json`, `next.config.ts`,
 `eslint.config.ts`, `prettier.config.ts`, `.prettierignore`, `knip.config.ts`, `vitest.config.ts`,
 `playwright.config.ts`, `.dependency-cruiser.json`, `.jscpd.json` and `harness.config.ts` (creating it
-too), the tool configs init writes in each eslint-prettier workspace, plus the legacy list and `locked`
-paths that config names. Edits by tool are denied, edits
+too), the tool configs init writes in each eslint-prettier workspace, `vite.config.ts` and every
+`tsconfig*.json` in a vite-spa workspace (`electron.vite.config.ts`, `electron-builder.yml` and every
+`tsconfig*.json` in an electron-vite one), plus the legacy list and `locked` paths that config names. Edits by tool are denied, edits
 by shell are reported and block Done, and the unlock command is denied to agents.
 
 A new workspace is the exception, so that an agent can add a package or an app without you. While no
 commit has ever held a file in its folder, its own tool configs and `tsconfig.json` may be created and changed, also by
 running `node tooling/harness/cli.ts init`. From the commit that adds the workspace they are locked like
 the rest. Two checks keep such a workspace honest: the preset check for its ESLint config, and the audit
-rule `tsconfig-strict`, which holds every next-modules and package `tsconfig.json` to `strict: true`
+rule `tsconfig-strict`, which holds every next-modules, package, electron-vite and vite-spa
+`tsconfig.json` to `strict: true`
 with `noImplicitAny` and `strictNullChecks` left on and no `noCheck`, read with the files it extends.
 A `tsconfig.json` that names no files to check (`"files": []` and no `include`) is reported too, since
 the harness's `tsc` step reads that file.
@@ -42,6 +44,36 @@ pnpm harness:lock     # when the change is done
 
 `package.json` stays open, because dependency edits belong there. Pre-push and CI call the harness
 directly rather than through a package script, so changing a script cannot weaken the gate.
+
+## Shapes and backend packages
+
+A workspace's shape says which folders, names and content its files may have. The shapes are
+`next-modules`, `package`, `electron-vite`, `vite-spa`, `makerkit-app`, `makerkit-feature`, `e2e` and
+`supabase`; [Adopt it](adopt.md) has a guide for each kind of project.
+
+The content rule `backend-package` keeps the connection to a backend in one folder. An import of a
+backend package outside that folder is a finding that says where the client belongs. A type-only
+import, a test file and code outside the workspace's source pass.
+
+| Shape                                                 | Where a backend package may be imported                |
+| ----------------------------------------------------- | ------------------------------------------------------ |
+| `vite-spa`                                            | `src/backend/`                                         |
+| `next-modules`                                        | `src/backend/`, or `backend/` in the layout without it |
+| `electron-vite`                                       | `src/main/`                                            |
+| `package`                                             | `src/server/`                                          |
+| `makerkit-app`, `makerkit-feature`, `e2e`, `supabase` | not judged                                             |
+
+The built-in list is `@supabase/`, `pocketbase`, `appwrite`, `node-appwrite`, `convex`, `@prisma/`,
+`drizzle-orm`, `pg`, `postgres`, `mysql2`, `mongodb`, `mongoose`, `better-sqlite3`, `@libsql/client`,
+`@neondatabase/serverless`, `redis`, `ioredis` and `@upstash/`. `backendPackages` in
+`harness.config.ts` adds to it: a package name, whose subpaths match too, or a scope ending in `/`.
+
+```ts
+export default defineHarness({
+  workspaces: [{ path: ".", shape: "vite-spa" }],
+  backendPackages: ["firebase"],
+});
+```
 
 ## Measuring the harness
 
@@ -73,7 +105,9 @@ shapes/
   next-modules.ts   the next-modules shape: folders, names, content rules, vendored files
   package.ts        a shared package: one module's layout under src/, configuration at its top
   electron/         an electron-vite app: paths, the content profile and the rules only Electron has
-    makerkit/         a Makerkit apps/web with its content rules, and a Makerkit feature package
+  vite/             a Vite single-page app: paths, the content profile and the env-access rule
+  backend-folder.ts the backend/ folder and the backend-package message every application shape shares
+  makerkit/         a Makerkit apps/web with its content rules, and a Makerkit feature package
   e2e.ts            a folder of Playwright tests beside the apps: tests/<suite>/ and its names
   supabase.ts       a Supabase folder: migration, schema, seed and test names
   limits.ts         file, folder and page size limits
@@ -103,7 +137,7 @@ core/
   audit/            path rules, content rules, duplicate exports, the tsconfig check
   gates/            fast, done and ci gates, the tool runner, the repair budget
   state/            tree snapshots, per-session state files and the gate lock under .git/harness/
-testing/            disposable git repositories (template, Makerkit, dashboard, create-turbo and Electron fixtures), the
+testing/            disposable git repositories (template, Makerkit, dashboard, create-turbo, Electron and Vite fixtures), the
                     decision corpus, the acceptance tests on those miniatures, the lint-config and
                     server-only tests
 ```

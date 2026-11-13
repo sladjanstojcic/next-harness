@@ -178,6 +178,29 @@ build: passed
 playwright: passed
 ```
 
+## The backend client
+
+A connection to a database or hosted backend lives in `src/backend/`, or `backend/` beside `app/`
+without `src/`. The folder is optional and flat: the client, its test, and the types the backend's CLI
+generates, named `*.types.ts` or `*-types.ts`. Those are vendored: the Write tool does not edit them,
+so regenerate them through the shell. `shared/` and `domain/` do not import the folder, and it imports
+only `shared/lib/`.
+
+Without `src/`, a `backend/` folder at the top is always this folder. A project that approved
+`backend` in `root.entries` for something else, such as a separate service, now gets path, name and
+size findings there. Move that service to another folder name.
+
+An import of a backend package such as `@supabase/supabase-js` or `pg` anywhere else is reported as
+`backend-package`, unless the import is `import type`:
+
+```text
+src/modules/billing/server/load-invoices.ts:1 backend-package — Import a backend package only in src/backend/, which holds the one client; elsewhere import that client, or the package's types with "import type".
+```
+
+An existing project that imports one elsewhere gets these findings in step 11; the legacy list holds
+them as for any other rule. [The reference](reference.md#shapes-and-backend-packages) has the list of
+packages and how to extend it.
+
 ## A project with code in it
 
 A real project has code that does not fit the shape yet. It shows up in step 11. Move it, or give the

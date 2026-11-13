@@ -18,7 +18,8 @@ in `src/shared/`. Nothing else goes under `src/`, and nothing new goes at the re
 
 Inside a module the folders are fixed too: `components/`, `server/`, `domain/` and `actions/`, with
 `index.ts` and `server.ts` as its public entries. A module needs an entry only once something outside
-it imports it. A folder named `utils`, `helpers`, `common` or
+it imports it. An optional, flat `src/backend/` holds the connection to a database or hosted backend:
+the client and the types its CLI generates. A folder named `utils`, `helpers`, `common` or
 `misc` is refused wherever it appears.
 
 A closed shape means there is one answer to "where does this go?". Without it, every helper folder
@@ -72,6 +73,17 @@ harness says   src/modules/reports/server/monthly-report.ts:1 module-public-api 
                src/modules/billing/server/load-invoices.ts. Import another module through
                index.ts, server.ts or actions/<name>-action.ts; keep internal imports inside
                their own module.
+```
+
+A backend package, such as `@supabase/supabase-js` or `pg`, is imported only in `src/backend/`.
+Everything else imports that one client, or the package's types with `import type`. Otherwise every
+module opens its own connection, with its own settings.
+
+```text
+agent imports  @supabase/supabase-js in src/modules/billing/server/load-invoices.ts
+harness says   src/modules/billing/server/load-invoices.ts:1 backend-package — Import a backend
+               package only in src/backend/, which holds the one client; elsewhere import that
+               client, or the package's types with "import type".
 ```
 
 ## No copies, no workarounds

@@ -1,16 +1,17 @@
 /** The import boundaries between an Electron app's three processes, as no-restricted-imports options; no ESLint import. */
 import { builtinModules } from "node:module";
-import { DEFAULT_ALIASES, type ElectronAliases } from "./electron-aliases.ts";
+import { DEFAULT_ALIASES, type ElectronAliases } from "../electron-aliases.ts";
 
 const LAYOUT = "(Electron layout)";
 const RENDERER = "src/renderer/src";
 
-interface Pattern {
+export interface Pattern {
   regex: string;
   message: string;
+  allowTypeImports?: boolean;
 }
 
-interface BoundaryBlock {
+export interface BoundaryBlock {
   files: string[];
   ignores?: string[];
   rules: Record<string, ["error", ...unknown[]]>;
@@ -18,7 +19,7 @@ interface BoundaryBlock {
 
 const escaped = (prefixes: readonly string[]): string => prefixes.map((prefix) => prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
 
-const block = (files: string[], patterns: Pattern[], extra: { builtins?: boolean; ignores?: string[] } = {}): BoundaryBlock => ({
+export const block = (files: string[], patterns: Pattern[], extra: { builtins?: boolean; ignores?: string[] } = {}): BoundaryBlock => ({
   files,
   ...(extra.ignores === undefined ? {} : { ignores: extra.ignores }),
   rules: { "no-restricted-imports": ["error", { ...(extra.builtins === true ? { paths: [...builtinModules] } : {}), patterns }] },

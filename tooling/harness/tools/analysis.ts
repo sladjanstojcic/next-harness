@@ -3,12 +3,12 @@ import path from "node:path";
 import { z } from "zod";
 import { sourcePaths, sourceRootOf, type WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
-import { ALL_NAMES } from "../core/package-usage.ts";
 import { shapeOf } from "../shapes/index.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
+import { knipFindings, type UsedElsewhere } from "./analysis/knip-findings.ts";
 import { presetImport } from "./eslint-preset.ts";
 import { bin, CHECK_TIMEOUT_MS, relativePath } from "./tool-set.ts";
-import { cruiserAliases } from "./typescript.ts";
+import { checksByProject, cruiserAliases } from "./typescript.ts";
 
 const dependencyOutput = z.object({
   modules: z.array(
@@ -34,7 +34,6 @@ const dependencyOutput = z.object({
     ),
   }),
 });
-const knipOutput = z.object({ issues: z.array(z.object({ file: z.string() }).catchall(z.array(z.unknown()))) });
 const duplicateFile = z.object({ name: z.string(), start: z.number() });
 const duplicateOutput = z.object({ duplicates: z.array(z.object({ firstFile: duplicateFile, secondFile: duplicateFile })) });
 const declarations = z.record(z.string(), z.string()).optional();
@@ -83,8 +82,8 @@ function dependencyResult(root: string, workspace: WorkspaceEntry, stdout: strin
   // The preset's comments name src/ paths; a workspace without src/ reads them with its own.
   const advice = (comment = "Keep imports within the module or use its public API; cross-cutting code belongs in src/shared/lib/."): string =>
     sourceRootOf(workspace) === "" ? comment.replaceAll("src/", "") : comment;
-  // A violation names its rule without the rule's comment; the Electron preset's comments say which part may import what.
-  const rules = workspace.shape === "electron-vite" ? (result.summary.ruleSetUsed?.forbidden ?? []) : [];
+  // A violation names its rule without the rule's comment; the Electron and Vite presets' comments say which part may import what.
+  const rules = checksByProject(workspace.shape) ? (result.summary.ruleSetUsed?.forbidden ?? []) : [];
   const comments = new Map(rules.map(({ name, comment }) => [name, comment]));
   const findings = result.summary.violations.map(({ rule, from, to }) => ({
     rule: rule.name,
@@ -92,55 +91,6 @@ function dependencyResult(root: string, workspace: WorkspaceEntry, stdout: strin
     message: `${from} → ${to}. ${advice(rule.comment ?? comments.get(rule.name))}`,
   }));
   return { findings, affected };
-}
-
-/** What each kind of knip issue is, in words; the entry's name follows. */
-const KNIP_KINDS: Readonly<Record<string, string>> = {
-  files: "unused file",
-  exports: "unused export",
-  types: "unused exported type",
-  dependencies: "unused dependency",
-  devDependencies: "unused devDependency",
-  binaries: "unlisted binary",
-  unlisted: "unlisted dependency",
-  unresolved: "unresolved import",
-};
-const knipEntry = z.object({ name: z.string(), line: z.number().optional() });
-
-/** Entry file to the names another workspace imports from it; see core/package-usage.ts. */
-type UsedElsewhere = ReadonlyMap<string, ReadonlySet<string>>;
-
-function knipFindings(root: string, stdout: string, usedElsewhere?: () => UsedElsewhere): Finding[] {
-  // Knip names an unused public export in the file that defines it, not in the entry that re-exports it, so a name
-  // another workspace imports from any entry counts wherever the package exports it.
-  const used = new Set([...(usedElsewhere?.() ?? new Map<string, ReadonlySet<string>>()).values()].flatMap((names) => [...names]));
-  const isUsed = (kind: string, name: string): boolean => (kind === "exports" || kind === "types") && (used.has(name) || used.has(ALL_NAMES));
-  const value: unknown = JSON.parse(stdout);
-  const unusedDependency = "Remove the unused dependency from package.json or use it in the application.";
-  const guidance: Record<string, string> = {
-    files: "Remove the unused file or import it from an entry point.",
-    exports: "Remove the unused export or import it where it is used.",
-    dependencies: unusedDependency,
-    devDependencies: unusedDependency,
-  };
-  return knipOutput.parse(value).issues.flatMap(({ file, ...issues }) =>
-    Object.entries(issues)
-      .filter(([kind]) => kind !== "owners")
-      .flatMap(([kind, entries]) =>
-        entries.flatMap((entry): Finding[] => {
-          const named = knipEntry.safeParse(entry);
-          if (named.success && isUsed(kind, named.data.name)) return [];
-          const what = `${KNIP_KINDS[kind] ?? kind}${named.success ? ` ${named.data.name}` : `: ${JSON.stringify(entry)}`}`;
-          const finding: Finding = {
-            rule: `knip-${kind}`,
-            file: relativePath(root, file),
-            ...(named.success && named.data.line !== undefined ? { line: named.data.line } : {}),
-            message: `${what}. ${guidance[kind] ?? `Resolve the ${kind} issue in ${file}.`}`,
-          };
-          return [finding];
-        }),
-      ),
-  );
 }
 
 function duplicateFindings(root: string, shared: string, reportFile: string): Finding[] {
@@ -208,7 +158,7 @@ export const knip = {
   check: (dir: string): ToolStep => check(dir, "knip", "knip", []),
 };
 
-/** Where an Electron project's jscpd report goes: a folder every project ignores, since it has no .next/ for the preset's. */
+/** Where an Electron or Vite project's jscpd report goes: a folder every project ignores, since it has no .next/ for the preset's. */
 export const JSCPD_CACHE = "node_modules/.cache/jscpd";
 
 /** The workspace's own .jscpd.json, or the harness preset; jscpd has no `extends`. */
@@ -235,7 +185,7 @@ export const jscpd = {
   check: (dir: string, workspace: WorkspaceEntry): ToolStep => {
     const folders =
       sourceRootOf(workspace) === "" ? [...sources(dir, workspace), "tooling"].filter((file) => fs.existsSync(path.join(dir, file))) : ["src", "tooling"];
-    const output = workspace.shape === "electron-vite" ? ["--output", JSCPD_CACHE] : [];
+    const output = checksByProject(workspace.shape) ? ["--output", JSCPD_CACHE] : [];
     return check(dir, "jscpd", "jscpd", [...folders, "--config", jscpdConfig(dir, workspace.path), ...output]);
   },
 };
@@ -244,5 +194,8 @@ export const build = (dir: string): ToolStep => check(dir, "build", "next", ["bu
 
 /** An Electron app's production build of main, preload and renderer; packaging with electron-builder is the user's step. */
 export const electronBuild = (dir: string): ToolStep => check(dir, "build", "electron-vite", ["build"], 600_000);
+
+/** A Vite single-page app's production build into dist/. */
+export const viteBuild = (dir: string): ToolStep => check(dir, "build", "vite", ["build"], 600_000);
 
 export const playwright = (dir: string): ToolStep => check(dir, "playwright", "playwright", ["test"], 300_000);

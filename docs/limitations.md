@@ -19,6 +19,22 @@ parent: Reference
   there, nine forbidden attempts were all stopped and none was false. Nothing was opened in a window on
   Windows or macOS, and packaging was not run. In this repository's own tests the build is a stub, since
   Electron is not installed here.
+- The `vite-spa` shape was run on a fresh create-vite 9.3.4 project: init's nine printed steps, the
+  template's `App.tsx` replaced by routes, then all ten gate steps passed, with the real `vite build`.
+  It was run again with shadcn, a PocketBase client in `src/backend/` and a module with `data/`; the
+  types file was written by hand, and no PocketBase server ran. No agent session has worked there yet.
+- shadcn on a create-vite project needs Tailwind, the `@/` alias in the root `tsconfig.json` and its
+  `components.json` pointed at `src/shared/`. Init prints none of this; [the Vite page](vite.md#shadcn)
+  shows the steps as run.
+- `backend-package` knows the built-in list and `backendPackages`. A backend package on neither is not
+  seen until it is added to `backendPackages`.
+- `env-access` follows `import.meta.env`, `import.meta["env"]` and `const { env } = import.meta`. It
+  does not follow `import.meta` kept in a variable (`const m = import.meta; m.env`).
+- Every `VITE_*` value is public in the built bundle. The harness does not judge which names go in
+  `.env.example`; a service key never gets that prefix.
+- Where two workspaces cover the same folder, as `apps/*` and `apps/web` do, a tool config there is
+  locked when either workspace's shape locks it, not only the shape of the workspace the folder
+  belongs to.
 - `electron-security` does not follow a shorthand property (`{ sandbox }`), and it reports the same key
   in another library's options in `src/main/`. Of `shell.openExternal` it follows `const { openExternal } = shell`
   and nothing further: not an alias (`const open = shell.openExternal`), not `shell` under another name or written as `shell["openExternal"]`, while any object named `shell` counts as Electron's,
