@@ -131,12 +131,37 @@ describe("the ESLint preset for the electron layout", () => {
 
   it("hands dependency-cruiser one tsconfig with every alias, in a folder git ignores", () => {
     const { root } = project();
-    expect(cruiserAliases(root, ELECTRON)).toEqual(["--ts-config", "node_modules/.cache/harness/tsconfig.aliases.json"]);
-    const written = JSON.parse(fs.readFileSync(path.join(root, "node_modules/.cache/harness/tsconfig.aliases.json"), "utf8")) as Record<string, unknown>;
+    const [flag, file = ""] = cruiserAliases(root, ELECTRON);
+    expect(flag).toBe("--ts-config");
+    expect(file).toMatch(/^node_modules\/\.cache\/harness\/tsconfig\.aliases\.[0-9a-f]{12}\.json$/u);
+    const written = JSON.parse(fs.readFileSync(path.join(root, file), "utf8")) as Record<string, unknown>;
     expect(written).toEqual({
       extends: path.join(root, "tsconfig.json"),
       compilerOptions: { paths: { "@shared/*": [path.join(root, "src/shared/*")], "@renderer/*": [path.join(root, "src/renderer/src/*")] } },
     });
+  });
+
+  it("names the alias file after the workspace folder, so projects that share one node_modules never share the file", () => {
+    const first = project();
+    const second = project();
+    const shared = path.join(path.dirname(first.root), "shared-modules");
+    fs.mkdirSync(shared);
+    for (const { root } of [first, second]) {
+      fs.rmSync(path.join(root, "node_modules"), { recursive: true, force: true });
+      fs.symlinkSync(shared, path.join(root, "node_modules"));
+    }
+    const [, one = ""] = cruiserAliases(first.root, ELECTRON);
+    const [, two = ""] = cruiserAliases(second.root, ELECTRON);
+    expect(one).toMatch(/^node_modules\/\.cache\/harness\/tsconfig\.aliases\.[0-9a-f]{12}\.json$/u);
+    expect(two).not.toBe(one);
+    expect(cruiserAliases(first.root, ELECTRON)).toEqual(["--ts-config", one]);
+    for (const [root, file] of [
+      [first.root, one],
+      [second.root, two],
+    ] as const) {
+      const written = JSON.parse(fs.readFileSync(path.join(root, file), "utf8")) as { extends: string };
+      expect(written.extends).toBe(path.join(root, "tsconfig.json"));
+    }
   });
 
   it("keeps casts to the main process and the contract's guards, and console output to automation", () => {
