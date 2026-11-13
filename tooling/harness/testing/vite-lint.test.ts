@@ -29,8 +29,12 @@ const TARGETS = {
   "package.json": JSON.stringify({ name: "ad-board", type: "module" }),
   "tsconfig.json": TSCONFIG,
   "src/backend/database.types.ts": "export interface Ad {\n  id: string;\n}\n",
-  "src/modules/ads/index.ts": "export const a = 1;\n",
 };
+
+/** The files beside components/ and hooks/ that may name the client's types but not call it. */
+const UI_ENTRIES = ["src/main.tsx", "src/modules/ads/index.ts", "src/modules/ads/types.ts", "src/modules/ads/schemas.ts"];
+/** A type-only import on line 1 that passes, and a value import on line 2 that is reported. */
+const TYPE_ONLY = 'import type { pb as Pb } from "@/backend/client";\nimport { pb } from "@/backend/client";\n\nexport const used: typeof Pb = pb;\n';
 
 /** One file per row: the folder and the import of the brief's table, and the one rule expected there, if any. */
 const ROWS: [file: string, code: string, expected: string[]][] = [
@@ -44,11 +48,22 @@ const ROWS: [file: string, code: string, expected: string[]][] = [
   ["src/modules/ads/data/files.ts", 'import fs from "node:fs";\n\nexport const used = fs;\n', ["no-restricted-imports"]],
   ["src/modules/ads/components/c.tsx", "console.log(1);\n", ["no-console"]],
   ["src/shared/lib/log.ts", "console.error(1);\n", []],
+  ["src/backend/route.ts", 'import { used } from "@/app/page";\n\nexport const route = used;\n', ["no-restricted-imports"]],
+  ["src/backend/dom.ts", 'import { createRoot } from "react-dom/client";\n\nexport const used = createRoot;\n', ["no-restricted-imports"]],
+  ["src/shared/lib/route.ts", 'import { used } from "@/app/page";\n\nexport const route = used;\n', ["no-restricted-imports"]],
+  ["src/shared/hooks/use-client.ts", 'import { pb } from "@/backend/client";\n\nexport const used = pb;\n', ["no-restricted-imports"]],
+  ["src/modules/ads/hooks/use-ads.ts", 'import { pb } from "@/backend/client";\n\nexport const used = pb;\n', ["no-restricted-imports"]],
+  ["src/modules/ads/domain/p.test.ts", 'import { useState } from "react";\n\nexport const used = useState;\n', []],
+  ...UI_ENTRIES.map((file): [string, string, string[]] => [
+    file,
+    `${TYPE_ONLY}${file.endsWith("index.ts") ? "export const a = 1;\n" : ""}`,
+    ["no-restricted-imports"],
+  ]),
 ];
 
 interface Result {
   filePath: string;
-  messages: { ruleId: string | null; message: string }[];
+  messages: { ruleId: string | null; message: string; line: number }[];
 }
 
 const project = (config = THIN) => consumerRepo({ ...TARGETS, ...Object.fromEntries(ROWS.map(([file, code]) => [file, code])), "eslint.config.ts": config });
@@ -57,10 +72,11 @@ describe("the ESLint boundaries of a vite-spa workspace", () => {
   it("keep the backend client to data/ and src/backend/, React out of the backend and domain, and Node out of src/", () => {
     const { root } = project();
     const results = JSON.parse(run(root, "eslint", ["-f", "json", ...ROWS.map(([file]) => file)]).output) as Result[];
-    const found = (file: string) => results.find(({ filePath }) => filePath.endsWith(file))?.messages ?? [{ ruleId: "not linted", message: "" }];
+    const found = (file: string) => results.find(({ filePath }) => filePath.endsWith(file))?.messages ?? [{ ruleId: "not linted", message: "", line: 0 }];
     expect(ROWS.map(([file]) => [file, [...new Set(found(file).map(({ ruleId }) => ruleId))]])).toEqual(ROWS.map(([file, , expected]) => [file, expected]));
     for (const [file] of ROWS)
       for (const { ruleId, message } of found(file)) if (ruleId === "no-restricted-imports") expect(message.endsWith("(Vite layout)"), message).toBe(true);
+    for (const file of UI_ENTRIES) expect(found(file).map(({ line }) => line)).toEqual([2]);
   }, 120_000);
 });
 
