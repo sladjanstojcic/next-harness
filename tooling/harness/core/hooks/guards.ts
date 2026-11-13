@@ -2,7 +2,7 @@ import path from "node:path";
 import { classify, legacyInvalidFindings, readLegacy } from "../classes.ts";
 import { INIT_FORCE_COMMAND, isLocked, lockReason, UNLOCK_COMMAND, unlocked } from "../lock.ts";
 import { isIgnored } from "../state/git-ignore.ts";
-import { checkPath, isVendoredIn, resolveHarness, sourceRootAt } from "../path-check.ts";
+import { checkPath, isGeneratedIn, isVendoredIn, resolveHarness, sourceRootAt } from "../path-check.ts";
 import type { HookEvent } from "./event.ts";
 import { namesHarnessState } from "./harness-state-guard.ts";
 import { isNestedLintConfig, LINT_CONFIG_RULE, lintConfigReason } from "./lint-config-guard.ts";
@@ -110,6 +110,9 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
       if (isAppliedMigration(canonicalRoot, relative, applied)) return { guard: MIGRATION_RULE, reason: migrationReason(relative, applied) };
     }
     if (isNestedLintConfig(harness, relative)) return { guard: LINT_CONFIG_RULE, reason: lintConfigReason(harness, relative) };
+    if (isGeneratedIn(harness, relative)) {
+      return { guard: "vendored-write", reason: `regenerate ${relative} with the backend's CLI; keep your own types in a module's types.ts` };
+    }
     if (isVendoredIn(harness, relative)) {
       return {
         guard: "vendored-write",
