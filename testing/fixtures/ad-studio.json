@@ -1,0 +1,21 @@
+{
+  ".gitignore": "node_modules\ndist\n*.tsbuildinfo\n",
+  "package.json": "{\n  \"name\": \"ad-studio\",\n  \"private\": true,\n  \"version\": \"0.0.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc -b && vite build\",\n    \"typecheck\": \"tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json\"\n  },\n  \"dependencies\": {\n    \"pocketbase\": \"0.26.2\",\n    \"react\": \"19.2.0\",\n    \"react-dom\": \"19.2.0\",\n    \"zod\": \"4.1.12\"\n  }\n}\n",
+  "index.html": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <title>Ad Studio</title>\n  </head>\n  <body>\n    <div id=\"root\"></div>\n    <script type=\"module\" src=\"/src/main.tsx\"></script>\n  </body>\n</html>\n",
+  "vite.config.ts": "import react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\n\nexport default defineConfig({\n  plugins: [react()],\n  resolve: { tsconfigPaths: true },\n});\n",
+  "tsconfig.json": "{\n  \"files\": [],\n  \"references\": [{ \"path\": \"./tsconfig.app.json\" }, { \"path\": \"./tsconfig.node.json\" }]\n}\n",
+  "tsconfig.app.json": "{\n  \"compilerOptions\": {\n    \"strict\": true,\n    \"target\": \"ES2022\",\n    \"lib\": [\n      \"ES2022\",\n      \"DOM\"\n    ],\n    \"module\": \"ESNext\",\n    \"moduleResolution\": \"bundler\",\n    \"jsx\": \"react-jsx\",\n    \"noEmit\": true,\n    \"types\": [\n      \"vite/client\"\n    ],\n    \"paths\": {\n      \"@/*\": [\n        \"./src/*\"\n      ]\n    }\n  },\n  \"include\": [\n    \"src\"\n  ]\n}\n",
+  "tsconfig.node.json": "{\n  \"compilerOptions\": {\n    \"strict\": true,\n    \"target\": \"ES2023\",\n    \"module\": \"ESNext\",\n    \"moduleResolution\": \"bundler\",\n    \"noEmit\": true,\n    \"types\": [\n      \"node\"\n    ]\n  },\n  \"include\": [\n    \"vite.config.ts\"\n  ]\n}\n",
+  "src/main.tsx": "import { StrictMode } from \"react\";\nimport { createRoot } from \"react-dom/client\";\nimport { Router } from \"./app/router\";\n\nconst root = document.getElementById(\"root\");\nif (root !== null) {\n  createRoot(root).render(\n    <StrictMode>\n      <Router />\n    </StrictMode>,\n  );\n}\n",
+  "src/app/router.tsx": "import Page from \"./page\";\n\nexport function Router() {\n  return <Page />;\n}\n",
+  "src/app/page.tsx": "import { AdList } from \"@/modules/ads\";\n\nexport default function Page() {\n  return (\n    <main>\n      <AdList />\n    </main>\n  );\n}\n",
+  "src/modules/ads/index.ts": "export { AdList } from \"./components/ad-list\";\nexport type { Ad } from \"./types\";\n",
+  "src/modules/ads/types.ts": "export interface Ad {\n  id: string;\n  title: string;\n  budgetCents: number;\n}\n",
+  "src/modules/ads/components/ad-list.tsx": "import { formatBudget } from \"../domain/budget\";\nimport { useAds } from \"../hooks/use-ads\";\n\nexport function AdList() {\n  const ads = useAds();\n  return (\n    <ul>\n      {ads.map((ad) => (\n        <li key={ad.id}>\n          {ad.title}: {formatBudget(ad.budgetCents)}\n        </li>\n      ))}\n    </ul>\n  );\n}\n",
+  "src/modules/ads/hooks/use-ads.ts": "import { useEffect, useState } from \"react\";\nimport { listAds } from \"../data/ads\";\nimport type { Ad } from \"../types\";\n\nexport function useAds(): Ad[] {\n  const [ads, setAds] = useState<Ad[]>([]);\n  useEffect(() => {\n    void listAds().then(setAds);\n  }, []);\n  return ads;\n}\n",
+  "src/modules/ads/data/ads.ts": "import { pb } from \"@/backend/client\";\nimport type { Ad } from \"../types\";\n\nexport function listAds(): Promise<Ad[]> {\n  return pb.collection(\"ads\").getFullList<Ad>();\n}\n",
+  "src/modules/ads/domain/budget.ts": "export const formatBudget = (cents: number): string => `${(cents / 100).toFixed(2)} EUR`;\n",
+  "src/modules/ads/domain/budget.test.ts": "import { expect, it } from \"vitest\";\nimport { formatBudget } from \"./budget\";\n\nit(\"shows the budget in euros\", () => {\n  expect(formatBudget(1250)).toBe(\"12.50 EUR\");\n});\n",
+  "src/backend/client.ts": "import PocketBase from \"pocketbase\";\nimport { env } from \"@/shared/lib/env\";\n\nexport const pb = new PocketBase(env.VITE_POCKETBASE_URL);\n",
+  "src/shared/lib/env.ts": "import { z } from \"zod\";\n\nexport const env = z.object({ VITE_POCKETBASE_URL: z.url() }).parse(import.meta.env);\n"
+}
