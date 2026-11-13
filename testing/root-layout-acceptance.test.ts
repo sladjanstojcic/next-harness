@@ -41,7 +41,7 @@ function session(repo: RepoFixture) {
 }
 
 describe("create-next-app without --src-dir, with no harness.config.ts", () => {
-  const project = () => makeRepo({ ...APP_WITHOUT_SRC, ".gitignore": "node_modules/\n.next/\n", ...TOOLS });
+  const project = () => makeRepo({ ...APP_WITHOUT_SRC, ".gitignore": "node_modules/\n.next/\n", ...TOOLS }, { agents: true });
 
   it.each(["app/reports/page.tsx", "app/api/orders/route.ts", PRICE, "modules/billing/index.ts", "shared/lib/money.ts", "proxy.ts"])(
     "allows a write to %s",

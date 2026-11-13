@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach } from "vitest";
+import { harnessBlock } from "../core/init/agents/agents-block.ts";
 
 // Git hooks export repository selectors; tests must resolve their disposable repositories instead.
 for (const name of ["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_COMMON_DIR", "GIT_PREFIX"]) {
@@ -25,7 +26,8 @@ afterEach(() => {
   }
 });
 
-export function makeRepo(files: Record<string, string> = {}): RepoFixture {
+/** `agents` writes the harness rules init would write into AGENTS.md: a repository the harness was adopted in, which the audit expects. */
+export function makeRepo(files: Record<string, string> = {}, options: { agents?: boolean } = {}): RepoFixture {
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), "next harness-"));
   parents.add(parent);
   const root = path.join(parent, "repo");
@@ -53,6 +55,7 @@ export function makeRepo(files: Record<string, string> = {}): RepoFixture {
   git("config", "user.name", "Fixture");
   git("config", "core.hooksPath", hooks);
   for (const [file, text] of Object.entries(files)) write(file, text);
+  if (options.agents === true) write("AGENTS.md", `${harnessBlock(root)}\n`);
   git("add", "-A");
   git("commit", "-q", "--allow-empty", "-m", "Fixture");
   return {

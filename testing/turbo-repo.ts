@@ -222,5 +222,5 @@ export function turboRepo(files: Record<string, string> = {}): RepoFixture {
   const bins = Object.fromEntries(
     ["eslint", "prettier", "tsc", "next", "vitest", "depcruise", "knip", "jscpd"].map((tool): [string, string] => [`node_modules/.bin/${tool}`, ""]),
   );
-  return makeRepo({ ...TURBO_FILES, ...bins, ...files });
+  return makeRepo({ ...TURBO_FILES, ...bins, ...files }, { agents: true });
 }

@@ -4,6 +4,7 @@ import { ciGate } from "../core/gates/ci-gate.ts";
 import * as runner from "../core/gates/run-tool.ts";
 import { parseEvent } from "../core/hooks/event.ts";
 import { handleEvent } from "../core/hooks/handle.ts";
+import { harnessBlock } from "../core/init/agents/agents-block.ts";
 import { electronProject, DESK_APP } from "./electron-repo.ts";
 import type { RepoFixture } from "./temp-repo.ts";
 
@@ -112,6 +113,7 @@ describe("the hooks in an electron-vite project (Desk App)", () => {
 
   it("run one tsc step over both projects at Stop and in CI, the build in CI, and no Next step", async () => {
     const repo = electronProject(DESK_APP);
+    repo.write("AGENTS.md", `${harnessBlock(repo.root)}\n`);
     const steps = recordSteps();
     const hooks = session(repo);
     await hooks.prompt();
