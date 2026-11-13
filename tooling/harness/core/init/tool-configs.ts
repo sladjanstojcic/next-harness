@@ -8,6 +8,7 @@ import { isObject, readJson, starterSteps, writer, type Step } from "./files.ts"
 import { BUNDLE_IGNORED, developsHarness, gitignoreStep, HARNESS_MODULES, IGNORED, prettierIgnored, ignoreEntriesStep } from "./ignore-files.ts";
 import { checksByProject, typecheckProjects } from "../../tools/typescript.ts";
 import { tsconfigSteps } from "./tsconfig-step.ts";
+import { viteVitestText } from "./vite/vite-steps.ts";
 
 interface ToolConfig {
   /** The names the tool reads its config from, init's own first; a project's own config is never replaced. */
@@ -47,7 +48,10 @@ const PRETTIER: ToolConfig = {
 const VITEST: ToolConfig = {
   names: TOOL_CONFIG_NAMES.vitest,
   marker: "harnessVitest(",
-  text: (workspace) => `import { harnessVitest } from "${presetImport(workspace.path, "vitest.ts")}";\n\nexport default harnessVitest();\n`,
+  text: (workspace) =>
+    workspace.shape === "vite-spa"
+      ? viteVitestText(workspace)
+      : `import { harnessVitest } from "${presetImport(workspace.path, "vitest.ts")}";\n\nexport default harnessVitest();\n`,
   // An Electron project's own Vitest config holds its aliases and needs nothing from the preset.
   lines: (workspace) =>
     workspace.shape === "electron-vite"
@@ -219,7 +223,7 @@ export function toolScripts(workspace: WorkspaceEntry, dir = "", starter = false
 export function toolConfigSteps(root: string, workspace: WorkspaceEntry, force: boolean, starter: boolean): Step[] {
   const browser = workspace.path === "" && workspace.next;
   const app = isApp(workspace);
-  const electron = workspace.shape === "electron-vite";
+  const bundled = workspace.shape === "electron-vite" || workspace.shape === "vite-spa";
   const ignored = [...(BUNDLE_IGNORED[workspace.shape] ?? IGNORED), ...(workspace.path === "" ? [HARNESS_MODULES] : [])];
   return [
     ...toolsOf(root, workspace).map((tool) => toolConfigStep(root, workspace, tool)),
@@ -230,12 +234,12 @@ export function toolConfigSteps(root: string, workspace: WorkspaceEntry, force: 
     ...(workspace.path === "" || !app ? [] : [ignoreEntriesStep(root, label(workspace, ".prettierignore"), prettierIgnored(workspace))]),
     ...(starter && workspace.shape === "next-modules" ? starterSteps(root, "next-modules", label(workspace, `${sourceRootOf(workspace)}shared/lib`)) : []),
     ...(starter && browser ? starterSteps(root, "e2e", label(workspace, "e2e")) : []),
-    ...(starter && electron
+    ...(starter && bundled
       ? [
           {
             target: label(workspace, "src"),
             status: "unchanged" as const,
-            detail: "--starter writes nothing here: the electron-vite shape has no starter files",
+            detail: `--starter writes nothing here: the ${workspace.shape} shape has no starter files`,
           },
         ]
       : []),

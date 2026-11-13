@@ -13,6 +13,7 @@ import { gitignoreStep, HARNESS_MODULES, rootIgnoreSteps } from "./ignore-files.
 import { TYPESCRIPT_API_REASON } from "../../presets/load-tool.ts";
 import { needsTypescriptApi, peerInstall, starterInstall } from "./peers.ts";
 import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
+import { viteTodo } from "./vite/vite-steps.ts";
 import { CONFIG_FILE, isConfigOnly, type WorkspaceEntry } from "../../config.ts";
 import { ciSteps, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH, PREPARE } from "./wiring.ts";
 
@@ -165,6 +166,7 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
       (file) =>
         `Bundle the packages the preload script imports, which a sandboxed preload cannot load and electron-vite leaves outside the bundle (init does not edit ${file}), by adding this to its preload section, and removing externalizeDepsPlugin() from that section's plugins when it is there: ${PRELOAD_BUNDLE_SETTING}`,
     ),
+    ...viteTodo(root, workspaces),
     ...(preparesHooks(root) ? [] : [`Add to the root package.json "prepare" script, so a fresh clone gets the pre-push hook: ${PREPARE}`]),
     ...(format.length === 0 ? [] : [`Format the app's own files once in the preset's style: ${format.join("; ")}`]),
     ...(edited.length === 0 ? [] : [`Format the kept files you edited, in the project's own style: ${edited.join("; ")}`]),
