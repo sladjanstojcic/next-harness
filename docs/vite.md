@@ -182,10 +182,11 @@ src/
 - `src/shared/ui/`, `src/shared/lib/utils.ts` and the generated types in `src/backend/` (`*.types.ts`,
   `*-types.ts`, such as `database.types.ts` or `pocketbase-types.ts`) are vendored. They pass the size
   limit, and the Write tool does not edit them: regenerate them through the shell.
-- **Boundaries.** `src/backend/` is imported only from a module's `data/`, and anywhere with
-  `import type`, since a type holds no connection. `src/backend/` imports no module, route or React.
-  `src/shared/` imports no module, route or backend. `domain/` imports no React and no backend. A module
-  is used from outside only through `index.ts`. No Node built-in anywhere under `src/`, and no cycles.
+- **Boundaries.** `src/backend/` is imported only from a module's `data/`, and with `import type` in a
+  module and in `src/app/`, since a type holds no connection. `src/backend/` imports no module, route or
+  React. `src/shared/` imports no module, route or backend. `domain/` imports no React, and from the
+  backend only its types. A module is used from outside only through `index.ts`. No Node built-in
+  anywhere under `src/`, and no cycles.
   The ESLint preset (`layout: "spa"`) and a dependency-cruiser preset both hold these.
 - **Content rules.** `import.meta.env` is read only in `src/shared/lib/env.ts`, which validates it
   with Zod (`env-access`). `process.env` under `src/` is reported, since Vite gives the browser none.

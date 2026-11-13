@@ -297,10 +297,10 @@ export default defineHarness({
   vendored as `*.types.ts` and `*-types.ts`); and `shared/{ui,components,lib,hooks}/`. Denials say
   "(Vite layout)".
 - Vite boundaries, in the ESLint preset (`layout: "spa"`) and in the dependency-cruiser preset:
-  `src/backend/` is imported only from a module's `data/`, and anywhere with `import type`; it imports
-  no module, route or React. `src/shared/` imports no module, route or backend; `domain/` imports no
-  React and no backend; a module is used from outside through its `index.ts`; no Node built-in under
-  `src/`; no cycles. Content rules: `import.meta.env` is read only in `src/shared/lib/env.ts`
+  `src/backend/` is imported only from a module's `data/`, and with `import type` in a module and in
+  `src/app/`; it imports no module, route or React. `src/shared/` imports no module, route or backend;
+  `domain/` imports no React, and from the backend only its types; a module is used from outside
+  through its `index.ts`; no Node built-in under `src/`; no cycles. Content rules: `import.meta.env` is read only in `src/shared/lib/env.ts`
   (`env-access`), `process.env` under `src/` is reported, `"use server"`, `"use client"` and
   `server-only` are reported anywhere, and console output belongs in `src/shared/lib/log.ts`. Every
   `VITE_*` value is public in the built bundle: a service key never gets that prefix.
