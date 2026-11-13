@@ -40,6 +40,17 @@ export function typescriptVersion(root: string): string | undefined {
 /** Whether the `typescript` a folder resolves is 7 or newer. */
 export const lacksTypescriptApi = (root: string): boolean => Number((typescriptVersion(root) ?? "").split(".")[0]) >= 7;
 
+/**
+ * What to add for a tool that refuses TypeScript 7, as init's install line gives it: when the workspace's own typescript
+ * is the only one up the tree, the TypeScript 6 alias would take its `tsc`, so the second alias keeps it.
+ */
+function typescriptApiAdvice(root: string): string {
+  const own = fs.existsSync(path.join(root, "node_modules/typescript/package.json"));
+  if (!own || packageFolder(path.dirname(path.resolve(root)), "typescript") !== undefined)
+    return `${TYPESCRIPT_API_REASON}. Add "${TYPESCRIPT_API}" to that workspace`;
+  return `${TYPESCRIPT_NATIVE_REASON}. Add "${TYPESCRIPT_API}" and ${typescriptNative(typescriptVersion(root) ?? "")} to that workspace`;
+}
+
 const isMissing = (error: unknown): boolean => error instanceof Error && "code" in error && error.code === "MODULE_NOT_FOUND";
 
 /**
@@ -64,8 +75,7 @@ export function toolLoader(root: string, from?: string): (request: string) => un
     }
     const reason = first instanceof Error ? first.message : String(first);
     const where = from === undefined ? root : `${root} or from ${from}`;
-    const advice =
-      !isMissing(first) && lacksTypescriptApi(root) ? `${TYPESCRIPT_API_REASON}. Add "${TYPESCRIPT_API}" to that workspace` : "install it in that workspace";
+    const advice = !isMissing(first) && lacksTypescriptApi(root) ? typescriptApiAdvice(root) : "install it in that workspace";
     throw new Error(`The harness preset cannot load ${request} from ${where}; ${advice}. ${reason}`, { cause: first });
   };
 }

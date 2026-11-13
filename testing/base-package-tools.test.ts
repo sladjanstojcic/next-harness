@@ -179,7 +179,11 @@ describe("tools the project's own lint config already brings", () => {
     expect(peerInstall(repo.root, loadConfig(repo.root), workspace)).toMatch(
       / "typescript@npm:@typescript\/typescript6@\^6\.0\.2" typescript-native@npm:typescript@7\.0\.2\)$/,
     );
+    install(repo.root, APP, "harness-fixture-tool", 'throw new Error("does not support TS 7.0.");\n');
+    const failure = (): unknown => toolLoader(repo.dir, BASE)("harness-fixture-tool");
+    expect(failure).toThrow('Add "typescript@npm:@typescript/typescript6@^6.0.2" and typescript-native@npm:typescript@7.0.2 to that workspace.');
     typescript("");
     expect(peerInstall(repo.root, loadConfig(repo.root), workspace)).not.toContain("typescript-native");
+    expect(failure).toThrow('Add "typescript@npm:@typescript/typescript6@^6.0.2" to that workspace.');
   });
 });
