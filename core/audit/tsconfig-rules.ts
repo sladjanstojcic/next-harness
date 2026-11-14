@@ -5,7 +5,7 @@ import { resolveHarness } from "../path-check.ts";
 import type { Finding } from "./finding.ts";
 
 /** The shapes whose type check the harness relies on; the Makerkit and supabase shapes keep the kit's own settings. */
-const JUDGED = ["next-modules", "package", "electron-vite", "vite-spa"];
+const JUDGED = ["next-modules", "package", "electron-vite", "vite-spa", "pocketbase"];
 
 function judge(file: string, config: TsconfigInForce): Finding[] {
   const name = posix.basename(file);
