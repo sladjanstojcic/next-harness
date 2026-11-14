@@ -8,7 +8,7 @@ import { placeStep } from "./tool-set.ts";
 const DIR = "/repo/apps/web";
 const binOf = (tool: string): string => path.join(DIR, "node_modules/.bin", tool);
 
-/** The format check of a folder that has a source file to check, which runs rather than being skipped. */
+/** The format check of a folder the shape vendors nothing in, which runs rather than being skipped. */
 function formatCheck(dir: string): ToolStep {
   const step = oxc.format.check(dir);
   if ("skipped" in step) throw new Error(`oxfmt skipped: ${step.skipped}`);
@@ -68,7 +68,7 @@ describe("oxlint findings", () => {
 });
 
 describe("oxfmt findings", () => {
-  const checkStep = () => formatCheck(makeRepo({ "a.ts": "" }).root);
+  const checkStep = () => formatCheck(makeRepo().root);
 
   it("reports every listed path, the last one without a newline", () => {
     const step = checkStep();
