@@ -106,4 +106,22 @@ describe("imports across the app and pocketbase/", () => {
     ).toEqual([]);
     expect(found(root)).toEqual([]);
   }, 120_000);
+
+  it.each([
+    [
+      `${LISTINGS}/server/load.ts`,
+      'import "server-only";\nimport { endSession } from "../../../../pocketbase/pb_hooks/sessions/end-session.ts";\n\nexport const end = endSession;\n',
+    ],
+    [
+      `${LISTINGS}/domain/status.ts`,
+      'import type { Contract } from "../../../../pocketbase/types/contracts.ts";\n\nexport const isLive = (contract: Contract): boolean => contract.status === "live";\n',
+    ],
+    [
+      SHARED_VALUES,
+      'import { isLive } from "../../src/modules/listings/domain/status.ts";\n\nexport const LISTING_STATUSES = ["draft", "live"] as const;\nexport const live = isLive;\n',
+    ],
+  ])("reports %s crossing the boundary as pb-boundary", (file, text) => {
+    const contracts = { [`${PB}/types/contracts.ts`]: "export interface Contract {\n  status: string;\n}\n" };
+    expect(found(pocketbaseRepo({ ...ACROSS, ...contracts, [file]: text }).root)).toEqual([`${file} pb-boundary`]);
+  });
 });

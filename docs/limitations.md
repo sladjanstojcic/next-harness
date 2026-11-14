@@ -102,8 +102,8 @@ parent: Reference
 - Init keeps a `pocketbase` folder out of the root's format check only when the root app uses
   `tools: "eslint-prettier"`. With a root app on `tools: "oxc"`, the root's oxfmt and oxlint also judge
   the folder, its vendored `types/pocketbase-*.d.ts` included. This was not run on a real project.
-- Nothing reports a file in a `pocketbase` workspace that imports from `src/`, or the app importing
-  from its `pb_hooks/`: dependency-cruiser reads only the app's sources.
+- `pb-boundary` judges relative specifiers only. An alias or a package name that maps to a
+  `pocketbase` workspace, such as a `paths` entry in the app's `tsconfig.json`, is not judged.
 - The test step has a ten-minute limit. In this template most of that time is the harness's own tests:
   about four minutes alone, and past the limit on a machine that was busy with something else. The
   message then starts with "Tool timed out".

@@ -120,7 +120,8 @@ shapes/
   makerkit/         a Makerkit apps/web with its content rules, and a Makerkit feature package
   e2e.ts            a folder of Playwright tests beside the apps: tests/<suite>/ and its names
   supabase.ts       a Supabase folder: migration, schema, seed and test names
-  pocketbase/       a PocketBase backend: hook, migration and declaration paths, and the entry rules
+  pocketbase/       a PocketBase backend: hook, migration and declaration paths, the entry rules and
+                    the import boundary with the app (pb-boundary)
   limits.ts         file, folder and page size limits
   shape.ts          the contract every shape implements
 guides/             the AGENTS.md block: one guide per shape and common.md, each with a line limit

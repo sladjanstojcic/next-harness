@@ -34,7 +34,8 @@ pocketbase/
   `pb_migrations/` has no folder-size limit; the vendored `types/pocketbase*.d.ts` has none at all and
   is denied to direct edits.
 - `shared/` has no `require`, no PocketBase globals (`$app`, `$os` and the rest) and no Node built-ins,
-  so PocketBase and the app can both load it. Ignored folders, such as `pb_data/`, are not judged.
+  so PocketBase and the app can both load it. The app imports nothing else from the folder, and the
+  folder nothing from outside it: `pb-boundary`. Ignored folders, such as `pb_data/`, are not judged.
 
 ## Before you start
 
@@ -116,11 +117,10 @@ range keeps it, as pnpm 12.4.2 does not rewrite it: run `pnpm remove oxlint oxfm
 }
 ```
 
-`moduleDetection: "legacy"` keeps an entry without `import` or `export` a script, as PocketBase runs
-it. `module: "commonjs"` emits the `exports.name = …` form that PocketBase's `require` reads.
-`"types": []` keeps the app's `@types/node` out. The harness type-checks the folder with this file, and
-the audit rule `tsconfig-strict` holds it to `strict: true`. `pocketbase/.gitignore` holds `pb_data/`
-and `dist/`.
+`moduleDetection: "legacy"` keeps an entry without `import` or `export` a script, as PocketBase runs it.
+`module: "commonjs"` emits the `exports.name = …` form that PocketBase's `require` reads. `"types": []`
+keeps the app's `@types/node` out. The harness type-checks the folder with this file, and the audit rule
+`tsconfig-strict` holds it to `strict: true`. `pocketbase/.gitignore` holds `pb_data/` and `dist/`.
 
 ## 5. Vendor the declarations
 
