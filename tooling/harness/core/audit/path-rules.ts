@@ -26,7 +26,9 @@ function folderFindings(harness: Harness, inventory: string[], selected: Set<str
   }
   const findings: Finding[] = [];
   for (const [folder, members] of folders) {
-    const shape = workspaceOf(harness.workspaces, members[0] ?? "")?.entry.shapeImpl;
+    const found = workspaceOf(harness.workspaces, members[0] ?? "");
+    const shape = found?.entry.shapeImpl;
+    if (found !== undefined && shape?.unlimitedFolders?.includes(posix.dirname(found.path))) continue;
     const limit = shape?.limits.folderFiles ?? MAX_FOLDER_FILES;
     if (members.length <= limit) continue;
     const destination =

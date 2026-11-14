@@ -29,9 +29,13 @@ export interface Shape {
   vendored: readonly string[];
   /** Generated files matched by name rather than by path, such as a backend's database types; tested beside `vendored`. */
   vendoredPattern?: RegExp;
+  /** The reason a write to a `vendoredPattern` file is denied, with `<file>` for its path; the backend-types sentence when absent. */
+  vendoredAdvice?: string;
   jsExceptions: readonly string[];
   routeRoot?: string;
   limits: { fileLines: number; folderFiles: number; pageLines: number };
+  /** Workspace-relative folders with no folder-size limit. */
+  unlimitedFolders?: readonly string[];
   folderGuidance(folder: string): string;
   sameNameScope(path: string): string | undefined;
   content: ContentProfile;
