@@ -20,6 +20,8 @@ describe("pocketbase migration guards (commands are inspected, never executed)",
     ['sh -c "pocketbase migrate down"', "pocketbase-migrate-down"],
     ["pocketbase migrate history-sync", "pocketbase-history-sync"],
     ["./pocketbase --dir=pb_data migrate history-sync", "pocketbase-history-sync"],
+    ["true;pocketbase migrate down", "pocketbase-migrate-down"],
+    ["true&&pocketbase migrate history-sync", "pocketbase-history-sync"],
   ])("denies %s", (command, guard) => {
     expect(deny(command)?.guard).toBe(guard);
   });

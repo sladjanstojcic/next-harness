@@ -1904,6 +1904,14 @@
       "guard": "pocketbase-history-sync",
       "reason": "Rewriting the record of applied migrations is the user's step; leave the migration files as they are and ask them."
     },
+    "true;pocketbase migrate down": {
+      "guard": "pocketbase-migrate-down",
+      "reason": "Reverting applied migrations drops what they created; write a new migration that undoes the change and let the user run it."
+    },
+    "true&&pocketbase migrate history-sync": {
+      "guard": "pocketbase-history-sync",
+      "reason": "Rewriting the record of applied migrations is the user's step; leave the migration files as they are and ask them."
+    },
     "git push --force": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
     "git push --force-if-includes": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
     "git push origin +main": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },

@@ -55,6 +55,8 @@ npx pocketbase migrate down
 sh -c "pocketbase migrate down"
 pocketbase migrate history-sync
 ./pocketbase --dir=pb_data migrate history-sync
+true;pocketbase migrate down
+true&&pocketbase migrate history-sync
 git push --force
 git push --force-if-includes
 git push origin +main
