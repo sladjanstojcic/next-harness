@@ -19,7 +19,7 @@ function workspaceTodo(root: string, workspace: WorkspaceEntry): string[] {
   const declared = fs.existsSync(types) && fs.readdirSync(types).some((file) => VENDORED.test(file));
   const declarations = declared ? [] : [`Put the declarations from your PocketBase release in ${workspace.path}/types/ as pocketbase-<version>.d.ts.`];
   const installed = TOOLS.every((tool) => bin(dir, tool, root) !== undefined);
-  const tools = installed ? [] : [`Install the tools this folder is checked with, at exact versions: ${managerCommands(root).addDev} ${TOOLS.join(" ")}`];
+  const tools = installed ? [] : [`Install the tools this folder is checked with, at exact versions: ${managerCommands(root).addDevExact} ${TOOLS.join(" ")}`];
   return [...tsconfig, ...declarations, ...tools];
 }
 
