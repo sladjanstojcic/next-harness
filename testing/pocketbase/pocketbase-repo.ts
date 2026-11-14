@@ -38,5 +38,5 @@ const POCKETBASE_FILES: Readonly<Record<string, string>> = {
 
 /** A Next app at the root with its PocketBase backend in pocketbase/: an entry, the code it requires, and one committed migration. */
 export function pocketbaseRepo(extra: Readonly<Record<string, string>> = {}): RepoFixture {
-  return makeRepo({ ...POCKETBASE_FILES, ...extra }, { stack: true });
+  return makeRepo({ ...POCKETBASE_FILES, ...extra }, { agents: true, stack: true });
 }
