@@ -48,6 +48,10 @@ export const HARNESS_RULES: ReadonlySet<string> = new Set([
   "ipc-channel",
   "preload-bundle",
   "ui-stack",
+  "pb-entry-module",
+  "pb-require-scope",
+  "pb-shared-pure",
+  "pb-boundary",
 ]);
 
 export const ALWAYS_BLOCKS = (finding: Finding): boolean =>

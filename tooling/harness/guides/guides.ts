@@ -14,6 +14,7 @@ export const GUIDE_LIMITS: Readonly<Record<string, number>> = {
   "makerkit-feature": 40,
   supabase: 40,
   e2e: 40,
+  pocketbase: 40,
 };
 
 /** The guide for a workspace: its shape's, or the layout without src/ for a Next app whose code sits at its top. */

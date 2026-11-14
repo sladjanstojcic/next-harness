@@ -1876,6 +1876,42 @@
       "guard": "destructive-supabase",
       "reason": "Reset only the local stack with supabase db reset; linked-project schema changes belong in reviewed migrations applied by the user."
     },
+    "pocketbase migrate down": {
+      "guard": "pocketbase-migrate-down",
+      "reason": "Reverting applied migrations drops what they created; write a new migration that undoes the change and let the user run it."
+    },
+    "./pocketbase migrate down 2": {
+      "guard": "pocketbase-migrate-down",
+      "reason": "Reverting applied migrations drops what they created; write a new migration that undoes the change and let the user run it."
+    },
+    "pocketbase/.runtime/0.40.5/darwin_arm64/pocketbase --dir pb_data migrate down": {
+      "guard": "pocketbase-migrate-down",
+      "reason": "Reverting applied migrations drops what they created; write a new migration that undoes the change and let the user run it."
+    },
+    "npx pocketbase migrate down": {
+      "guard": "pocketbase-migrate-down",
+      "reason": "Reverting applied migrations drops what they created; write a new migration that undoes the change and let the user run it."
+    },
+    "sh -c \"pocketbase migrate down\"": {
+      "guard": "pocketbase-migrate-down",
+      "reason": "Reverting applied migrations drops what they created; write a new migration that undoes the change and let the user run it."
+    },
+    "pocketbase migrate history-sync": {
+      "guard": "pocketbase-history-sync",
+      "reason": "Rewriting the record of applied migrations is the user's step; leave the migration files as they are and ask them."
+    },
+    "./pocketbase --dir=pb_data migrate history-sync": {
+      "guard": "pocketbase-history-sync",
+      "reason": "Rewriting the record of applied migrations is the user's step; leave the migration files as they are and ask them."
+    },
+    "true;pocketbase migrate down": {
+      "guard": "pocketbase-migrate-down",
+      "reason": "Reverting applied migrations drops what they created; write a new migration that undoes the change and let the user run it."
+    },
+    "true&&pocketbase migrate history-sync": {
+      "guard": "pocketbase-history-sync",
+      "reason": "Rewriting the record of applied migrations is the user's step; leave the migration files as they are and ask them."
+    },
     "git push --force": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
     "git push --force-if-includes": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
     "git push origin +main": { "guard": "git-force-push", "reason": "Push normally; history rewrites belong in the user's own Git workflow." },
@@ -1944,6 +1980,15 @@
     "prisma db push": null,
     "supabase db reset": null,
     "supabase start": null,
+    "pocketbase migrate up": null,
+    "pocketbase migrate create add_index": null,
+    "pocketbase migrate collections": null,
+    "pocketbase serve": null,
+    "pocketbase superuser upsert a@b.c pw": null,
+    "pocketbase --version": null,
+    "ls pocketbase/pb_migrations": null,
+    "git mv pocketbase/pb_migrations/down.ts x": null,
+    "echo migrate down": null,
     "git push": null,
     "git push origin main": null,
     "git -C somewhere push -u origin main": null,

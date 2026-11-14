@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MAKERKIT_MIGRATION, makerkitRepo } from "../../testing/makerkit-repo.ts";
+import { PB, PB_MIGRATION, pocketbaseRepo } from "../../testing/pocketbase/pocketbase-repo.ts";
 import { doneGate } from "../gates/done-gate.ts";
 import * as runner from "../gates/run-tool.ts";
+import { resolveHarness } from "../path-check.ts";
 import { parseEvent, type HookEvent } from "./event.ts";
 import { checkGuards } from "./guards.ts";
 import { handleEvent } from "./handle.ts";
+import { migrationFindings, taskApplied } from "./migration-guard.ts";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -169,5 +172,29 @@ describe("migration guard in the Done gate", () => {
     const migrations = result.findings.filter((finding) => finding.rule === "migration-applied");
     expect(migrations).toEqual([{ rule: "migration-applied", file: MAKERKIT_MIGRATION, message: REASON }]);
     expect(result.passed).toBe(false);
+  });
+});
+
+describe("migration guard in a pocketbase workspace", () => {
+  const PB_REASON = `${PB_MIGRATION} is in HEAD and may be applied; restore it with git checkout and add a new migration file in pb_migrations/ instead of editing it.`;
+
+  it("denies a write to a committed pb_migrations file with PocketBase advice", () => {
+    const { root } = pocketbaseRepo();
+    const verdict = checkGuards(fileEvent(root, "Write", PB_MIGRATION), root);
+    expect(verdict).toEqual({ guard: "migration-applied", reason: PB_REASON });
+    expect(verdict?.reason).not.toContain("supabase");
+  });
+
+  it("allows a new pb_migrations file", () => {
+    const { root } = pocketbaseRepo();
+    expect(checkGuards(fileEvent(root, "Write", `${PB}/pb_migrations/002_second.ts`), root)).toBeNull();
+  });
+
+  it("reports a committed migration moved away and nothing for its new name", () => {
+    const { root, git } = pocketbaseRepo();
+    const renamed = `${PB}/pb_migrations/001_renamed.ts`;
+    git("mv", PB_MIGRATION, renamed);
+    const findings = migrationFindings(root, resolveHarness(root), [PB_MIGRATION, renamed], () => taskApplied(root, null));
+    expect(findings).toEqual([{ rule: "migration-applied", file: PB_MIGRATION, message: PB_REASON }]);
   });
 });

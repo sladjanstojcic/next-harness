@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 import { workspaceOf } from "../../config.ts";
 import { TEST_FILE } from "../../shapes/next-modules.ts";
+import { pocketbaseBoundary } from "../../shapes/pocketbase/boundary.ts";
 import type { ContentMessage, ContentProfile } from "../../shapes/shape.ts";
 import { ts } from "../../tools/typescript.ts";
 import { isVendoredIn, resolveHarness, type Harness } from "../path-check.ts";
@@ -15,6 +16,8 @@ export interface ContentTarget {
   profile?: ContentProfile;
   pageLines?: number;
   backendPackages?: readonly string[];
+  /** The repository's pocketbase workspace folders, whose import boundary every file keeps. */
+  pocketbaseWorkspaces?: readonly string[];
 }
 
 function message(profile: ContentProfile, key: ContentMessage, values: Record<string, string> = {}): string {
@@ -165,6 +168,7 @@ export function auditSource(root: string, target: ContentTarget, text: string): 
   if (profile?.inlineDisable !== undefined) findings.push(...inlineDisableFindings(file, source, profile.inlineDisable));
   for (const found of profile?.sourceRules?.(path, source, ts) ?? []) findings.push({ file, ...found });
   findings.push(...backendPackageFindings(target, source, target.backendPackages ?? []));
+  for (const found of pocketbaseBoundary(file, source, target.pocketbaseWorkspaces ?? [], ts)) findings.push({ file, ...found });
   const add = (rule: string, message: string, node?: ts.Node): void => {
     findings.push({ rule, file, line: node ? source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 : 1, message });
   };
@@ -178,7 +182,8 @@ export function auditSource(root: string, target: ContentTarget, text: string): 
   }
   const checkEnvironment = profile?.envScope?.test(path) === true && path !== profile.envFile && profile.envAllowed?.test(path) !== true;
   const checkErrors = !TEST_FILE.test(path) && profile?.errorScope?.test(path) === true;
-  const checkDeterminism = TEST_FILE.test(file) && !seedMarkers.some((marker) => source.text.includes(marker));
+  const integration = profile?.integrationTests?.test(path) === true;
+  const checkDeterminism = TEST_FILE.test(file) && !integration && !seedMarkers.some((marker) => source.text.includes(marker));
   const visit = (node: ts.Node): void => {
     const access = property(node);
     if (profile && checkEnvironment && access?.name === "env" && isName(access.object, "process") && !isPublicRead(profile, node)) {
@@ -198,11 +203,12 @@ export function auditSource(root: string, target: ContentTarget, text: string): 
 }
 
 function targetOf(harness: Harness, file: string): ContentTarget {
+  const pocketbaseWorkspaces = harness.workspaces.filter(({ shape }) => shape === "pocketbase").map(({ path }) => path);
   const found = workspaceOf(harness.workspaces, file);
-  if (found === undefined) return { file, path: file };
+  if (found === undefined) return { file, path: file, pocketbaseWorkspaces };
   const shape = found.entry.shapeImpl;
   const backendPackages = [...BACKEND_PACKAGES, ...(harness.config.backendPackages ?? [])];
-  return { file, path: found.path, profile: shape.content, pageLines: shape.limits.pageLines, backendPackages };
+  return { file, path: found.path, profile: shape.content, pageLines: shape.limits.pageLines, backendPackages, pocketbaseWorkspaces };
 }
 
 export function auditContent(root: string, files: string[]): Finding[] {

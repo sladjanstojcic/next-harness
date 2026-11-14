@@ -15,6 +15,7 @@ import { TYPESCRIPT_API_REASON, TYPESCRIPT_NATIVE_REASON } from "../../presets/l
 import { nativeTypescript, needsTypescriptApi, peerInstall, starterInstall } from "./peers.ts";
 import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
 import { shadcnTodo } from "./shadcn/shadcn-steps.ts";
+import { pocketbaseTodo } from "./pocketbase/pocketbase-steps.ts";
 import { viteTodo } from "./vite/vite-steps.ts";
 import { CONFIG_FILE, isConfigOnly, type WorkspaceEntry } from "../../config.ts";
 import { ciSteps, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH, PREPARE } from "./wiring.ts";
@@ -170,6 +171,7 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
         `Bundle the packages the preload script imports, which a sandboxed preload cannot load and electron-vite leaves outside the bundle (init does not edit ${file}), by adding this to its preload section, and removing externalizeDepsPlugin() from that section's plugins when it is there: ${PRELOAD_BUNDLE_SETTING}`,
     ),
     ...viteTodo(root, workspaces),
+    ...pocketbaseTodo(root, harness.workspaces),
     ...shadcnTodo(root, workspaces),
     ...(preparesHooks(root) ? [] : [`Add to the root package.json "prepare" script, so a fresh clone gets the pre-push hook: ${PREPARE}`]),
     ...(format.length === 0 ? [] : [`Format the app's own files once in the preset's style: ${format.join("; ")}`]),

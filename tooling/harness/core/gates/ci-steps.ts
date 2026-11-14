@@ -1,4 +1,5 @@
 import { analysisOf, sourcePaths, sourceRootOf, type WorkspaceEntry } from "../../config.ts";
+import { shapeOf } from "../../shapes/index.ts";
 import { depcruise, jscpd, knip } from "../../tools/analysis.ts";
 import type { WorkspaceTools } from "../../tools/index.ts";
 import { testScript } from "../../tools/test-script.ts";
@@ -6,13 +7,7 @@ import { typecheckProjects } from "../../tools/typescript.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
 import { importedFromPackage } from "../package-usage.ts";
 import type { Harness } from "../path-check.ts";
-import type { ToolStep } from "./run-tool.ts";
-
-/** A step a gate names in its report without running it. */
-export interface SkippedStep {
-  name: string;
-  skipped: string;
-}
+import type { SkippedStep, ToolStep } from "./run-tool.ts";
 
 /**
  * depcruise and jscpd read the workspace's source folders: src/, or app/, modules/ and shared/ at its top. A workspace of a
@@ -29,12 +24,14 @@ export const skippedLine = (name: string, workspacePath: string, reason: string)
  * A workspace's whole-tree format, lint and type steps. Judged by exit code as CI always did, or with `perFile` one
  * finding per file, which a legacy list needs to tell old debt from new.
  */
-export function checkSteps({ tools, dir, workspace }: WorkspaceTools, perFile: boolean): { format: ToolStep; lint: ToolStep; types: ToolStep[] } {
+export function checkSteps({ tools, dir, workspace }: WorkspaceTools, perFile: boolean): { format: ToolStep | SkippedStep; lint: ToolStep; types: ToolStep[] } {
   const projects = typecheckProjects(dir, workspace);
-  if (!perFile) return { format: tools.format.check(dir), lint: tools.lint.all(dir), types: tools.typecheck.all(dir, workspace.next, projects) };
+  const vendored = shapeOf(workspace.shape, sourceRootOf(workspace)).vendoredPattern;
+  if (!perFile)
+    return { format: tools.format.check(dir, vendored), lint: tools.lint.all(dir, vendored), types: tools.typecheck.all(dir, workspace.next, projects) };
   return {
-    format: tools.format.report?.(dir) ?? tools.format.check(dir),
-    lint: tools.lint.report?.(dir) ?? tools.lint.all(dir),
+    format: tools.format.report?.(dir) ?? tools.format.check(dir, vendored),
+    lint: tools.lint.report?.(dir) ?? tools.lint.all(dir, vendored),
     types: tools.typecheck.report?.(dir, workspace.next, projects) ?? tools.typecheck.all(dir, workspace.next, projects),
   };
 }
@@ -60,9 +57,15 @@ export function analysisSteps(root: string, harness: Harness, group: WorkspaceTo
   ];
 }
 
+/** A pocketbase workspace's tests need a running PocketBase, so without a test script of its own the gates run none there. */
+export function skippedTest(workspace: WorkspaceEntry): SkippedStep | undefined {
+  return workspace.shape === "pocketbase" && workspace.test === undefined ? { name: "test", skipped: "no test script" } : undefined;
+}
+
 /** The whole test run of a workspace: its own package script when harness.config.ts names one, else the tool set's runner. */
-export function testStep(root: string, { tools, dir, workspace }: WorkspaceTools): ToolStep {
-  return workspace.test === undefined ? tools.test.all(dir) : testScript(root, dir, workspace.test);
+export function testStep(root: string, { tools, dir, workspace }: WorkspaceTools): ToolStep | SkippedStep {
+  if (workspace.test !== undefined) return testScript(root, dir, workspace.test);
+  return skippedTest(workspace) ?? tools.test.all(dir);
 }
 
 const LISTED_PER_STEP = 5;

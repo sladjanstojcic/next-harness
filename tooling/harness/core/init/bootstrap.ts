@@ -14,6 +14,8 @@ export interface ManagerCommands {
   install: string;
   add: string;
   addDev: string;
+  /** Adds dev dependencies saved at the exact version installed, for a tool the harness pins no version of. */
+  addDevExact: string;
   /** Runs a binary of the project's dependencies. */
   exec: string;
   /** Runs a package script; yarn's own `check` command would shadow the harness's. */
@@ -24,9 +26,36 @@ export interface ManagerCommands {
 }
 
 const COMMANDS: Readonly<Record<Manager, ManagerCommands>> = {
-  pnpm: { install: "pnpm install", add: "pnpm add", addDev: "pnpm add -D", exec: "pnpm exec", run: "pnpm run", remove: "pnpm remove", dlx: "pnpm dlx" },
-  npm: { install: "npm install", add: "npm install", addDev: "npm install -D", exec: "npx", run: "npm run", remove: "npm uninstall", dlx: "npx" },
-  yarn: { install: "yarn install", add: "yarn add", addDev: "yarn add -D", exec: "yarn", run: "yarn run", remove: "yarn remove", dlx: "yarn dlx" },
+  pnpm: {
+    install: "pnpm install",
+    add: "pnpm add",
+    addDev: "pnpm add -D",
+    addDevExact: "pnpm add -D --save-exact",
+    exec: "pnpm exec",
+    run: "pnpm run",
+    remove: "pnpm remove",
+    dlx: "pnpm dlx",
+  },
+  npm: {
+    install: "npm install",
+    add: "npm install",
+    addDev: "npm install -D",
+    addDevExact: "npm install -D --save-exact",
+    exec: "npx",
+    run: "npm run",
+    remove: "npm uninstall",
+    dlx: "npx",
+  },
+  yarn: {
+    install: "yarn install",
+    add: "yarn add",
+    addDev: "yarn add -D",
+    addDevExact: "yarn add -D --exact",
+    exec: "yarn",
+    run: "yarn run",
+    remove: "yarn remove",
+    dlx: "yarn dlx",
+  },
 };
 
 /** The package manager the repository root declares or its lockfile shows; pnpm when nothing says. */

@@ -2,20 +2,22 @@ import fs from "node:fs";
 import path from "node:path";
 import type { ToolSetName, WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
-import type { ToolStep } from "../core/gates/run-tool.ts";
+import type { SkippedStep, ToolStep } from "../core/gates/run-tool.ts";
 
 /** Formatter, linter, type checker and test runner of one workspace; commands are built for the workspace directory. */
 export interface ToolSet {
   name: Exclude<ToolSetName, "none">;
   format: {
     write(dir: string, files: string[]): ToolStep;
-    check(dir: string): ToolStep;
+    /** `vendored` is the shape's pattern for workspace-relative files the step leaves alone; with no file left it is skipped. */
+    check(dir: string, vendored?: RegExp): ToolStep | SkippedStep;
     /** The whole-workspace check with one finding per file, where `check` judges by exit code only. */
     report?(dir: string): ToolStep;
   };
   lint: {
     files(dir: string, files: string[], fast: boolean): ToolStep;
-    all(dir: string): ToolStep;
+    /** `vendored` is the shape's pattern for workspace-relative files the step leaves alone. */
+    all(dir: string, vendored?: RegExp): ToolStep;
     /** The whole-workspace lint with one finding per message, where `all` judges by exit code only. */
     report?(dir: string): ToolStep;
     /** Checks the harness's rules are active in the workspace's own lint config; the message names the workspace path. */

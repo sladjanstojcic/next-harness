@@ -55,16 +55,30 @@ function oxfmtFindings(dir: string, stdout: string): Finding[] {
     .map((line): Finding => ({ rule: "oxfmt", file: relativePath(dir, line.trim()), message: "Run oxfmt on this file." }));
 }
 
+/** One `--ignore-pattern` per listed file the shape vendors; oxlint lints every other file in the folder. */
+function ignoredVendored(dir: string, vendored: RegExp | undefined): string[] {
+  if (vendored === undefined) return [];
+  return listFiles(dir)
+    .filter((file) => vendored.test(file))
+    .flatMap((file) => ["--ignore-pattern", file]);
+}
+
 export const oxc: ToolSet = {
   name: "oxc",
   format: {
     write: (dir, files) => ({ name: "oxfmt", command: [bin(dir, "oxfmt"), "--no-error-on-unmatched-pattern", ...files], findings: () => [] }),
-    check: (dir) => ({
-      name: "oxfmt",
-      command: [bin(dir, "oxfmt"), "--list-different", "--no-error-on-unmatched-pattern", ...listFiles(dir).filter((file) => SOURCE_FILE.test(file))],
-      timeoutMs: CHECK_TIMEOUT_MS,
-      findings: (stdout) => oxfmtFindings(dir, stdout),
-    }),
+    check: (dir, vendored) => {
+      const sources = listFiles(dir).filter((file) => SOURCE_FILE.test(file));
+      const files = sources.filter((file) => vendored?.test(file) !== true);
+      // oxfmt without a path checks the whole folder, so the vendored files the filter removed would come back.
+      if (files.length === 0 && sources.length > 0) return { name: "oxfmt", skipped: "no source files" };
+      return {
+        name: "oxfmt",
+        command: [bin(dir, "oxfmt"), "--list-different", "--no-error-on-unmatched-pattern", ...files],
+        timeoutMs: CHECK_TIMEOUT_MS,
+        findings: (stdout) => oxfmtFindings(dir, stdout),
+      };
+    },
   },
   lint: {
     files: (dir, files) => ({
@@ -72,9 +86,9 @@ export const oxc: ToolSet = {
       command: [bin(dir, "oxlint"), "-f", "json", "--no-error-on-unmatched-pattern", ...files],
       findings: (stdout) => oxlintFindings(dir, stdout),
     }),
-    all: (dir) => ({
+    all: (dir, vendored) => ({
       name: "oxlint",
-      command: [bin(dir, "oxlint"), "-f", "json", "--no-error-on-unmatched-pattern"],
+      command: [bin(dir, "oxlint"), "-f", "json", "--no-error-on-unmatched-pattern", ...ignoredVendored(dir, vendored)],
       timeoutMs: CHECK_TIMEOUT_MS,
       findings: (stdout) => oxlintFindings(dir, stdout),
     }),

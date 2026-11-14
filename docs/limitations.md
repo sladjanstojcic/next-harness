@@ -23,6 +23,12 @@ parent: Reference
   template's `App.tsx` replaced by routes, then all ten gate steps passed, with the real `vite build`.
   It was run again with shadcn, a PocketBase client in `src/backend/` and a module with `data/`; the
   types file was written by hand, and no PocketBase server ran. No agent session has worked there yet.
+- The `pocketbase` shape was run once, on a fresh create-next-app 16 project with the PocketBase 0.40.5
+  binary on Linux x86-64: an entry, the module it requires and a migration, built with `tsc` and served
+  until the route answered, then the full check passed. The first pass of that run failed three steps:
+  oxfmt and oxlint judged the vendored declarations, and the root knip reported the folder. Those were
+  fixed before the second pass. Not run: tests with a `test` script, `shared/`, an agent session, and
+  PocketBase on macOS or Windows.
 - Init's printed shadcn steps were run as printed on create-next-app with and without `src/`, the
   electron-vite scaffold, create-vite, and a create-vite app at `apps/web` of a pnpm workspace. The
   Tailwind steps for a Next.js app without Tailwind were run as printed on create-next-app made with
@@ -84,6 +90,20 @@ parent: Reference
   `tools: "none"` the paths, names and folder size are still judged, but the 250-line limit is not,
   because that limit is a lint rule. The Playwright tests themselves run in the gates only when the
   workspace names a `test` script, and they need whatever the tests need: a running app or database.
+- The `pocketbase` shape has no ESLint preset either: `tools: "eslint-prettier"` is refused there. A
+  project whose app uses ESLint and Prettier installs oxlint and oxfmt for the folder.
+- The `pocketbase` guards match the binary's name. A project script that wraps it, such as a
+  `db:reset` script running `pocketbase migrate down`, is not covered.
+- `pb-shared-pure` follows identifiers. A PocketBase global reached through `globalThis.$app` in
+  `shared/` is not reported.
+- The harness does not add a `pocketbase` workspace to the root `tsconfig.json` `exclude`. Until you
+  do, the app's `tsc` also checks the folder, with the app's settings and the ignored
+  `pb_data/types.d.ts`; in the run it passed only through `skipLibCheck`.
+- Init keeps a `pocketbase` folder out of the root's format check only when the root app uses
+  `tools: "eslint-prettier"`. With a root app on `tools: "oxc"`, the root's oxfmt and oxlint also judge
+  the folder, its vendored `types/pocketbase-*.d.ts` included. This was not run on a real project.
+- `pb-boundary` judges relative specifiers only. An alias or a package name that maps to a
+  `pocketbase` workspace, such as a `paths` entry in the app's `tsconfig.json`, is not judged.
 - The test step has a ten-minute limit. In this template most of that time is the harness's own tests:
   about four minutes alone, and past the limit on a machine that was busy with something else. The
   message then starts with "Tool timed out".

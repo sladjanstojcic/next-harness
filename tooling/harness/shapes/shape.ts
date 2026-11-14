@@ -29,9 +29,13 @@ export interface Shape {
   vendored: readonly string[];
   /** Generated files matched by name rather than by path, such as a backend's database types; tested beside `vendored`. */
   vendoredPattern?: RegExp;
+  /** The reason a write to a `vendoredPattern` file is denied, with `<file>` for its path; the backend-types sentence when absent. */
+  vendoredAdvice?: string;
   jsExceptions: readonly string[];
   routeRoot?: string;
   limits: { fileLines: number; folderFiles: number; pageLines: number };
+  /** Workspace-relative folders with no folder-size limit. */
+  unlimitedFolders?: readonly string[];
   folderGuidance(folder: string): string;
   sameNameScope(path: string): string | undefined;
   content: ContentProfile;
@@ -122,6 +126,8 @@ export interface ContentProfile {
   publicEnvAllowed?: boolean;
   domainFile?: RegExp;
   errorScope?: RegExp;
+  /** Test files that run against a live server, so test-determinism leaves their clock and network alone. */
+  integrationTests?: RegExp;
   /** The message for lint-disable and @ts- suppression comments; absent leaves them to the linter (ESLint's noInlineConfig). */
   inlineDisable?: string;
   /** The message for a relative import that leaves the workspace folder; absent allows it. */

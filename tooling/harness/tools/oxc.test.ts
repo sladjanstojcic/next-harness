@@ -2,10 +2,18 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { makeRepo } from "../testing/temp-repo.ts";
 import { oxc } from "./oxc.ts";
+import type { ToolStep } from "../core/gates/run-tool.ts";
 import { placeStep } from "./tool-set.ts";
 
 const DIR = "/repo/apps/web";
 const binOf = (tool: string): string => path.join(DIR, "node_modules/.bin", tool);
+
+/** The format check of a folder the shape vendors nothing in, which runs rather than being skipped. */
+function formatCheck(dir: string): ToolStep {
+  const step = oxc.format.check(dir);
+  if ("skipped" in step) throw new Error(`oxfmt skipped: ${step.skipped}`);
+  return step;
+}
 
 // Captured from oxlint 1.87.0 (`oxlint -f json`), trimmed to the fields the parser reads plus a few it ignores.
 const FINDINGS = `{ "diagnostics": [{"message": "Variable 'unused' is declared but never used. Unused variables should start with a '_'.","code": "eslint(no-unused-vars)","severity": "error","url": "https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-unused-vars.html","help": "Consider removing this declaration.","filename": "sub/bad.ts","labels": [{"label": "'unused' is declared here","span": {"offset": 6,"length": 6,"line": 1,"column": 7}}]},
@@ -60,7 +68,7 @@ describe("oxlint findings", () => {
 });
 
 describe("oxfmt findings", () => {
-  const checkStep = () => oxc.format.check(makeRepo().root);
+  const checkStep = () => formatCheck(makeRepo().root);
 
   it("reports every listed path, the last one without a newline", () => {
     const step = checkStep();
@@ -88,7 +96,7 @@ describe("oxc steps", () => {
   it("checks the format of the workspace's source files only", () => {
     const repo = makeRepo({ "apps/web/a.ts": "", "apps/web/b.mjs": "", "apps/web/c.md": "", "apps/web/d/e.tsx": "", "other.ts": "" });
     const dir = path.join(repo.root, "apps/web");
-    expect(oxc.format.check(dir).command).toEqual([
+    expect(formatCheck(dir).command).toEqual([
       path.join(dir, "node_modules/.bin/oxfmt"),
       "--list-different",
       "--no-error-on-unmatched-pattern",

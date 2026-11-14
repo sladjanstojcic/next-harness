@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { workspaceOf } from "../../config.ts";
+import { type ShapeName, workspaceOf } from "../../config.ts";
 import type { Finding } from "../audit/finding.ts";
 import { taskState, type TaskState } from "../gates/repair-budget.ts";
 import type { Harness } from "../path-check.ts";
@@ -15,13 +15,32 @@ export interface Applied {
   label: string;
 }
 
-export function migrationReason(file: string, applied: Applied): string {
-  return `${file} is in ${applied.label} and may be applied; restore it with git checkout and add a new migration with supabase migration new <name> instead of editing it.`;
+interface MigrationFolder {
+  folder: string;
+  advice: string;
+}
+
+const SUPABASE: MigrationFolder = { folder: "migrations/", advice: "add a new migration with supabase migration new <name>" };
+
+const MIGRATIONS: Partial<Record<ShapeName, MigrationFolder>> = {
+  supabase: SUPABASE,
+  pocketbase: { folder: "pb_migrations/", advice: "add a new migration file in pb_migrations/" },
+};
+
+function migrationFolder(harness: Harness, file: string): MigrationFolder | undefined {
+  const found = workspaceOf(harness.workspaces, file);
+  if (found === undefined) return undefined;
+  const migrations = MIGRATIONS[found.entry.shape];
+  return migrations !== undefined && found.path.startsWith(migrations.folder) ? migrations : undefined;
+}
+
+export function migrationReason(harness: Harness, file: string, applied: Applied): string {
+  const { advice } = migrationFolder(harness, file) ?? SUPABASE;
+  return `${file} is in ${applied.label} and may be applied; restore it with git checkout and ${advice} instead of editing it.`;
 }
 
 export function isMigration(harness: Harness, file: string): boolean {
-  const found = workspaceOf(harness.workspaces, file);
-  return found?.entry.shape === "supabase" && found.path.startsWith("migrations/");
+  return migrationFolder(harness, file) !== undefined;
 }
 
 /** Pinned commits, else the tree the task started from (or HEAD without a task). */
@@ -67,5 +86,5 @@ export function migrationFindings(root: string, harness: Harness, changed: Itera
       const current = currentBlob(root, file);
       return versions.length > 0 && (current === null || !versions.includes(current));
     })
-    .map((file): Finding => ({ rule: MIGRATION_RULE, file, message: migrationReason(file, applied) }));
+    .map((file): Finding => ({ rule: MIGRATION_RULE, file, message: migrationReason(harness, file, applied) }));
 }

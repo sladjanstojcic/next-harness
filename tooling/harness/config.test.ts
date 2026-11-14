@@ -47,6 +47,21 @@ describe("loadConfig", () => {
     expect(expandWorkspaces(repo.root, loadConfig(repo.root))).toEqual([{ path: "a", shape, tools, next: false }]);
   });
 
+  it("gives a pocketbase workspace the oxc tool set", () => {
+    const repo = makeRepo({ "harness.config.ts": 'export default { workspaces: [{ path: "pocketbase", shape: "pocketbase" }] };\n' });
+    expect(expandWorkspaces(repo.root, loadConfig(repo.root))[0]?.tools).toBe("oxc");
+  });
+
+  it.each([
+    [{ tools: "none" }, 'workspaces.0.tools must be "oxc" for the pocketbase shape, which has no ESLint preset and needs its type check'],
+    [{ tools: "eslint-prettier" }, 'workspaces.0.tools must be "oxc" for the pocketbase shape, which has no ESLint preset and needs its type check'],
+    [{ next: true }, "workspaces.0.next must not be true for the pocketbase shape, which is not a Next app"],
+  ])("refuses %j on a pocketbase workspace", (extra, message) => {
+    const workspace = JSON.stringify({ path: "pocketbase", shape: "pocketbase", ...extra });
+    const repo = makeRepo({ "harness.config.ts": `export default { workspaces: [${workspace}] };\n` });
+    expect(() => loadConfig(repo.root)).toThrow(message);
+  });
+
   it("parses env and analysis", () => {
     const repo = makeRepo({
       "harness.config.ts": 'export default { workspaces: [{ path: "a", shape: "next-modules" }], env: "local", analysis: ["knip"] };\n',
@@ -90,7 +105,7 @@ describe("loadConfig", () => {
         'import { defineHarness } from "./tooling/harness/config.ts";\nexport default defineHarness({ workspaces: [{ path: "apps/web", shape: "next-modules", next: true }], owned: ["apps/web/src/"] });\n',
     });
     fs.mkdirSync(path.join(repo.root, "tooling/harness"), { recursive: true });
-    fs.copyFileSync(path.join(harness, "config.ts"), path.join(repo.root, "tooling/harness/config.ts"));
+    for (const file of ["config.ts", "shape-names.ts"]) fs.copyFileSync(path.join(harness, file), path.join(repo.root, "tooling/harness", file));
     fs.mkdirSync(path.join(repo.root, "node_modules"));
     fs.symlinkSync(path.resolve(harness, "../../node_modules/zod"), path.join(repo.root, "node_modules/zod"), "dir");
     expect(loadConfig(repo.root)).toEqual({ workspaces: [{ path: "apps/web", shape: "next-modules", next: true }], owned: ["apps/web/src/"] });

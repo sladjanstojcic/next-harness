@@ -3,7 +3,17 @@ import type { ShapeName } from "../config.ts";
 import { shapeOf } from "../shapes/index.ts";
 import { GUIDE_LIMITS, guideName, readGuide } from "./guides.ts";
 
-const SHAPES: readonly ShapeName[] = ["next-modules", "package", "electron-vite", "vite-spa", "makerkit-app", "makerkit-feature", "supabase", "e2e"];
+const SHAPES: readonly ShapeName[] = [
+  "next-modules",
+  "package",
+  "electron-vite",
+  "vite-spa",
+  "makerkit-app",
+  "makerkit-feature",
+  "supabase",
+  "e2e",
+  "pocketbase",
+];
 const PLACEHOLDERS: Readonly<Record<string, string>> = {
   module: "billing",
   area: "pricing",
@@ -13,6 +23,7 @@ const PLACEHOLDERS: Readonly<Record<string, string>> = {
   collection: "docs",
   locale: "en",
   timestamp: "20261113120000",
+  digits: "001",
   NN: "01",
   namespace: "billing",
 };
@@ -83,6 +94,13 @@ describe("the guides", () => {
     const prose = readGuide(name).replace(/```[\s\S]*?```/g, "");
     const split = prose.split("\n").filter((line) => (line.match(/`/g) ?? []).length % 2 === 1);
     expect(split).toEqual([]);
+  });
+
+  it("pocketbase names its entries, migrations, the require rule and the denied revert, within 40 lines", () => {
+    expect(GUIDE_LIMITS.pocketbase).toBe(40);
+    const text = readGuide("pocketbase");
+    expect(text.split("\n").length).toBeLessThanOrEqual(40);
+    for (const named of ["pb_hooks/<name>.pb.ts", "pb_migrations/", "require", "migrate down"]) expect(text).toContain(named);
   });
 
   it("throws on an unknown name", () => {

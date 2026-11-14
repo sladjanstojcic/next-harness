@@ -48,6 +48,15 @@ prisma db push --accept-data-loss
 PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=1 prisma db push
 supabase db reset --linked
 supabase db reset --project-ref abc
+pocketbase migrate down
+./pocketbase migrate down 2
+pocketbase/.runtime/0.40.5/darwin_arm64/pocketbase --dir pb_data migrate down
+npx pocketbase migrate down
+sh -c "pocketbase migrate down"
+pocketbase migrate history-sync
+./pocketbase --dir=pb_data migrate history-sync
+true;pocketbase migrate down
+true&&pocketbase migrate history-sync
 git push --force
 git push --force-if-includes
 git push origin +main
@@ -74,6 +83,15 @@ prisma generate
 prisma db push
 supabase db reset
 supabase start
+pocketbase migrate up
+pocketbase migrate create add_index
+pocketbase migrate collections
+pocketbase serve
+pocketbase superuser upsert a@b.c pw
+pocketbase --version
+ls pocketbase/pb_migrations
+git mv pocketbase/pb_migrations/down.ts x
+echo migrate down
 git push
 git push origin main
 git -C somewhere push -u origin main

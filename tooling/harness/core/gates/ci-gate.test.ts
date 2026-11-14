@@ -5,6 +5,7 @@ import { SOURCE_PROBES } from "../../shapes/next-probes.ts";
 import { normaliseProbes } from "../../testing/preset-fixture.ts";
 import { CONFIG_RUNNER } from "../../tools/eslint-preset.ts";
 import { makerkitRepo } from "../../testing/makerkit-repo.ts";
+import { PB, pocketbaseRepo } from "../../testing/pocketbase/pocketbase-repo.ts";
 import { makeRepo } from "../../testing/temp-repo.ts";
 import { ciGate } from "./ci-gate.ts";
 import * as runner from "./run-tool.ts";
@@ -118,5 +119,13 @@ describe("CI gate", () => {
     await ciGate(repo.root);
     expect(steps.filter((step) => step.startsWith("build"))).toEqual(["build: vite build in apps/web", "build: electron-vite build in apps/desk"]);
     expect(steps.filter((step) => /^(typegen|next|playwright)\b/.test(step))).toEqual([]);
+  });
+
+  it("skips the test step of a pocketbase workspace without a test script", async () => {
+    const run = vi.spyOn(runner, "runTool").mockResolvedValue([]);
+    const repo = pocketbaseRepo({ "node_modules/.bin/vitest": "" });
+    const result = await ciGate(repo.root);
+    expect(result.report.split("\n")).toContain(`test (${PB}): skipped (no test script)`);
+    expect(run.mock.calls.some(([, step]) => step.name === "vitest" && step.cwd?.endsWith(`/${PB}`) === true)).toBe(false);
   });
 });

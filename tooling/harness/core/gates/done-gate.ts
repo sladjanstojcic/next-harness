@@ -19,7 +19,7 @@ import { toolWorkspaces, workspaceTools } from "../../tools/index.ts";
 import { testScript } from "../../tools/test-script.ts";
 import { relativePath } from "../../tools/tool-set.ts";
 import { typecheckProjects } from "../../tools/typescript.ts";
-import { knipStep, lacksSources, skippedLine, summarizePreExisting } from "./ci-steps.ts";
+import { knipStep, lacksSources, skippedLine, skippedTest, summarizePreExisting } from "./ci-steps.ts";
 import { runInWorkspace, selectedPaths } from "./fast-gate.ts";
 import type { GateResult } from "./gate-result.ts";
 import type { ToolStep } from "./run-tool.ts";
@@ -109,8 +109,11 @@ async function runDoneGate(directory: string, changed: string[], applied: Applie
     }
   }
   // A workspace's own test script has no notion of related tests: it runs whole.
-  for (const { workspace, tools, dir, files } of groups)
-    await run(workspace.path, workspace.test === undefined ? tools.test.related(dir, files) : testScript(directory, dir, workspace.test), true);
+  for (const { workspace, tools, dir, files } of groups) {
+    const noTests = skippedTest(workspace);
+    if (noTests !== undefined) skipped.push(skippedLine(noTests.name, workspace.path, noTests.skipped));
+    else await run(workspace.path, workspace.test === undefined ? tools.test.related(dir, files) : testScript(directory, dir, workspace.test), true);
+  }
   const blockingPaths = affected;
   const isHarnessRule = (finding: Finding): boolean => HARNESS_RULES.has(finding.rule);
   const classOf = (finding: Finding): PathClass => classify(finding.file, harness, legacy);

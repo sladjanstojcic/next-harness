@@ -1,4 +1,5 @@
 import path from "node:path";
+import { workspaceOf } from "../../config.ts";
 import { classify, legacyInvalidFindings, readLegacy } from "../classes.ts";
 import { INIT_FORCE_COMMAND, isLocked, lockReason, UNLOCK_COMMAND, unlocked } from "../lock.ts";
 import { isIgnored } from "../state/git-ignore.ts";
@@ -15,6 +16,7 @@ export interface Denial {
 /** Option tokens a CLI skips while looking for its subcommand: `--debug`, `--workdir apps/web`, `-x a,b`. */
 const OPTIONS = String.raw`(?:\s+-{1,2}[\w-]+(?:[=\s]\S+)?)*`;
 const SUPABASE_CLI = String.raw`\bsupabase(?:@\S+)?\)?${OPTIONS}`;
+const POCKETBASE_MIGRATE = String.raw`(?:^|[\s/"'(;&|])pocketbase(?:\.exe)?${OPTIONS}\s+migrate${OPTIONS}`;
 const shellGuards = [
   {
     guard: "destructive-prisma",
@@ -36,6 +38,16 @@ const shellGuards = [
     ...guard,
     reason: "Applying schema changes to a linked project is the user's step; leave migrations committed and ask them to deploy.",
   })),
+  {
+    guard: "pocketbase-migrate-down",
+    pattern: new RegExp(String.raw`${POCKETBASE_MIGRATE}\s+down\b`, "i"),
+    reason: "Reverting applied migrations drops what they created; write a new migration that undoes the change and let the user run it.",
+  },
+  {
+    guard: "pocketbase-history-sync",
+    pattern: new RegExp(String.raw`${POCKETBASE_MIGRATE}\s+history-sync\b`, "i"),
+    reason: "Rewriting the record of applied migrations is the user's step; leave the migration files as they are and ask them.",
+  },
   {
     guard: "harness-telemetry",
     pattern: /\bblocks\b[^|&;\n]*--false\b/,
@@ -107,11 +119,13 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
       return { guard: "lockfile-write", reason: "Dependency edits belong in package.json; regenerate pnpm-lock.yaml with pnpm install." };
     if (isMigration(harness, relative)) {
       applied ??= sessionApplied(canonicalRoot, event.sessionId);
-      if (isAppliedMigration(canonicalRoot, relative, applied)) return { guard: MIGRATION_RULE, reason: migrationReason(relative, applied) };
+      if (isAppliedMigration(canonicalRoot, relative, applied)) return { guard: MIGRATION_RULE, reason: migrationReason(harness, relative, applied) };
     }
     if (isNestedLintConfig(harness, relative)) return { guard: LINT_CONFIG_RULE, reason: lintConfigReason(harness, relative) };
     if (isGeneratedIn(harness, relative)) {
-      return { guard: "vendored-write", reason: `regenerate ${relative} with the backend's CLI; keep your own types in a module's types.ts` };
+      const advice = workspaceOf(harness.workspaces, relative)?.entry.shapeImpl.vendoredAdvice;
+      const reason = advice?.replace("<file>", relative) ?? `regenerate ${relative} with the backend's CLI; keep your own types in a module's types.ts`;
+      return { guard: "vendored-write", reason };
     }
     if (isVendoredIn(harness, relative)) {
       return {
