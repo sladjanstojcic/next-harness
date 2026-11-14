@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeRepo } from "./temp-repo.ts";
+import { pocketbaseRepo } from "./pocketbase/pocketbase-repo.ts";
 import { harnessKnip, harnessKnipPackage, harnessKnipWorkspace } from "../presets/knip.ts";
 
 const PACKAGE = JSON.stringify({ dependencies: { "server-only": "0.0.1" }, devDependencies: { "@eslint/js": "9.39.5", eslint: "9.39.5" } });
@@ -118,5 +119,19 @@ describe("the knip preset", () => {
       'import type { ReactNode } from "react";\nexport const Card = ({ children }: { children: ReactNode }) => <div>{children}</div>;\n',
     );
     expect(harnessKnipPackage(`${repo.root}/packages/ui`).ignoreDependencies).toEqual([]);
+  });
+
+  it("leaves harness.config.ts, a pocketbase workspace and the tools that check it out of a Next app's analysis", () => {
+    const manifest = JSON.stringify({ devDependencies: { oxfmt: "0.78.0", oxlint: "1.93.0" } });
+    const repo = pocketbaseRepo({ "package.json": manifest });
+    expect(harnessKnipWorkspace({ harness: "analyse" }, repo.root)).toMatchObject({
+      ignore: ["harness.config.ts", "pocketbase/**"],
+      ignoreDependencies: ["oxfmt", "oxlint"],
+    });
+    const plain = makeRepo({
+      "package.json": manifest,
+      "harness.config.ts": 'export default { workspaces: [{ path: ".", shape: "next-modules", next: true }] };\n',
+    });
+    expect(harnessKnipWorkspace({ harness: "analyse" }, plain.root)).toMatchObject({ ignore: ["harness.config.ts"], ignoreDependencies: [] });
   });
 });
