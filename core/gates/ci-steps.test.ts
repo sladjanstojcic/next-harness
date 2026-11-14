@@ -76,4 +76,16 @@ describe("checkSteps", () => {
     });
     expect(checkSteps(groupOf(repo.root, E2E), false).lint.command).not.toContain("--ignore-pattern");
   });
+
+  it("still runs oxfmt with no paths in a source-empty e2e workspace", () => {
+    const repo = makeRepo({
+      "harness.config.ts": `export default { workspaces: [{ path: "apps/web", shape: "makerkit-app", next: true }, { path: "${E2E}", shape: "e2e" }], root: { entries: ["apps"] } };\n`,
+      "apps/web/package.json": "{}\n",
+      [`${E2E}/package.json`]: "{}\n",
+    });
+    for (const perFile of [false, true]) {
+      const { format } = checkSteps(groupOf(repo.root, E2E), perFile);
+      expect("command" in format ? format.command.slice(1) : format).toEqual(["--list-different", "--no-error-on-unmatched-pattern"]);
+    }
+  });
 });

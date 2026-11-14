@@ -68,9 +68,10 @@ export const oxc: ToolSet = {
   format: {
     write: (dir, files) => ({ name: "oxfmt", command: [bin(dir, "oxfmt"), "--no-error-on-unmatched-pattern", ...files], findings: () => [] }),
     check: (dir, vendored) => {
-      const files = listFiles(dir).filter((file) => SOURCE_FILE.test(file) && vendored?.test(file) !== true);
-      // oxfmt without a path checks the whole folder, vendored files included.
-      if (files.length === 0) return { name: "oxfmt", skipped: "no source files" };
+      const sources = listFiles(dir).filter((file) => SOURCE_FILE.test(file));
+      const files = sources.filter((file) => vendored?.test(file) !== true);
+      // oxfmt without a path checks the whole folder, so the vendored files the filter removed would come back.
+      if (files.length === 0 && sources.length > 0) return { name: "oxfmt", skipped: "no source files" };
       return {
         name: "oxfmt",
         command: [bin(dir, "oxfmt"), "--list-different", "--no-error-on-unmatched-pattern", ...files],
