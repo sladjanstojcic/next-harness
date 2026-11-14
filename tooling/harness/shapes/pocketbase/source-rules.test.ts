@@ -52,9 +52,18 @@ describe("pocketbase source rules", () => {
     ['import fs from "node:fs";\n', 1],
     ['import { join } from "path";\n', 1],
     ["export const u = $http.send({});\n", 1],
+    ["export const s = { $app };\n", 1],
+    ["export const c = { [$app]: 1 };\n", 1],
   ])("reports what makes shared/ unloadable on one side: %s", (text, line) => {
     expect(rules("shared/listing-values.ts", text)).toEqual([["pb-shared-pure", line]]);
   });
+
+  it.each(["export const { $app: value } = data;\n", 'import { $app as value } from "./values.ts";\n'])(
+    "accepts a PocketBase global's name as a renamed property key in shared/: %s",
+    (text) => {
+      expect(rules("shared/listing-values.ts", text)).toEqual([]);
+    },
+  );
 
   it("accepts plain values, types and a relative import in shared/", () => {
     expect(

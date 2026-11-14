@@ -34,10 +34,12 @@ function isRequire(ts: Compiler, node: ts.Node): boolean {
   return ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "require";
 }
 
-/** A PocketBase global read as a value, not a property name or the name a declaration gives; the caller skips types. */
+/** A PocketBase global read as a value, not a property name, a renamed key or the name a declaration gives; the caller skips types. */
 function isGlobalValue(ts: Compiler, node: ts.Node): boolean {
   if (!ts.isIdentifier(node) || !GLOBALS.has(node.text)) return false;
   const { parent } = node;
+  const renamedKey = (ts.isBindingElement(parent) || ts.isImportSpecifier(parent) || ts.isExportSpecifier(parent)) && parent.propertyName === node;
+  if (renamedKey) return false;
   return ts.isShorthandPropertyAssignment(parent) || !("name" in parent && parent.name === node);
 }
 
