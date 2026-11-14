@@ -126,6 +126,8 @@ export interface ContentProfile {
   publicEnvAllowed?: boolean;
   domainFile?: RegExp;
   errorScope?: RegExp;
+  /** Test files that run against a live server, so test-determinism leaves their clock and network alone. */
+  integrationTests?: RegExp;
   /** The message for lint-disable and @ts- suppression comments; absent leaves them to the linter (ESLint's noInlineConfig). */
   inlineDisable?: string;
   /** The message for a relative import that leaves the workspace folder; absent allows it. */

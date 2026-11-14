@@ -178,7 +178,8 @@ export function auditSource(root: string, target: ContentTarget, text: string): 
   }
   const checkEnvironment = profile?.envScope?.test(path) === true && path !== profile.envFile && profile.envAllowed?.test(path) !== true;
   const checkErrors = !TEST_FILE.test(path) && profile?.errorScope?.test(path) === true;
-  const checkDeterminism = TEST_FILE.test(file) && !seedMarkers.some((marker) => source.text.includes(marker));
+  const integration = profile?.integrationTests?.test(path) === true;
+  const checkDeterminism = TEST_FILE.test(file) && !integration && !seedMarkers.some((marker) => source.text.includes(marker));
   const visit = (node: ts.Node): void => {
     const access = property(node);
     if (profile && checkEnvironment && access?.name === "env" && isName(access.object, "process") && !isPublicRead(profile, node)) {
