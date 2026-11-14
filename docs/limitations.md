@@ -99,6 +99,9 @@ parent: Reference
 - The harness does not add a `pocketbase` workspace to the root `tsconfig.json` `exclude`. Until you
   do, the app's `tsc` also checks the folder, with the app's settings and the ignored
   `pb_data/types.d.ts`; in the run it passed only through `skipLibCheck`.
+- Init keeps a `pocketbase` folder out of the root's format check only when the root app uses
+  `tools: "eslint-prettier"`. With a root app on `tools: "oxc"`, the root's oxfmt and oxlint also judge
+  the folder, its vendored `types/pocketbase-*.d.ts` included. This was not run on a real project.
 - Nothing reports a file in a `pocketbase` workspace that imports from `src/`, or the app importing
   from its `pb_hooks/`: dependency-cruiser reads only the app's sources.
 - The test step has a ten-minute limit. In this template most of that time is the harness's own tests:
