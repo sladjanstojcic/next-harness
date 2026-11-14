@@ -98,7 +98,7 @@ export const pocketbase: Shape = {
   checkHidden: onlyGitkeepHidden(topFolders, (top) => `Keep visible files in ${top}/; only .gitkeep may be hidden ${LAYOUT}.`),
   checkPath,
   vendoredPattern: /^types\/pocketbase[^/]*\.d\.ts$/,
-  vendoredAdvice: "take <file> from the PocketBase release that matches your binary; keep your own declarations in another file in types/",
+  vendoredAdvice: "copy pb_data/types.d.ts, which PocketBase writes at its first serve, to <file>; keep your own declarations in another file in types/",
   unlimitedFolders: ["pb_migrations"],
   folderGuidance: () => `Group the files an entry requires in pb_hooks/<area>/, and split an area that has grown past the limit ${LAYOUT}.`,
   content: pocketbaseContent,

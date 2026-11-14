@@ -35,6 +35,6 @@ tsconfig.json, package.json, README.md
 - Need a route or an event hook → add an entry `pb_hooks/<name>.pb.ts` and `require` its code from `pb_hooks/<area>/`.
 - Need a schema change → add a new migration in `pb_migrations/`; never change an applied one.
 - Need a value the app reads too → put it in `shared/<name>.ts`.
-- Need a declaration → put it in `types/<name>.d.ts`; the vendored file comes from the PocketBase release.
+- Need a declaration → put it in `types/<name>.d.ts`; the vendored file is a copy of PocketBase's `pb_data/types.d.ts`.
 - Need a test → put it in `tests/<suite>/<name>.test.ts`.
 - Need to log → use $app.logger(); console is denied by the lint pass.

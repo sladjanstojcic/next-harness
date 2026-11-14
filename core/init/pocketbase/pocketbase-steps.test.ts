@@ -12,7 +12,7 @@ const LOOSE = "export const a = {x:1}\n";
 
 const STEPS = [
   'Give pocketbase/ its own tsconfig.json with "strict": true, "moduleDetection": "legacy" and the folders pb_hooks, pb_migrations, shared and types in "include" (init does not write it).',
-  "Put the declarations from your PocketBase release in pocketbase/types/ as pocketbase-<version>.d.ts.",
+  "Copy pb_data/types.d.ts, which PocketBase writes at its first serve, to pocketbase/types/pocketbase-<version>.d.ts.",
   "Install the tools this folder is checked with, at exact versions: pnpm add -D --save-exact oxlint oxfmt",
 ];
 
