@@ -81,6 +81,12 @@ describe("pocketbase shape", () => {
     expect(found[0]?.message).toContain("(PocketBase layout)");
   });
 
+  it("reports module syntax in an entry through the audit, on the entry's line", () => {
+    const { root } = pocketbaseRepo({ "pocketbase/pb_hooks/sessions.pb.ts": "export const a = 1;\n" });
+    const found = audit(root).filter(({ rule }) => rule === "pb-entry-module");
+    expect(found.map(({ file, line }) => ({ file, line }))).toEqual([{ file: "pocketbase/pb_hooks/sessions.pb.ts", line: 1 }]);
+  });
+
   it("denies a write to the vendored declarations with the shape's own reason", () => {
     const { root } = pocketbaseRepo();
     const file = "pocketbase/types/pocketbase-0.40.5.d.ts";
