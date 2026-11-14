@@ -16,7 +16,7 @@ export interface Denial {
 /** Option tokens a CLI skips while looking for its subcommand: `--debug`, `--workdir apps/web`, `-x a,b`. */
 const OPTIONS = String.raw`(?:\s+-{1,2}[\w-]+(?:[=\s]\S+)?)*`;
 const SUPABASE_CLI = String.raw`\bsupabase(?:@\S+)?\)?${OPTIONS}`;
-const POCKETBASE_MIGRATE = String.raw`(?:^|[\s/"'(])pocketbase(?:\.exe)?${OPTIONS}\s+migrate${OPTIONS}`;
+const POCKETBASE_MIGRATE = String.raw`(?:^|[\s/"'(;&|])pocketbase(?:\.exe)?${OPTIONS}\s+migrate${OPTIONS}`;
 const shellGuards = [
   {
     guard: "destructive-prisma",
