@@ -13,9 +13,9 @@ import { stateDir } from "../state/state-file.ts";
 import { build, electronBuild, playwright, viteBuild } from "../../tools/analysis.ts";
 import { toolWorkspaces, workspaceTools } from "../../tools/index.ts";
 import { placeStep } from "../../tools/tool-set.ts";
-import { analysisSteps, checkSteps, skippedLine, summarizePreExisting, testStep, type SkippedStep } from "./ci-steps.ts";
+import { analysisSteps, checkSteps, skippedLine, summarizePreExisting, testStep } from "./ci-steps.ts";
 import type { GateResult } from "./gate-result.ts";
-import { runTool, type ToolStep } from "./run-tool.ts";
+import { runTool, type SkippedStep, type ToolStep } from "./run-tool.ts";
 
 export async function ciGate(root: string): Promise<GateResult> {
   const directory = path.resolve(root);

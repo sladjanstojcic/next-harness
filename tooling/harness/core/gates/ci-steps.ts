@@ -7,13 +7,7 @@ import { typecheckProjects } from "../../tools/typescript.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
 import { importedFromPackage } from "../package-usage.ts";
 import type { Harness } from "../path-check.ts";
-import type { ToolStep } from "./run-tool.ts";
-
-/** A step a gate names in its report without running it. */
-export interface SkippedStep {
-  name: string;
-  skipped: string;
-}
+import type { SkippedStep, ToolStep } from "./run-tool.ts";
 
 /**
  * depcruise and jscpd read the workspace's source folders: src/, or app/, modules/ and shared/ at its top. A workspace of a
@@ -30,7 +24,7 @@ export const skippedLine = (name: string, workspacePath: string, reason: string)
  * A workspace's whole-tree format, lint and type steps. Judged by exit code as CI always did, or with `perFile` one
  * finding per file, which a legacy list needs to tell old debt from new.
  */
-export function checkSteps({ tools, dir, workspace }: WorkspaceTools, perFile: boolean): { format: ToolStep; lint: ToolStep; types: ToolStep[] } {
+export function checkSteps({ tools, dir, workspace }: WorkspaceTools, perFile: boolean): { format: ToolStep | SkippedStep; lint: ToolStep; types: ToolStep[] } {
   const projects = typecheckProjects(dir, workspace);
   const vendored = shapeOf(workspace.shape, sourceRootOf(workspace)).vendoredPattern;
   if (!perFile)

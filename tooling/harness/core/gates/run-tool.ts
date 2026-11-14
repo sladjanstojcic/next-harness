@@ -4,6 +4,12 @@ import { join } from "node:path";
 import { parseEnv } from "node:util";
 import type { Finding } from "../audit/finding.ts";
 
+/** A step a gate names in its report without running it. */
+export interface SkippedStep {
+  name: string;
+  skipped: string;
+}
+
 export interface ToolStep {
   name: string;
   command: string[];

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolveHarness } from "../path-check.ts";
-import { PB, pocketbaseRepo } from "../../testing/pocketbase/pocketbase-repo.ts";
+import { PB, POCKETBASE_PROJECT, pocketbaseRepo } from "../../testing/pocketbase/pocketbase-repo.ts";
 import { makeRepo } from "../../testing/temp-repo.ts";
 import { toolWorkspaces } from "../../tools/index.ts";
 import { checkSteps, testStep } from "./ci-steps.ts";
@@ -50,9 +50,21 @@ describe("checkSteps", () => {
     const repo = pocketbaseRepo({ [`${PB}/${VENDORED}`]: "declare const $app: unknown;\n", [`${PB}/types/own.d.ts`]: "export {};\n" });
     for (const perFile of [false, true]) {
       const { format, lint } = checkSteps(groupOf(repo.root, PB), perFile);
-      expect(format.command).not.toContain(VENDORED);
-      expect(format.command).toContain("types/own.d.ts");
+      const command = "command" in format ? format.command : [];
+      expect(command).not.toContain(VENDORED);
+      expect(command).toContain("types/own.d.ts");
       expect(lint.command.slice(-2)).toEqual(["--ignore-pattern", VENDORED]);
+    }
+  });
+
+  it("runs no format check where every source file is vendored, so oxfmt cannot fall back to the whole folder", () => {
+    const repo = makeRepo({
+      "harness.config.ts": POCKETBASE_PROJECT["harness.config.ts"] ?? "",
+      [`${PB}/tsconfig.json`]: '{ "compilerOptions": { "strict": true } }\n',
+      [`${PB}/${VENDORED}`]: "declare const $app: unknown;\n",
+    });
+    for (const perFile of [false, true]) {
+      expect(checkSteps(groupOf(repo.root, PB), perFile).format).toEqual({ name: "oxfmt", skipped: "no source files" });
     }
   });
 
