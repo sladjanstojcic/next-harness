@@ -57,6 +57,19 @@ describe("a Next app with its PocketBase backend in pocketbase/", () => {
     expect(found(pocketbaseRepo({ [file]: text }).root)).toEqual([`${file} ${rule}`]);
   });
 
+  it("lets a test in tests/<suite>/ call the running server, and still reports a network call in a colocated unit test", () => {
+    const health =
+      'import { expect, it } from "vitest";\n\nit("answers", async () => {\n  expect((await fetch("http://127.0.0.1:8090/api/health")).ok).toBe(true);\n});\n';
+    const status = `${LISTINGS}/domain/status.ts`;
+    const statusTest = `${LISTINGS}/domain/status.test.ts`;
+    const repo = pocketbaseRepo({
+      [`${PB}/tests/sessions/health.test.ts`]: health,
+      [status]: 'export const isLive = (status: string): boolean => status === "live";\n',
+      [statusTest]: health.replace("answers", "reads live"),
+    });
+    expect(found(repo.root)).toEqual([`${statusTest} test-determinism`]);
+  });
+
   it("denies a generic folder in pb_hooks/", async () => {
     const outcome = await session(pocketbaseRepo()).write(`${PB}/pb_hooks/utils/a.ts`);
     expect(outcome).toMatchObject({ kind: "deny", guard: "structure-write" });

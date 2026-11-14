@@ -73,6 +73,7 @@ const NONE = "";
 const pocketbaseContent: ContentProfile = {
   actionBuilders: [],
   aliases: {},
+  integrationTests: /^tests\//,
   inlineDisable: `Remove the {directive} comment and fix the code it silences; hook code may not turn off lint rules or type checks ${LAYOUT}.`,
   sourceRules: pocketbaseSourceRules,
   messages: {
