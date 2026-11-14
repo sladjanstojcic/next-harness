@@ -16,6 +16,8 @@ describe("pocketbase source rules", () => {
     ["export const version = 1;\n", [["pb-entry-module", 1]]],
     ["export type Mode = 'a';\n", [["pb-entry-module", 1]]],
     ["const x = 1;\nexport {};\n", [["pb-entry-module", 2]]],
+    ['import api = require("./sessions/api");\n', [["pb-entry-module", 1]]],
+    ['import type api = require("./sessions/api");\n', [["pb-entry-module", 1]]],
   ])("reports top-level module syntax in an entry: %s", (text, expected) => {
     expect(rules(ENTRY, text)).toEqual(expected);
   });
@@ -24,6 +26,10 @@ describe("pocketbase source rules", () => {
     const text =
       'routerAdd("POST", "/x", (e) => {\n  const s: import("./sessions/end-session.ts").Api = require(`${__hooks}/sessions/end-session.js`);\n  return s.end(e);\n});\n';
     expect(rules(ENTRY, text)).toEqual([]);
+  });
+
+  it("accepts a namespace alias in an entry: it leaves the file a script", () => {
+    expect(rules(ENTRY, "namespace Pb { export const n = 1; }\nimport n = Pb.n;\n")).toEqual([]);
   });
 
   it.each([
