@@ -108,7 +108,7 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
       return { guard: "lockfile-write", reason: "Dependency edits belong in package.json; regenerate pnpm-lock.yaml with pnpm install." };
     if (isMigration(harness, relative)) {
       applied ??= sessionApplied(canonicalRoot, event.sessionId);
-      if (isAppliedMigration(canonicalRoot, relative, applied)) return { guard: MIGRATION_RULE, reason: migrationReason(relative, applied) };
+      if (isAppliedMigration(canonicalRoot, relative, applied)) return { guard: MIGRATION_RULE, reason: migrationReason(harness, relative, applied) };
     }
     if (isNestedLintConfig(harness, relative)) return { guard: LINT_CONFIG_RULE, reason: lintConfigReason(harness, relative) };
     if (isGeneratedIn(harness, relative)) {
