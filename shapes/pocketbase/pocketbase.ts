@@ -1,7 +1,7 @@
 import { checkTests, type TestsLayout } from "../e2e.ts";
 import { deny, GENERIC_FOLDERS, KEBAB, onlyGitkeepHidden, PLAIN_SHAPE, type ContentProfile, type PathVerdict, type Shape } from "../shape.ts";
+import { POCKETBASE_LAYOUT as LAYOUT, pocketbaseSourceRules } from "./source-rules.ts";
 
-const LAYOUT = "(PocketBase layout)";
 const ok: PathVerdict = { ok: true };
 const topFolders = ["pb_hooks", "pb_migrations", "shared", "types", "tests"];
 const topEntries = [...topFolders, "tsconfig.json", "package.json", "README.md", "AGENTS.md", "CLAUDE.md", ".gitignore"];
@@ -74,6 +74,7 @@ const pocketbaseContent: ContentProfile = {
   actionBuilders: [],
   aliases: {},
   inlineDisable: `Remove the {directive} comment and fix the code it silences; hook code may not turn off lint rules or type checks ${LAYOUT}.`,
+  sourceRules: pocketbaseSourceRules,
   messages: {
     serverOnly: NONE,
     useServer: NONE,
