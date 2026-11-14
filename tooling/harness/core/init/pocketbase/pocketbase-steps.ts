@@ -17,7 +17,9 @@ function workspaceTodo(root: string, workspace: WorkspaceEntry): string[] {
         `Give ${workspace.path}/ its own tsconfig.json with "strict": true, "moduleDetection": "legacy" and the folders pb_hooks, pb_migrations, shared and types in "include" (init does not write it).`,
       ];
   const declared = fs.existsSync(types) && fs.readdirSync(types).some((file) => VENDORED.test(file));
-  const declarations = declared ? [] : [`Put the declarations from your PocketBase release in ${workspace.path}/types/ as pocketbase-<version>.d.ts.`];
+  const declarations = declared
+    ? []
+    : [`Copy pb_data/types.d.ts, which PocketBase writes at its first serve, to ${workspace.path}/types/pocketbase-<version>.d.ts.`];
   const installed = TOOLS.every((tool) => bin(dir, tool, root) !== undefined);
   const tools = installed ? [] : [`Install the tools this folder is checked with, at exact versions: ${managerCommands(root).addDevExact} ${TOOLS.join(" ")}`];
   return [...tsconfig, ...declarations, ...tools];

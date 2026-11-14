@@ -97,7 +97,7 @@ describe("pocketbase shape", () => {
     );
     expect(checkGuards(event, root)).toEqual({
       guard: "vendored-write",
-      reason: `take ${file} from the PocketBase release that matches your binary; keep your own declarations in another file in types/`,
+      reason: `copy pb_data/types.d.ts, which PocketBase writes at its first serve, to ${file}; keep your own declarations in another file in types/`,
     });
   });
 });
