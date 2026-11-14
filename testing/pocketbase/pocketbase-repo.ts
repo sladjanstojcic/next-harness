@@ -12,7 +12,8 @@ const CONFIG = `export default {
 };
 `;
 
-const POCKETBASE_FILES: Readonly<Record<string, string>> = {
+/** The project's own files, without the tool stubs, for a fixture that links real tools. */
+export const POCKETBASE_PROJECT: Readonly<Record<string, string>> = {
   "harness.config.ts": CONFIG,
   ".gitignore": "node_modules/\n",
   "package.json": "{}\n",
@@ -29,6 +30,9 @@ const POCKETBASE_FILES: Readonly<Record<string, string>> = {
   ].join("\n"),
   "pocketbase/pb_hooks/sessions/end-session.ts": "export function endSession(): { ended: boolean } {\n  return { ended: true };\n}\n",
   [PB_MIGRATION]: "migrate(() => undefined, () => undefined);\n",
+};
+
+const TOOL_STUBS: Readonly<Record<string, string>> = {
   "node_modules/.bin/eslint": "",
   "node_modules/.bin/prettier": "",
   "node_modules/.bin/tsc": "",
@@ -38,5 +42,5 @@ const POCKETBASE_FILES: Readonly<Record<string, string>> = {
 
 /** A Next app at the root with its PocketBase backend in pocketbase/: an entry, the code it requires, and one committed migration. */
 export function pocketbaseRepo(extra: Readonly<Record<string, string>> = {}): RepoFixture {
-  return makeRepo({ ...POCKETBASE_FILES, ...extra }, { agents: true, stack: true });
+  return makeRepo({ ...POCKETBASE_PROJECT, ...TOOL_STUBS, ...extra }, { agents: true, stack: true });
 }
