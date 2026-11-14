@@ -26,7 +26,9 @@ const REQUIRE_SCOPE = `Call require() inside the handler: PocketBase runs each h
 const SHARED_PURE = `Keep shared/ to plain values and types: the PocketBase VM and the app both load this file, so it may not use require, a package, Node or a PocketBase global ${POCKETBASE_LAYOUT}.`;
 
 function isModuleSyntax(ts: Compiler, statement: ts.Statement): boolean {
-  if (ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement) || ts.isExportAssignment(statement)) return true;
+  if (ts.isImportDeclaration(statement)) return true;
+  if (ts.isImportEqualsDeclaration(statement) && ts.isExternalModuleReference(statement.moduleReference)) return true;
+  if (ts.isExportDeclaration(statement) || ts.isExportAssignment(statement)) return true;
   return ts.canHaveModifiers(statement) && ts.getModifiers(statement)?.some(({ kind }) => kind === ts.SyntaxKind.ExportKeyword) === true;
 }
 
