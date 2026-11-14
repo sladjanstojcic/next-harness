@@ -9,13 +9,15 @@ export interface ToolSet {
   name: Exclude<ToolSetName, "none">;
   format: {
     write(dir: string, files: string[]): ToolStep;
-    check(dir: string): ToolStep;
+    /** `vendored` is the shape's pattern for workspace-relative files the step leaves alone. */
+    check(dir: string, vendored?: RegExp): ToolStep;
     /** The whole-workspace check with one finding per file, where `check` judges by exit code only. */
     report?(dir: string): ToolStep;
   };
   lint: {
     files(dir: string, files: string[], fast: boolean): ToolStep;
-    all(dir: string): ToolStep;
+    /** `vendored` is the shape's pattern for workspace-relative files the step leaves alone. */
+    all(dir: string, vendored?: RegExp): ToolStep;
     /** The whole-workspace lint with one finding per message, where `all` judges by exit code only. */
     report?(dir: string): ToolStep;
     /** Checks the harness's rules are active in the workspace's own lint config; the message names the workspace path. */

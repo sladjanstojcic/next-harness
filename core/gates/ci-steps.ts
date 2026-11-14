@@ -1,4 +1,5 @@
 import { analysisOf, sourcePaths, sourceRootOf, type WorkspaceEntry } from "../../config.ts";
+import { shapeOf } from "../../shapes/index.ts";
 import { depcruise, jscpd, knip } from "../../tools/analysis.ts";
 import type { WorkspaceTools } from "../../tools/index.ts";
 import { testScript } from "../../tools/test-script.ts";
@@ -31,10 +32,12 @@ export const skippedLine = (name: string, workspacePath: string, reason: string)
  */
 export function checkSteps({ tools, dir, workspace }: WorkspaceTools, perFile: boolean): { format: ToolStep; lint: ToolStep; types: ToolStep[] } {
   const projects = typecheckProjects(dir, workspace);
-  if (!perFile) return { format: tools.format.check(dir), lint: tools.lint.all(dir), types: tools.typecheck.all(dir, workspace.next, projects) };
+  const vendored = shapeOf(workspace.shape, sourceRootOf(workspace)).vendoredPattern;
+  if (!perFile)
+    return { format: tools.format.check(dir, vendored), lint: tools.lint.all(dir, vendored), types: tools.typecheck.all(dir, workspace.next, projects) };
   return {
-    format: tools.format.report?.(dir) ?? tools.format.check(dir),
-    lint: tools.lint.report?.(dir) ?? tools.lint.all(dir),
+    format: tools.format.report?.(dir) ?? tools.format.check(dir, vendored),
+    lint: tools.lint.report?.(dir) ?? tools.lint.all(dir, vendored),
     types: tools.typecheck.report?.(dir, workspace.next, projects) ?? tools.typecheck.all(dir, workspace.next, projects),
   };
 }
