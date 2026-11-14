@@ -1,9 +1,14 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
 import { pocketbaseRepo } from "../../../testing/pocketbase/pocketbase-repo.ts";
 import type { RepoFixture } from "../../../testing/temp-repo.ts";
 import { initHarness } from "../init.ts";
+
+const template = path.resolve(import.meta.dirname, "../../../../..");
+const LOOSE = "export const a = {x:1}\n";
 
 const STEPS = [
   'Give pocketbase/ its own tsconfig.json with "strict": true, "moduleDetection": "legacy" and the folders pb_hooks, pb_migrations, shared and types in "include" (init does not write it).',
@@ -39,5 +44,26 @@ describe("init on a pocketbase workspace", () => {
     const { report, ok } = initHarness(repo.root, { force: false, starter: false });
     expect(ok).toBe(true);
     expect(report).not.toMatch(/pocketbase\/|oxlint oxfmt/);
+  });
+
+  it("leaves the folder to its own tools: the root app's Prettier and ESLint skip it", async () => {
+    const repo = consumer({ "pocketbase/shared/loose.ts": LOOSE, "src/shared/lib/loose.ts": LOOSE });
+    expect(initHarness(repo.root, { force: false, starter: false }).ok).toBe(true);
+    expect(repo.read(".prettierignore").split("\n")).toContain("pocketbase");
+    const prettier = path.join(template, "node_modules/.bin/prettier");
+    const listed = spawnSync(prettier, ["--list-different", "--no-config", "."], { cwd: repo.root, encoding: "utf8" }).stdout.split("\n");
+    expect(listed).toContain("src/shared/lib/loose.ts");
+    expect(listed).not.toContain("pocketbase/shared/loose.ts");
+
+    fs.rmSync(path.join(repo.root, "node_modules"), { recursive: true });
+    fs.symlinkSync(path.join(template, "node_modules"), path.join(repo.root, "node_modules"));
+    const preset = path.join(template, "tooling/harness/presets/eslint.ts");
+    fs.writeFileSync(
+      path.join(repo.root, "eslint.config.ts"),
+      `import { harnessEslint } from ${JSON.stringify(preset)};\n\nexport default harnessEslint({ root: import.meta.dirname, next: true });\n`,
+    );
+    const eslint = new ESLint({ cwd: repo.root });
+    expect(await eslint.isPathIgnored(path.join(repo.root, "pocketbase/shared/loose.ts"))).toBe(true);
+    expect(await eslint.isPathIgnored(path.join(repo.root, "src/shared/lib/loose.ts"))).toBe(false);
   });
 });

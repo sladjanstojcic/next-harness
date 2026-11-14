@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { sourceRootOf, type ShapeName, type WorkspaceEntry } from "../../config.ts";
 import { GENERATED_TYPE_GLOBS } from "../../shapes/backend-folder.ts";
+import { pocketbaseFolders } from "../../shapes/pocketbase/own-tools.ts";
 import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { writer, type Step } from "./files.ts";
 
@@ -63,13 +64,13 @@ export function developsHarness(root: string): boolean {
 }
 
 /**
- * The root ignore files: `.prettierignore`, which Prettier and oxfmt read, with the root workspace's entries and the
- * harness; `.eslintignore`, which oxlint reads, with the harness when a workspace uses oxc.
+ * The root ignore files: `.prettierignore`, which Prettier and oxfmt read, with the root workspace's entries, the
+ * pocketbase folders and the harness; `.eslintignore`, which oxlint reads, with the harness when a workspace uses oxc.
  */
 export function rootIgnoreSteps(root: string, workspaces: readonly WorkspaceEntry[]): Step[] {
   const harness = developsHarness(root) ? [] : HARNESS_IGNORED;
   const atRoot = workspaces.find((workspace) => workspace.path === "" && workspace.tools === "eslint-prettier");
-  const formatted = atRoot === undefined ? [] : prettierIgnored(atRoot);
+  const formatted = atRoot === undefined ? [] : [...prettierIgnored(atRoot), ...pocketbaseFolders(workspaces)];
   const prettier = [...formatted, ...harness];
   const oxlint = workspaces.some((workspace) => workspace.tools === "oxc") ? harness : [];
   return [
