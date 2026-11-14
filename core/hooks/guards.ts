@@ -1,4 +1,5 @@
 import path from "node:path";
+import { workspaceOf } from "../../config.ts";
 import { classify, legacyInvalidFindings, readLegacy } from "../classes.ts";
 import { INIT_FORCE_COMMAND, isLocked, lockReason, UNLOCK_COMMAND, unlocked } from "../lock.ts";
 import { isIgnored } from "../state/git-ignore.ts";
@@ -111,7 +112,9 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
     }
     if (isNestedLintConfig(harness, relative)) return { guard: LINT_CONFIG_RULE, reason: lintConfigReason(harness, relative) };
     if (isGeneratedIn(harness, relative)) {
-      return { guard: "vendored-write", reason: `regenerate ${relative} with the backend's CLI; keep your own types in a module's types.ts` };
+      const advice = workspaceOf(harness.workspaces, relative)?.entry.shapeImpl.vendoredAdvice;
+      const reason = advice?.replace("<file>", relative) ?? `regenerate ${relative} with the backend's CLI; keep your own types in a module's types.ts`;
+      return { guard: "vendored-write", reason };
     }
     if (isVendoredIn(harness, relative)) {
       return {
