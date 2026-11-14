@@ -1,4 +1,6 @@
+import { loadConfig } from "../config.ts";
 import { GENERATED_TYPE_GLOBS } from "../shapes/backend-folder.ts";
+import { pocketbaseFolders } from "../shapes/pocketbase/own-tools.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 import { electronAliases } from "./electron-aliases.ts";
 import { harnessRuleBlocks, HOOKS_PLUGIN, usesShadcn, type PresetLayout } from "./eslint-rules.ts";
@@ -61,7 +63,8 @@ export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
   const tseslint = defaultOf(tool("typescript-eslint"));
   const disableTypeChecked = member(member(tseslint, "configs"), "disableTypeChecked");
   const parserOptions = { projectService: true, tsconfigRootDir: root };
-  const ignored = [...vendored, ...(harness === "ignore" ? ["tooling/harness/**"] : [])];
+  const ownTools = pocketbaseFolders(loadConfig(root).workspaces).map((folder) => `${folder}/**`);
+  const ignored = [...vendored, ...ownTools, ...(harness === "ignore" ? ["tooling/harness/**"] : [])];
   const recommended = (): unknown[] => [
     member(member(defaultOf(tool("@eslint/js")), "configs"), "recommended"),
     ...(next
