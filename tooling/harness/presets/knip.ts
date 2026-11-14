@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { CONFIG_FILE, expandWorkspaces, loadConfig } from "../config.ts";
 import { HARNESS_PACKAGE, harnessIsWorkspace } from "../core/init/bootstrap.ts";
 import { GENERATED_TYPE_GLOBS } from "../shapes/backend-folder.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
@@ -122,10 +123,10 @@ function declared(dir: string): Set<string> {
 }
 
 /** What both presets read from the workspace's package.json and the folders above it: configs to ignore, and the dependency and binary lists. */
-function fromManifest(dir: string): { configs: string[]; lists: { ignoreDependencies: string[]; ignoreBinaries?: string[] } } {
+function fromManifest(dir: string, used: readonly string[] = []): { configs: string[]; lists: { ignoreDependencies: string[]; ignoreBinaries?: string[] } } {
   const packages = declared(dir);
   const { configs, binaries } = installedElsewhere(dir, packages);
-  const ignoreDependencies = [...IGNORE_DEPENDENCIES, ...presetOnly(dir), ...jsxRuntime(dir)].filter((name) => packages.has(name));
+  const ignoreDependencies = [...IGNORE_DEPENDENCIES, ...presetOnly(dir), ...jsxRuntime(dir), ...used].filter((name) => packages.has(name));
   return { configs, lists: { ignoreDependencies, ...(binaries.length === 0 ? {} : { ignoreBinaries: binaries }) } };
 }
 
@@ -136,11 +137,19 @@ function fromManifest(dir: string): { configs: string[]; lists: { ignoreDependen
 export function harnessKnipWorkspace({ harness = "ignore" }: HarnessKnipOptions = {}, dir = process.cwd()): KnipWorkspace {
   // A glob is listed once the folder it names exists.
   const exists = (pattern: string) => fs.existsSync(path.join(dir, pattern.replace(/\/[^/]*\*[^/]*$/, "")));
-  const { configs, lists } = fromManifest(dir);
+  // The PocketBase VM loads hooks and migrations by name, and the folder's own oxlint and oxfmt check them: no import knip can see.
+  const pocketbase = expandWorkspaces(dir, loadConfig(dir)).filter((workspace) => workspace.shape === "pocketbase");
+  const { configs, lists } = fromManifest(dir, pocketbase.length > 0 ? ["oxfmt", "oxlint"] : []);
   return {
     next: true,
     entry: ENTRY.filter(exists),
-    ignore: [...IGNORE.filter(exists), ...configs, ...(harness === "ignore" ? [`${HARNESS_PACKAGE}/**`] : [])],
+    ignore: [
+      ...IGNORE.filter(exists),
+      ...configs,
+      ...[CONFIG_FILE].filter(exists),
+      ...pocketbase.map((workspace) => `${workspace.path}/**`),
+      ...(harness === "ignore" ? [`${HARNESS_PACKAGE}/**`] : []),
+    ],
     ...lists,
   };
 }
