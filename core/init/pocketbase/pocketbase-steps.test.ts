@@ -13,7 +13,7 @@ const LOOSE = "export const a = {x:1}\n";
 const STEPS = [
   'Give pocketbase/ its own tsconfig.json with "strict": true, "moduleDetection": "legacy" and the folders pb_hooks, pb_migrations, shared and types in "include" (init does not write it).',
   "Put the declarations from your PocketBase release in pocketbase/types/ as pocketbase-<version>.d.ts.",
-  "Install the tools this folder is checked with, at exact versions: pnpm add -D oxlint oxfmt",
+  "Install the tools this folder is checked with, at exact versions: pnpm add -D --save-exact oxlint oxfmt",
 ];
 
 const listing = (dir: string): string[] => fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).sort();
@@ -37,6 +37,18 @@ describe("init on a pocketbase workspace", () => {
     const items = result.report.split("\n").map((line) => line.replace(/^ {2}\d+\. /, ""));
     for (const step of STEPS) expect(items).toContain(step);
     expect(listing(folder)).toEqual(before);
+  });
+
+  it("saves exact versions in the project's package manager", () => {
+    const managers = [
+      ["package-lock.json", "npm install -D --save-exact oxlint oxfmt"],
+      ["yarn.lock", "yarn add -D --exact oxlint oxfmt"],
+    ] as const;
+    for (const [lockfile, command] of managers) {
+      const repo = consumer({ [lockfile]: "" });
+      for (const tool of ["oxlint", "oxfmt"]) fs.rmSync(path.join(repo.root, "node_modules/.bin", tool));
+      expect(initHarness(repo.root, { force: false, starter: false }).report).toContain(`at exact versions: ${command}`);
+    }
   });
 
   it("prints none of them once the folder has its tsconfig, its declarations and its tools", () => {
