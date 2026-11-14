@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { PB, pocketbaseRepo } from "../../testing/pocketbase/pocketbase-repo.ts";
 import { makeRepo } from "../../testing/temp-repo.ts";
 import { templateRepo } from "../../testing/template-repo.ts";
 import { doneGate } from "./done-gate.ts";
@@ -95,5 +96,13 @@ describe("Done tool results", () => {
     const result = await doneGate(repo.root, ["README.md"]);
     expect(result.passed).toBe(!blocks);
     expect((blocks ? result.findings : result.preExisting).map((finding) => finding.file)).toEqual([importer, consumer]);
+  });
+
+  it("runs no tests for a pocketbase workspace without a test script and says so", async () => {
+    const repo = pocketbaseRepo({ "node_modules/.bin/vitest": "" });
+    const run = vi.spyOn(runner, "runTool").mockResolvedValue([]);
+    const result = await doneGate(repo.root, [`${PB}/pb_hooks/sessions/end-session.ts`]);
+    expect(result.report.split("\n")).toContain(`test (${PB}): skipped (no test script)`);
+    expect(run.mock.calls.some(([, step]) => step.name === "vitest" && step.cwd?.endsWith(`/${PB}`) === true)).toBe(false);
   });
 });

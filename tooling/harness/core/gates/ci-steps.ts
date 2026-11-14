@@ -60,9 +60,15 @@ export function analysisSteps(root: string, harness: Harness, group: WorkspaceTo
   ];
 }
 
+/** A pocketbase workspace's tests need a running PocketBase, so without a test script of its own the gates run none there. */
+export function skippedTest(workspace: WorkspaceEntry): SkippedStep | undefined {
+  return workspace.shape === "pocketbase" && workspace.test === undefined ? { name: "test", skipped: "no test script" } : undefined;
+}
+
 /** The whole test run of a workspace: its own package script when harness.config.ts names one, else the tool set's runner. */
-export function testStep(root: string, { tools, dir, workspace }: WorkspaceTools): ToolStep {
-  return workspace.test === undefined ? tools.test.all(dir) : testScript(root, dir, workspace.test);
+export function testStep(root: string, { tools, dir, workspace }: WorkspaceTools): ToolStep | SkippedStep {
+  if (workspace.test !== undefined) return testScript(root, dir, workspace.test);
+  return skippedTest(workspace) ?? tools.test.all(dir);
 }
 
 const LISTED_PER_STEP = 5;
