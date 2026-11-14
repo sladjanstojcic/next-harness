@@ -3,25 +3,9 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { z } from "zod";
+import { ANALYSIS_NAMES, DEFAULT_TOOLS, SHAPE_NAMES, TOOL_SET_NAMES, type AnalysisName, type ShapeName, type ToolSetName } from "./shape-names.ts";
 
-const SHAPE_NAMES = ["next-modules", "package", "electron-vite", "makerkit-app", "makerkit-feature", "supabase", "e2e", "vite-spa"] as const;
-const TOOL_SET_NAMES = ["eslint-prettier", "oxc", "none"] as const;
-const ANALYSIS_NAMES = ["depcruise", "knip", "jscpd"] as const;
-
-export type ShapeName = (typeof SHAPE_NAMES)[number];
-export type ToolSetName = (typeof TOOL_SET_NAMES)[number];
-export type AnalysisName = (typeof ANALYSIS_NAMES)[number];
-
-const DEFAULT_TOOLS: Record<ShapeName, ToolSetName> = {
-  "next-modules": "eslint-prettier",
-  package: "eslint-prettier",
-  "electron-vite": "eslint-prettier",
-  "makerkit-app": "oxc",
-  "makerkit-feature": "oxc",
-  supabase: "none",
-  e2e: "oxc",
-  "vite-spa": "eslint-prettier",
-};
+export type { ShapeName, ToolSetName, AnalysisName } from "./shape-names.ts";
 
 export interface WorkspaceConfig {
   path: string;
@@ -109,6 +93,14 @@ const schema = z.strictObject({
         .refine((workspace) => workspace.shape !== "e2e" || workspace.next !== true, {
           path: ["next"],
           message: "must not be true for the e2e shape, which is not a Next app",
+        })
+        .refine((workspace) => workspace.shape !== "pocketbase" || (workspace.tools ?? "oxc") === "oxc", {
+          path: ["tools"],
+          message: 'must be "oxc" for the pocketbase shape, which has no ESLint preset and needs its type check',
+        })
+        .refine((workspace) => workspace.shape !== "pocketbase" || workspace.next !== true, {
+          path: ["next"],
+          message: "must not be true for the pocketbase shape, which is not a Next app",
         })
         .refine((workspace) => workspace.shape !== "electron-vite" || workspace.next !== true, {
           path: ["next"],
