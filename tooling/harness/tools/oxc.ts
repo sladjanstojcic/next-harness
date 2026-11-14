@@ -55,13 +55,26 @@ function oxfmtFindings(dir: string, stdout: string): Finding[] {
     .map((line): Finding => ({ rule: "oxfmt", file: relativePath(dir, line.trim()), message: "Run oxfmt on this file." }));
 }
 
+/** One `--ignore-pattern` per listed file the shape vendors; oxlint lints every other file in the folder. */
+function ignoredVendored(dir: string, vendored: RegExp | undefined): string[] {
+  if (vendored === undefined) return [];
+  return listFiles(dir)
+    .filter((file) => vendored.test(file))
+    .flatMap((file) => ["--ignore-pattern", file]);
+}
+
 export const oxc: ToolSet = {
   name: "oxc",
   format: {
     write: (dir, files) => ({ name: "oxfmt", command: [bin(dir, "oxfmt"), "--no-error-on-unmatched-pattern", ...files], findings: () => [] }),
-    check: (dir) => ({
+    check: (dir, vendored) => ({
       name: "oxfmt",
-      command: [bin(dir, "oxfmt"), "--list-different", "--no-error-on-unmatched-pattern", ...listFiles(dir).filter((file) => SOURCE_FILE.test(file))],
+      command: [
+        bin(dir, "oxfmt"),
+        "--list-different",
+        "--no-error-on-unmatched-pattern",
+        ...listFiles(dir).filter((file) => SOURCE_FILE.test(file) && vendored?.test(file) !== true),
+      ],
       timeoutMs: CHECK_TIMEOUT_MS,
       findings: (stdout) => oxfmtFindings(dir, stdout),
     }),
@@ -72,9 +85,9 @@ export const oxc: ToolSet = {
       command: [bin(dir, "oxlint"), "-f", "json", "--no-error-on-unmatched-pattern", ...files],
       findings: (stdout) => oxlintFindings(dir, stdout),
     }),
-    all: (dir) => ({
+    all: (dir, vendored) => ({
       name: "oxlint",
-      command: [bin(dir, "oxlint"), "-f", "json", "--no-error-on-unmatched-pattern"],
+      command: [bin(dir, "oxlint"), "-f", "json", "--no-error-on-unmatched-pattern", ...ignoredVendored(dir, vendored)],
       timeoutMs: CHECK_TIMEOUT_MS,
       findings: (stdout) => oxlintFindings(dir, stdout),
     }),
