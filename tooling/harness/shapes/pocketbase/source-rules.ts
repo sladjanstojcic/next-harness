@@ -36,6 +36,13 @@ function isRequire(ts: Compiler, node: ts.Node): boolean {
   return ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "require";
 }
 
+/** The specifier a node loads at run time: an import or re-export, a dynamic import() call, or an import assignment. */
+function runtimeSpecifier(ts: Compiler, node: ts.Node): ts.Expression | undefined {
+  if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return node.moduleSpecifier;
+  if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) return node.arguments[0];
+  return ts.isExternalModuleReference(node) ? node.expression : undefined;
+}
+
 /** A PocketBase global read as a value, not a property name, a renamed key or the name a declaration gives; the caller skips types. */
 function isGlobalValue(ts: Compiler, node: ts.Node): boolean {
   if (!ts.isIdentifier(node) || !GLOBALS.has(node.text)) return false;
@@ -66,7 +73,8 @@ export function pocketbaseSourceRules(path: string, source: ts.SourceFile, ts: C
   if (SHARED_FILE.test(path)) {
     const visit = (node: ts.Node): void => {
       if (ts.isTypeNode(node)) return;
-      const external = ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier) && !node.moduleSpecifier.text.startsWith(".");
+      const specifier = runtimeSpecifier(ts, node);
+      const external = specifier !== undefined && ts.isStringLiteralLike(specifier) && !specifier.text.startsWith(".");
       if (external || isRequire(ts, node) || isGlobalValue(ts, node)) add("pb-shared-pure", node, SHARED_PURE);
       ts.forEachChild(node, visit);
     };
