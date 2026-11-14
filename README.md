@@ -124,14 +124,15 @@ never replaces a config you already have.
 Other project kinds add one file, `harness.config.ts`, that says which folder has which shape. Each
 guide has numbered steps that were run on a fresh project of that kind, from an empty folder:
 
-| Your project                 | Guide                                |
-| ---------------------------- | ------------------------------------ |
-| Existing Next.js app         | [docs/next-app.md](docs/next-app.md) |
-| Turborepo or other monorepo  | [docs/monorepo.md](docs/monorepo.md) |
-| A new shared package         | [docs/packages.md](docs/packages.md) |
-| Electron app (electron-vite) | [docs/electron.md](docs/electron.md) |
-| Vite single-page React app   | [docs/vite.md](docs/vite.md)         |
-| Makerkit project             | [docs/makerkit.md](docs/makerkit.md) |
+| Your project                            | Guide                                    |
+| --------------------------------------- | ---------------------------------------- |
+| Existing Next.js app                    | [docs/next-app.md](docs/next-app.md)     |
+| Turborepo or other monorepo             | [docs/monorepo.md](docs/monorepo.md)     |
+| A new shared package                    | [docs/packages.md](docs/packages.md)     |
+| Electron app (electron-vite)            | [docs/electron.md](docs/electron.md)     |
+| Vite single-page React app              | [docs/vite.md](docs/vite.md)             |
+| Makerkit project                        | [docs/makerkit.md](docs/makerkit.md)     |
+| PocketBase backend beside a Next.js app | [docs/pocketbase.md](docs/pocketbase.md) |
 
 The Makerkit page has no numbered walkthrough yet.
 

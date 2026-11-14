@@ -30,8 +30,8 @@ export default defineHarness({
 - A file belongs to the workspace with the longest matching path, and its shape sees the path inside
   that workspace. A file in no workspace gets only the root layout rules.
 - In a configured workspace `next` defaults to false. `tools` follows the shape: `eslint-prettier` for
-  next-modules, package, electron-vite and vite-spa, `oxc` for the Makerkit shapes and e2e, `none` for
-  supabase.
+  next-modules, package, electron-vite and vite-spa, `oxc` for the Makerkit shapes, e2e and pocketbase,
+  `none` for supabase. The pocketbase shape takes only `oxc`.
 - A file that starts a new folder under a `/*` workspace is checked against that workspace's shape
   before the folder exists.
 - Upstream files count neither towards a folder's size nor as a duplicate file name. Duplicate exports
@@ -86,13 +86,16 @@ The legacy list is a ratchet: old code is tolerated, new and touched code is hel
   `.env.production` and `.env.test`. Without it every `.env*` but `.env.example` is denied.
 - **`analysis`** lists which of `depcruise`, `knip` and `jscpd` run in Done and CI, in each
   next-modules, package, electron-vite and vite-spa workspace's folder. All three run unless the field
-  lists some; none runs in the Makerkit, supabase and e2e shapes.
+  lists some; none runs in the Makerkit, supabase, e2e and pocketbase shapes.
 - **`backendPackages`** adds package names to the list the `backend-package` rule knows; see
   [the reference](reference.md#shapes-and-backend-packages).
 - **`tools`** picks the tool set: `eslint-prettier` (ESLint, Prettier, tsc and Vitest, as without a
   config), `oxc` (`oxlint -f json`, `oxfmt --list-different`, the project's `tsc`, Vitest) or `none`.
+  The whole-workspace oxfmt and oxlint steps leave out the vendored files a shape names by pattern,
+  such as a pocketbase workspace's `types/pocketbase*.d.ts`.
 - **`test: "<package script>"`** runs that script through the project's package manager instead of
-  Vitest, in CI and in Done. Done runs the whole script, not only related tests.
+  Vitest, in CI and in Done. Done runs the whole script, not only related tests. A pocketbase
+  workspace without it runs no tests: the step is skipped, not run with Vitest.
 - **`next: true`** adds Next type generation, and at the root `next build` and the browser smoke test.
 
 ## How a workspace's tools run
@@ -127,6 +130,8 @@ moved, by tool or by shell; add a new one with `supabase migration new <name>`.
 - Applying schema changes to a linked project is the user's step. `supabase db push`, `supabase link`,
   `supabase migration up --linked` and a package runner starting the `supabase:deploy` script are
   denied in every project.
+- A `pocketbase` workspace's `pb_migrations/` is locked the same way; its page is
+  [A PocketBase backend](pocketbase.md).
 
 **`e2e`.** A folder of Playwright tests beside the apps, such as `apps/e2e`: browser tests and tests
 through the real API.

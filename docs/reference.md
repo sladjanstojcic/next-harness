@@ -51,20 +51,20 @@ directly rather than through a package script, so changing a script cannot weake
 ## Shapes and backend packages
 
 A workspace's shape says which folders, names and content its files may have. The shapes are
-`next-modules`, `package`, `electron-vite`, `vite-spa`, `makerkit-app`, `makerkit-feature`, `e2e` and
-`supabase`; [Adopt it](adopt.md) has a guide for each kind of project.
+`next-modules`, `package`, `electron-vite`, `vite-spa`, `makerkit-app`, `makerkit-feature`, `e2e`,
+`supabase` and `pocketbase`; [Adopt it](adopt.md) has a guide for each kind of project.
 
 The content rule `backend-package` keeps the connection to a backend in one folder. An import of a
 backend package outside that folder is a finding that says where the client belongs. A type-only
 import, a test file and code outside the workspace's source pass.
 
-| Shape                                                 | Where a backend package may be imported                |
-| ----------------------------------------------------- | ------------------------------------------------------ |
-| `vite-spa`                                            | `src/backend/`                                         |
-| `next-modules`                                        | `src/backend/`, or `backend/` in the layout without it |
-| `electron-vite`                                       | `src/main/`                                            |
-| `package`                                             | `src/server/`                                          |
-| `makerkit-app`, `makerkit-feature`, `e2e`, `supabase` | not judged                                             |
+| Shape                                                               | Where a backend package may be imported                |
+| ------------------------------------------------------------------- | ------------------------------------------------------ |
+| `vite-spa`                                                          | `src/backend/`                                         |
+| `next-modules`                                                      | `src/backend/`, or `backend/` in the layout without it |
+| `electron-vite`                                                     | `src/main/`                                            |
+| `package`                                                           | `src/server/`                                          |
+| `makerkit-app`, `makerkit-feature`, `e2e`, `supabase`, `pocketbase` | not judged                                             |
 
 The built-in list is `@supabase/`, `pocketbase`, `appwrite`, `node-appwrite`, `convex`, `@prisma/`,
 `drizzle-orm`, `pg`, `postgres`, `mysql2`, `mongodb`, `mongoose`, `better-sqlite3`, `@libsql/client`,
@@ -120,6 +120,7 @@ shapes/
   makerkit/         a Makerkit apps/web with its content rules, and a Makerkit feature package
   e2e.ts            a folder of Playwright tests beside the apps: tests/<suite>/ and its names
   supabase.ts       a Supabase folder: migration, schema, seed and test names
+  pocketbase/       a PocketBase backend: hook, migration and declaration paths, and the entry rules
   limits.ts         file, folder and page size limits
   shape.ts          the contract every shape implements
 guides/             the AGENTS.md block: one guide per shape and common.md, each with a line limit
