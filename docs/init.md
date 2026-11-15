@@ -38,6 +38,10 @@ script that does not run Vitest gets no `vitest.config.ts`; init prints the `tes
 `harness.config.ts` instead. In a workspace without `src/`, the ESLint config passes
 `layout: "app-root"`, the ignore entry is `shared/ui`, and depcruise and jscpd read `app/`, `modules/`
 and `shared/`.
+A `pocketbase` or `e2e` workspace gets only three of these: `eslint.config.ts`, `prettier.config.ts`
+and its own `.prettierignore`, with no script, no other config, no `tsconfig.json` edit and no
+`test: "test"` line. For an `e2e` folder whose `tsconfig.json` is missing or has no `include`, init
+prints a step to give it one that names `tests` and `playwright.config.ts`.
 
 **Agent rules.** `AGENTS.md` gets the harness's rules for the agent, and `CLAUDE.md` the line that
 brings them to Claude Code; see [below](#agentsmd-and-claudemd).

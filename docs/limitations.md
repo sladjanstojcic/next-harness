@@ -92,8 +92,16 @@ parent: Reference
   250-line limit is not, because that limit is a lint rule. The Playwright tests themselves run in the
   gates only when the workspace names a `test` script, and they need whatever the tests need: a
   running app or database.
-- The `e2e` shape on ESLint and Prettier was not run on a real project. Its lint layout ran on test
-  fixtures only: a spec, a setup file, a page object and Playwright's output folders.
+- The `e2e` shape on ESLint and Prettier was not run on a real project or in an agent session. It ran
+  in a scratch monorepo: a copy of the harness and an `apps/e2e` folder with a Playwright scaffold's
+  config and spec, then the real `init` and `check ci`.
+  - Without a `tsconfig.json`, the scaffold's own state, ESLint failed on each spec: "was not found by
+    the project service".
+  - With a `tsconfig.json` that has no `include`, `tsc` failed with TS5097 in `eslint.config.ts`,
+    `tooling/harness/config.ts` and the presets, because the compiler follows the config's import
+    into the harness.
+  - With `"include": ["tests", "playwright.config.ts"]`, lint, format and the preset check passed.
+  - Init now prints a step for the first two cases. That step was tested on fixtures, not rerun there.
 - The `pocketbase` guards match the binary's name. A project script that wraps it, such as a
   `db:reset` script running `pocketbase migrate down`, is not covered.
 - `pb-shared-pure` follows identifiers. A PocketBase global reached through `globalThis.$app` in

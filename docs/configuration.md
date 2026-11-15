@@ -146,11 +146,13 @@ through the real API.
   `helpers/` and the like are denied. Files and folders keep the size limits, and a spec file counts
   towards its folder.
 - The tool set is `eslint-prettier` by default; `oxc` and `none` are accepted. With `none` the line
-  limit, a lint rule, is not checked. The type check needs the workspace's own `tsconfig.json`. The
-  tests run in the gates only with `test: "<package script>"`.
-- Init writes the folder's `eslint.config.ts` with the preset's `e2e` layout, its
-  `prettier.config.ts` and a `.prettierignore`. ESLint and Prettier leave `playwright-report/`,
+  limit, a lint rule, is not checked. The tests run in the gates only with `test: "<package script>"`.
+- With `eslint-prettier`, init writes the folder's `eslint.config.ts` with the preset's `e2e` layout,
+  its `prettier.config.ts` and a `.prettierignore`. ESLint and Prettier leave `playwright-report/`,
   `test-results/` and `blob-report/` alone.
+- ESLint and the type check both read the folder's own `tsconfig.json`. Its `include` names `tests`
+  and `playwright.config.ts`, not the two written configs, which import the harness. Init writes no
+  `tsconfig.json` there and prints a step while the file or its `include` is missing.
 - Its `*.spec.ts` and `*.setup.ts` files may use non-null assertions and unchecked casts, as
   `*.test.ts` files may; page objects and helpers may not. The layout has no React hook rules, and
   console is denied in every file. Application tests do not belong in `tooling/`, where no shape
