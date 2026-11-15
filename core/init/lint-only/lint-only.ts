@@ -23,8 +23,9 @@ export function lintOnlySteps(root: string, workspace: WorkspaceEntry): Step[] {
 /** Whether a folder's own tsconfig.json lists what it checks; one that cannot be read is left to `tsc` to report. */
 function namesItsFiles(file: string): boolean {
   if (!fs.existsSync(file)) return false;
-  const { config, error } = ts.readConfigFile(file, ts.sys.readFile);
-  return error !== undefined || (typeof config === "object" && config !== null && ("include" in config || "files" in config));
+  const read = ts.readConfigFile(file, ts.sys.readFile);
+  const config: unknown = read.config;
+  return read.error !== undefined || (typeof config === "object" && config !== null && ("include" in config || "files" in config));
 }
 
 /**
