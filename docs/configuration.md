@@ -30,8 +30,8 @@ export default defineHarness({
 - A file belongs to the workspace with the longest matching path, and its shape sees the path inside
   that workspace. A file in no workspace gets only the root layout rules.
 - In a configured workspace `next` defaults to false. `tools` follows the shape: `eslint-prettier` for
-  next-modules, package, electron-vite and vite-spa, `oxc` for the Makerkit shapes, e2e and pocketbase,
-  `none` for supabase. The pocketbase shape takes only `oxc`.
+  next-modules, package, electron-vite, vite-spa and pocketbase, `oxc` for the Makerkit shapes and e2e,
+  `none` for supabase. The pocketbase shape refuses `none`, which would drop its lint and type check.
 - A file that starts a new folder under a `/*` workspace is checked against that workspace's shape
   before the folder exists.
 - Upstream files count neither towards a folder's size nor as a duplicate file name. Duplicate exports

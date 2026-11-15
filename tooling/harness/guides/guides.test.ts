@@ -103,6 +103,14 @@ describe("the guides", () => {
     for (const named of ["pb_hooks/<name>.pb.ts", "pb_migrations/", "require", "migrate down"]) expect(text).toContain(named);
   });
 
+  it("pocketbase types require by its type argument, declared in types/require.d.ts, and names the widened any", () => {
+    const text = readGuide("pocketbase").replace(/\s+/g, " ");
+    for (const named of ['require<typeof import("./<area>/<name>.js")>(...)', "no cast", "types/require.d.ts", "console is denied by lint.", "`Omit`", "`&`"]) {
+      expect(text).toContain(named);
+    }
+    expect(text).not.toContain("lint pass");
+  });
+
   it("throws on an unknown name", () => {
     expect(() => readGuide("nope")).toThrow('No guide for "nope"');
   });

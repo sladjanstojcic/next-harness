@@ -162,4 +162,5 @@ This page shows the families. The rules as the agent reads them are in
 [harness.config.ts](configuration.md) and [Guards and gates](gates.md). Other kinds of project have
 their own shape with the same ideas; see [Adopt it](adopt.md). The hooks and migrations of a PocketBase
 backend have one too, with two rules for what PocketBase requires of an entry file and one,
-`pb-boundary`, for the imports between the folder and the app; see [A PocketBase backend](pocketbase.md).
+`pb-boundary`, for the imports between the folder and the app. Its own ESLint config takes the
+preset's `pocketbase` layout; see [A PocketBase backend](pocketbase.md).

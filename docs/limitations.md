@@ -23,12 +23,14 @@ parent: Reference
   template's `App.tsx` replaced by routes, then all ten gate steps passed, with the real `vite build`.
   It was run again with shadcn, a PocketBase client in `src/backend/` and a module with `data/`; the
   types file was written by hand, and no PocketBase server ran. No agent session has worked there yet.
-- The `pocketbase` shape was run once, on a fresh create-next-app 16 project with the PocketBase 0.40.5
-  binary on Linux x86-64: an entry, the module it requires and a migration, built with `tsc` and served
-  until the route answered, then the full check passed. The first pass of that run failed three steps:
-  oxfmt and oxlint judged the vendored declarations, and the root knip reported the folder. Those were
-  fixed before the second pass. Not run: tests with a `test` script, `shared/`, an agent session, and
-  PocketBase on macOS or Windows.
+- The `pocketbase` shape was run twice on a fresh create-next-app 16 project: an entry, the module it
+  requires and a migration, built with `tsc` and served until the route answered, then the full check
+  passed. The first run, on Linux x86-64 with the `oxc` tool set, failed three steps on its first pass:
+  oxfmt and oxlint judged the vendored declarations, and the root knip reported the folder. The second,
+  on macOS arm64 with ESLint and Prettier, failed one: the folder's ESLint judged the gitignored
+  `dist/` and `pb_data/`. Each was fixed before the next pass. Not run: tests with a `test` script,
+  `shared/`, an agent session, PocketBase on Windows, ESLint and Prettier on Linux, and the `oxc`
+  tool set again since the default changed.
 - Init's printed shadcn steps were run as printed on create-next-app with and without `src/`, the
   electron-vite scaffold, create-vite, and a create-vite app at `apps/web` of a pnpm workspace. The
   Tailwind steps for a Next.js app without Tailwind were run as printed on create-next-app made with
@@ -90,8 +92,6 @@ parent: Reference
   `tools: "none"` the paths, names and folder size are still judged, but the 250-line limit is not,
   because that limit is a lint rule. The Playwright tests themselves run in the gates only when the
   workspace names a `test` script, and they need whatever the tests need: a running app or database.
-- The `pocketbase` shape has no ESLint preset either: `tools: "eslint-prettier"` is refused there. A
-  project whose app uses ESLint and Prettier installs oxlint and oxfmt for the folder.
 - The `pocketbase` guards match the binary's name. A project script that wraps it, such as a
   `db:reset` script running `pocketbase migrate down`, is not covered.
 - `pb-shared-pure` follows identifiers. A PocketBase global reached through `globalThis.$app` in
