@@ -40,7 +40,7 @@ describe("init on a pocketbase workspace with ESLint and Prettier", () => {
     expect(eslint).toContain('layout: "pocketbase"');
     expect(eslint).not.toContain("base: false");
     expect(repo.read("pocketbase/prettier.config.ts")).toContain("presets/prettier.ts");
-    expect(repo.read("pocketbase/.prettierignore").split("\n")).toContain("types/pocketbase*.d.ts");
+    expect(repo.read("pocketbase/.prettierignore")).toBe("types/pocketbase*.d.ts\ndist\npb_data\n");
   });
 
   it("writes no other tool config and no package script in the folder", () => {
