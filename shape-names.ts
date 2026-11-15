@@ -25,5 +25,5 @@ export const DEFAULT_TOOLS: Record<ShapeName, ToolSetName> = {
   supabase: "none",
   e2e: "oxc",
   "vite-spa": "eslint-prettier",
-  pocketbase: "oxc",
+  pocketbase: "eslint-prettier",
 };

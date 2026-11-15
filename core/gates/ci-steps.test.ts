@@ -19,7 +19,7 @@ const VENDORED = "types/pocketbase-0.40.5.d.ts";
 const withTest = `export default {
   workspaces: [
     { path: ".", shape: "next-modules", next: true },
-    { path: "pocketbase", shape: "pocketbase", test: "test:pocketbase" },
+    { path: "pocketbase", shape: "pocketbase", tools: "oxc", test: "test:pocketbase" },
   ],
   root: { entries: ["pocketbase"] },
 };

@@ -6,7 +6,7 @@ export const PB_MIGRATION = "pocketbase/pb_migrations/001_first_collection.ts";
 const CONFIG = `export default {
   workspaces: [
     { path: ".", shape: "next-modules", next: true },
-    { path: "pocketbase", shape: "pocketbase" },
+    { path: "pocketbase", shape: "pocketbase", tools: "oxc" },
   ],
   root: { entries: ["pocketbase"] },
 };
