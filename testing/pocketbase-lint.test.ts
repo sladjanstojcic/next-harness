@@ -14,6 +14,8 @@ const TSCONFIG = JSON.stringify({
   include: ["pb_hooks", "pb_migrations", "shared", "types", "tests"],
 });
 const VENDORED = "types/pocketbase-0.40.5.d.ts";
+/** What the folder's build and PocketBase's first serve write: gitignored, which ESLint does not read. */
+const UNOWNED = ["dist/pb_hooks/a.pb.js", "pb_data/types.d.ts"];
 const DECLARATIONS = [
   "declare namespace core {\n  interface Record {\n    id: string;\n  }\n}",
   "interface App {\n  [key: string]: any;\n  findRecordById(c: string, id: string): core.Record;\n}",
@@ -84,7 +86,7 @@ describe("the pocketbase preset layout", () => {
     expect(JSON.stringify(harnessRuleBlocks("pocketbase"))).not.toContain("harness-react-hooks/");
   });
 
-  it("reports casts, unsafe calls and console in hook code, and skips the vendored declarations", () => {
+  it("reports casts, unsafe calls and console in hook code, and skips the vendored declarations, dist/ and pb_data/", () => {
     const { root } = consumerRepo({
       "package.json": JSON.stringify({ name: "backend", type: "module" }),
       "tsconfig.json": TSCONFIG,
@@ -92,16 +94,20 @@ describe("the pocketbase preset layout", () => {
       [VENDORED]: `${DECLARATIONS}\n`,
       "types/require.d.ts": "declare function require<T = unknown>(path: string): T;\n",
       ...Object.fromEntries(ROWS.map(([file, code]) => [file, code])),
+      [UNOWNED[0] ?? ""]: 'routerAdd("GET", "/a", (e) => require(`${__hooks}/a/run.js`).run(e));\n',
+      [UNOWNED[1] ?? ""]: `${DECLARATIONS}\n`,
     });
-    const files = [...ROWS.map(([file]) => file), VENDORED];
+    const files = [...ROWS.map(([file]) => file), VENDORED, ...UNOWNED];
     const results = JSON.parse(run(root, "eslint", ["-f", "json", ...files]).output) as Result[];
     const found = (file: string) => results.find(({ filePath }) => filePath.endsWith(file))?.messages ?? [{ ruleId: "not linted", message: "" }];
     const ids = (file: string) => [...new Set(found(file).map(({ ruleId }) => ruleId))].sort();
     expect(ROWS.map(([file]) => [file, ids(file)])).toEqual(ROWS.map(([file, , expected]) => [file, [...expected].sort()]));
-    const [ignored, ...more] = found(VENDORED);
-    expect(more).toEqual([]);
-    expect(ignored?.ruleId).toBeNull();
-    expect(ignored?.message).toMatch(/ignore/i);
+    for (const file of [VENDORED, ...UNOWNED]) {
+      const [ignored, ...more] = found(file);
+      expect(more, file).toEqual([]);
+      expect(ignored?.ruleId, file).toBeNull();
+      expect(ignored?.message, file).toMatch(/ignore/i);
+    }
     for (const file of ["pb_hooks/a/read.ts", "pb_hooks/b.pb.ts"])
       for (const { ruleId, message } of found(file)) if (ruleId === "no-restricted-syntax") expect(message, file).toMatch(/\(PocketBase layout\)\.$/);
     expect(
