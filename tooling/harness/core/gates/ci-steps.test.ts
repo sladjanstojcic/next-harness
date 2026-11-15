@@ -19,7 +19,7 @@ const VENDORED = "types/pocketbase-0.40.5.d.ts";
 const withTest = `export default {
   workspaces: [
     { path: ".", shape: "next-modules", next: true },
-    { path: "pocketbase", shape: "pocketbase", test: "test:pocketbase" },
+    { path: "pocketbase", shape: "pocketbase", tools: "oxc", test: "test:pocketbase" },
   ],
   root: { entries: ["pocketbase"] },
 };
@@ -70,7 +70,7 @@ describe("checkSteps", () => {
 
   it("lints an e2e workspace with no ignore pattern", () => {
     const repo = makeRepo({
-      "harness.config.ts": `export default { workspaces: [{ path: "apps/web", shape: "makerkit-app", next: true }, { path: "${E2E}", shape: "e2e" }], root: { entries: ["apps"] } };\n`,
+      "harness.config.ts": `export default { workspaces: [{ path: "apps/web", shape: "makerkit-app", next: true }, { path: "${E2E}", shape: "e2e", tools: "oxc" }], root: { entries: ["apps"] } };\n`,
       "apps/web/package.json": "{}\n",
       [`${E2E}/package.json`]: "{}\n",
     });
@@ -79,7 +79,7 @@ describe("checkSteps", () => {
 
   it("still runs oxfmt with no paths in a source-empty e2e workspace", () => {
     const repo = makeRepo({
-      "harness.config.ts": `export default { workspaces: [{ path: "apps/web", shape: "makerkit-app", next: true }, { path: "${E2E}", shape: "e2e" }], root: { entries: ["apps"] } };\n`,
+      "harness.config.ts": `export default { workspaces: [{ path: "apps/web", shape: "makerkit-app", next: true }, { path: "${E2E}", shape: "e2e", tools: "oxc" }], root: { entries: ["apps"] } };\n`,
       "apps/web/package.json": "{}\n",
       [`${E2E}/package.json`]: "{}\n",
     });

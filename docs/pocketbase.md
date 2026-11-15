@@ -12,9 +12,10 @@ loads. The folder's shape, `pocketbase`, gives it a closed layout, a lock on app
 checks for what PocketBase requires of an entry file. It is switched on in `harness.config.ts`, never
 detected. The harness does not build the hooks, start PocketBase or install it.
 
-The steps below were run once, on a fresh create-next-app 16 project with `src/` whose twelve steps of
-[An existing Next.js project](next-app.md) had passed, with the PocketBase 0.40.5 binary for Linux
-x86-64. The full check then passed sixteen steps and skipped the PocketBase test step.
+The steps below were run on macOS on Apple silicon, on a fresh create-next-app 16.4.6 project with
+`src/` whose twelve steps of [An existing Next.js project](next-app.md) had passed, with the
+PocketBase 0.40.5 binary for darwin arm64. The full check then passed sixteen steps and skipped the
+PocketBase test step. An earlier run, on Linux, checked the folder with oxlint and oxfmt.
 
 ## The layout
 
@@ -35,7 +36,7 @@ pocketbase/
   is denied to direct edits.
 - `shared/` has no `require`, no PocketBase globals (`$app`, `$os` and the rest) and no Node built-ins,
   so PocketBase and the app can both load it. The app imports nothing else from the folder, and the
-  folder nothing from outside it: `pb-boundary`. Ignored folders, such as `pb_data/`, are not judged.
+  folder nothing from outside it but its tool configs' presets: `pb-boundary`. Ignored `pb_data/` is not judged.
 
 ## Before you start
 
@@ -43,13 +44,14 @@ The app passes `pnpm run check`. You have the PocketBase binary from the officia
 repository; the run kept it in `../bin/`, beside the project:
 
 ```sh
-curl -sSfLO https://github.com/pocketbase/pocketbase/releases/download/v0.40.5/pocketbase_0.40.5_linux_amd64.zip
+curl -sSfLO https://github.com/pocketbase/pocketbase/releases/download/v0.40.5/pocketbase_0.40.5_darwin_arm64.zip
 curl -sSfLO https://github.com/pocketbase/pocketbase/releases/download/v0.40.5/checksums.txt
-grep linux_amd64.zip checksums.txt | sha256sum -c -
-unzip pocketbase_0.40.5_linux_amd64.zip
+grep darwin_arm64.zip checksums.txt | shasum -a 256 -c -
+unzip pocketbase_0.40.5_darwin_arm64.zip
 ```
 
-The check prints `pocketbase_0.40.5_linux_amd64.zip: OK`. The zip holds no declarations file.
+The check prints `pocketbase_0.40.5_darwin_arm64.zip: OK`. On Linux the zip is `linux_amd64` and the
+check `sha256sum -c -`. The zip holds no declarations file.
 
 ## 1. Add the workspace to harness.config.ts
 
@@ -69,7 +71,7 @@ export default defineHarness({
 ```
 
 `harness.config.ts` is locked, creating it too: write it yourself, or with the agent after
-`pnpm harness:unlock`. The workspace's tool set is `oxc`, the only one the shape takes.
+`pnpm harness:unlock`. The folder gets ESLint and Prettier; `tools: "oxc"` gives it oxlint and oxfmt.
 
 ## 2. Run init
 
@@ -77,25 +79,24 @@ export default defineHarness({
 node tooling/harness/cli.ts init
 ```
 
-It prints `updated .prettierignore: pocketbase`, so the app's Prettier leaves the folder to oxfmt. Its
-numbered steps start with the folder's three, which are steps 3 to 5 here:
+It writes the folder's `eslint.config.ts`, `prettier.config.ts` and `.prettierignore`, and names the
+folder in the root's `.prettierignore`. Its first four numbered steps are the folder's, sections 3 to 5 here; 5 holds two:
 
 ```text
-  1. Give pocketbase/ its own tsconfig.json with "strict": true, "moduleDetection": "legacy" and the folders pb_hooks, pb_migrations, shared and types in "include" (init does not write it).
-  2. Copy pb_data/types.d.ts, which PocketBase writes at its first serve, to pocketbase/types/pocketbase-<version>.d.ts.
-  3. Install the tools this folder is checked with, at exact versions: pnpm add -D --save-exact oxlint oxfmt
+  1. Install the harness's tools (init does not install): (cd pocketbase && pnpm add -D @eslint/js@9.39.5 jiti@2.7.0)
+  2. Give pocketbase/ its own tsconfig.json with "strict": true, "moduleDetection": "legacy" and the folders pb_hooks, pb_migrations, shared and types in "include" (init does not write it).
+  3. Copy pb_data/types.d.ts, which PocketBase writes at its first serve, to pocketbase/types/pocketbase-<version>.d.ts.
+  4. Declare require for the hooks in pocketbase/types/require.d.ts: declare function require<T = unknown>(path: string): T;
 ```
 
-The other four are the app's own. Each step is printed only while it is still needed.
+The other four are the app's own. Each step is printed only while it is still needed: init run again
+once the folder is set up prints only the app's four.
 
 ## 3. Install the folder's tools
 
-```sh
-pnpm add -D --save-exact oxlint oxfmt
-```
-
-The run got `oxfmt 0.78.0` and `oxlint 1.93.0`, saved without a range. A tool added earlier with a
-range keeps it, as pnpm 12.4.2 does not rewrite it: run `pnpm remove oxlint oxfmt` first.
+Run the line init printed; it names exact versions. The folder has no `package.json`, so pnpm used the
+root's: in the run both packages went into its `devDependencies`, saved without a range, and no
+`pocketbase/package.json` appeared. The folder's ESLint finds them there.
 
 ## 4. Give the folder its tsconfig.json and .gitignore
 
@@ -130,19 +131,18 @@ PocketBase writes its declarations to `pb_data/types.d.ts` the first time it sta
 ../../bin/pocketbase serve --dir pb_data --http 127.0.0.1:28090
 ```
 
-It prints `Server started at http://127.0.0.1:28090`. Stop it with Ctrl+C and copy the file with
-`cp pb_data/types.d.ts types/pocketbase-0.40.5.d.ts`.
-
-The file had 24,850 lines. It declares no `require`, so the run added `types/require.d.ts` with the
-one line `declare function require(path: string): unknown;`.
+It prints `Server started at http://127.0.0.1:28090`. Stop it with Ctrl+C, copy the file with
+`cp pb_data/types.d.ts types/pocketbase-0.40.5.d.ts`, and delete `pb_data/`. Serve before step 6:
+this serve reads `pb_hooks/`, where it cannot run an entry still in TypeScript. The file had 24,850
+lines and declares no `require`, so `types/require.d.ts` holds the declaration init printed.
 
 ## 6. Write an entry, the code it requires, and a migration
 
-`pb_hooks/greetings.pb.ts` is the entry. Its `require` sits inside the handler:
+`pb_hooks/greetings.pb.ts` is the entry. Its `require` sits inside the handler, typed by its argument:
 
 ```ts
 routerAdd("GET", "/api/greetings/{name}", (event) => {
-  const { greeting } = require(`${__hooks}/greetings/greeting.js`) as typeof import("./greetings/greeting");
+  const { greeting } = require<typeof import("./greetings/greeting.js")>(`${__hooks}/greetings/greeting.js`);
   event.json(200, { message: greeting(event.request?.pathValue("name") ?? "") });
 });
 ```
@@ -185,9 +185,9 @@ The 403 shows the migration ran: a collection that does not exist answers 404. S
 
 ## 8. Format the folder's sources
 
-In `pocketbase/`, run `pnpm exec oxfmt pb_hooks pb_migrations`. Do not run `oxfmt .` there: it
-rewrites the vendored declarations. From the root, oxfmt formats nothing in the folder, because it
-reads the `.prettierignore` that names it.
+Run the line init printed: `(cd pocketbase && pnpm exec prettier --write .)`. It skips the vendored
+declarations, which the folder's `.prettierignore` names, and the gitignored `dist/` and `pb_data/`;
+in the run it changed nothing. The root's Prettier leaves the folder alone.
 
 ## 9. Leave the folder out of the app's type check
 
@@ -203,12 +203,12 @@ node tooling/harness/cli.ts check ci
 ```
 
 The folder's steps sit between the app's `tsc` and `audit`, its test step after `vitest`; all other
-steps passed:
+steps passed. The folder's ESLint leaves `dist/` and `pb_data/` alone:
 
 ```text
-oxfmt (pocketbase): passed
-oxlint (pocketbase): passed
-oxlint-owned (pocketbase): passed
+prettier (pocketbase): passed
+eslint (pocketbase): passed
+eslint-preset (pocketbase): passed
 tsc (pocketbase): passed
 test (pocketbase): skipped (no test script)
 ```
@@ -246,5 +246,5 @@ Built and served anyway, the server starts, and the route answers 400 with
   when the workspace entry names a package script, such as `test: "test:pocketbase"`; without it the
   step is skipped. The test step has a ten-minute limit.
 
-Not run: tests with a `test` script, `shared/`, an agent session in the project and PocketBase on
-macOS or Windows; [Known limitations](limitations.md) has the details.
+Not run: tests with a `test` script, `shared/`, an agent session in the project, PocketBase on
+Windows, and this tool set on Linux; [Known limitations](limitations.md) has the details.

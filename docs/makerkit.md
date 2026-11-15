@@ -22,7 +22,7 @@ export default defineHarness({
     { path: "apps/web", shape: "makerkit-app", next: true },
     { path: "packages/features/*", shape: "makerkit-feature" },
     { path: "apps/web/supabase", shape: "supabase" },
-    { path: "apps/e2e", shape: "e2e" },
+    { path: "apps/e2e", shape: "e2e", tools: "oxc" },
   ],
   upstream: "tooling/harness-upstream.json",
   legacy: "tooling/harness-legacy.json",
@@ -40,6 +40,8 @@ export default defineHarness({
 - `owned` is optional here. A prefix in it claims a kit path you have taken over, so the rules apply there.
   Without an `upstream` list, `owned` works the old way: only the listed prefixes are yours.
 - `legacy` is for a project that already holds your own code with findings; see [the legacy list](monorepo.md#the-legacy-list).
+- `tools: "oxc"` keeps `apps/e2e` on the oxlint and oxfmt the kit brings. Without it the e2e shape
+  defaults to ESLint and Prettier, which the kit does not install.
 - `env: "local"` denies only `.env*.local`. The kit commits `.env`, `.env.development` and
   `.env.production`, and they stay writable.
 - `locked` adds the kit's own configs to the lock, so an agent cannot loosen the kit's lint either.

@@ -30,8 +30,8 @@ export default defineHarness({
 - A file belongs to the workspace with the longest matching path, and its shape sees the path inside
   that workspace. A file in no workspace gets only the root layout rules.
 - In a configured workspace `next` defaults to false. `tools` follows the shape: `eslint-prettier` for
-  next-modules, package, electron-vite and vite-spa, `oxc` for the Makerkit shapes, e2e and pocketbase,
-  `none` for supabase. The pocketbase shape takes only `oxc`.
+  next-modules, package, electron-vite, vite-spa, pocketbase and e2e, `oxc` for the Makerkit shapes,
+  `none` for supabase. The pocketbase shape refuses `none`, which would drop its lint and type check.
 - A file that starts a new folder under a `/*` workspace is checked against that workspace's shape
   before the folder exists.
 - Upstream files count neither towards a folder's size nor as a duplicate file name. Duplicate exports
@@ -137,18 +137,26 @@ moved, by tool or by shell; add a new one with `supabase migration new <name>`.
 through the real API.
 
 - Its top takes `package.json`, `playwright.config.ts`, `tsconfig.json`, `.gitignore`, the `.env`
-  files, `README*.md`, `AGENTS.md`, `CLAUDE.md` and one folder, `tests/`.
+  files, `README*.md`, `AGENTS.md`, `CLAUDE.md`, its own ESLint and Prettier configs, `.prettierignore`
+  and one folder, `tests/`.
 - Directly in `tests/` sit only `<name>.spec.ts` and `<name>.setup.ts`. Everything else goes in a suite
   folder (`tests/checkout/`), which may hold two levels of area folders
   (`tests/access-api/matrix/calls/`).
 - Names are kebab-case with one optional role before the extension (`account.po.ts`). `utils/`,
   `helpers/` and the like are denied. Files and folders keep the size limits, and a spec file counts
   towards its folder.
-- The tool set is `oxc` or `none`; with `none` the line limit, a lint rule, is not checked. The type
-  check needs the workspace's own `tsconfig.json`. The tests run in the gates only with
-  `test: "<package script>"`.
-- Its `*.spec.ts` and `*.setup.ts` files may use non-null assertions, as `*.test.ts` files may; helpers
-  may not. Application tests do not belong in `tooling/`, where no shape judges them.
+- The tool set is `eslint-prettier` by default; `oxc` and `none` are accepted. With `none` the line
+  limit, a lint rule, is not checked. The tests run in the gates only with `test: "<package script>"`.
+- With `eslint-prettier`, init writes the folder's `eslint.config.ts` with the preset's `e2e` layout,
+  its `prettier.config.ts` and a `.prettierignore`. ESLint and Prettier leave `playwright-report/`,
+  `test-results/` and `blob-report/` alone.
+- ESLint and the type check both read the folder's own `tsconfig.json`. Its `include` names `tests`
+  and `playwright.config.ts`, not the two written configs, which import the harness. Init writes no
+  `tsconfig.json` there and prints a step while the file or its `include` is missing.
+- Its `*.spec.ts` and `*.setup.ts` files may use non-null assertions and unchecked casts, as
+  `*.test.ts` files may; page objects and helpers may not. The layout has no React hook rules, and
+  console is denied in every file. Application tests do not belong in `tooling/`, where no shape
+  judges them.
 
 ## Entries and the code index per shape
 

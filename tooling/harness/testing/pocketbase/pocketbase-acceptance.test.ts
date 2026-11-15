@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { audit } from "../../core/audit/audit.ts";
+import { ciGate } from "../../core/gates/ci-gate.ts";
+import * as runner from "../../core/gates/run-tool.ts";
 import { runTool } from "../../core/gates/run-tool.ts";
 import { parseEvent } from "../../core/hooks/event.ts";
 import { handleEvent } from "../../core/hooks/handle.ts";
@@ -9,7 +11,9 @@ import { resolveHarness } from "../../core/path-check.ts";
 import { depcruise } from "../../tools/analysis.ts";
 import { templateRepo } from "../template-repo.ts";
 import type { RepoFixture } from "../temp-repo.ts";
-import { PB, PB_MIGRATION, POCKETBASE_PROJECT, pocketbaseRepo } from "./pocketbase-repo.ts";
+import { PB, PB_MIGRATION, POCKETBASE_PROJECT, pocketbaseEslintRepo, pocketbaseRepo } from "./pocketbase-repo.ts";
+
+afterEach(() => vi.restoreAllMocks());
 
 const ENTRY = `${PB}/pb_hooks/sessions.pb.ts`;
 const SHARED_VALUES = `${PB}/shared/listing-values.ts`;
@@ -124,4 +128,67 @@ describe("imports across the app and pocketbase/", () => {
     const contracts = { [`${PB}/types/contracts.ts`]: "export interface Contract {\n  status: string;\n}\n" };
     expect(found(pocketbaseRepo({ ...ACROSS, ...contracts, [file]: text }).root)).toEqual([`${file} pb-boundary`]);
   });
+});
+
+const LONG = 300_000;
+const CAST =
+  'routerAdd("POST", "/api/sessions/end", (event) => {\n  const { endSession } = require(`${__hooks}/sessions/end-session.js`) as typeof import("./sessions/end-session.js");\n  event.json(200, endSession());\n});\n';
+
+/** The CI gate with the real tools in `folder` and every other step stubbed as passing: the root app is the template's own. */
+async function gateOn(repo: RepoFixture, folder: string) {
+  const root = fs.realpathSync(repo.root);
+  const real = runner.runTool;
+  vi.spyOn(runner, "runTool").mockImplementation((at, step) => (step.cwd?.startsWith(path.join(root, folder)) === true ? real(at, step) : Promise.resolve([])));
+  const result = await ciGate(root);
+  return { ...result, lines: result.report.split("\n").filter((line) => line.includes(`(${folder})`)) };
+}
+
+describe.each([PB, "services/pocketbase"])("the CI gate on %s/ with ESLint and Prettier", (folder) => {
+  it(
+    "runs Prettier, ESLint, the preset check and tsc in the folder, and no oxc tool",
+    async () => {
+      const result = await gateOn(pocketbaseEslintRepo({}, { folder }), folder);
+      expect(result.lines).toEqual([
+        ...["prettier", "eslint", "eslint-preset", "tsc"].map((step) => `${step} (${folder}): passed`),
+        `test (${folder}): skipped (no test script)`,
+      ]);
+      expect(result.report).not.toMatch(/oxlint|oxfmt/);
+      expect(result.passed, result.report).toBe(true);
+    },
+    LONG,
+  );
+
+  it(
+    "fails ESLint on a cast of require's result, naming the entry, and by its git-root path with a legacy list",
+    async () => {
+      const entry = `${folder}/pb_hooks/sessions.pb.ts`;
+      const whole = await gateOn(pocketbaseEslintRepo({ [entry]: CAST }, { folder }), folder);
+      expect(whole.lines).toContain(`eslint (${folder}): failed`);
+      expect(whole.findings.map(({ rule }) => rule)).toEqual(["eslint-failed"]);
+      expect(whole.findings[0]?.message).toMatch(new RegExp(`/${entry}\\n.*no-restricted-syntax`));
+
+      vi.restoreAllMocks();
+      const perFile = await gateOn(pocketbaseEslintRepo({ [entry]: CAST }, { folder, legacy: true }), folder);
+      expect(perFile.lines).toContain(`eslint (${folder}): failed`);
+      expect(perFile.findings.map(({ file, rule }) => `${file} ${rule}`)).toEqual([`${entry} no-restricted-syntax`]);
+    },
+    LONG,
+  );
+
+  it(
+    "fails the preset check when the folder's ESLint config drops the preset",
+    async () => {
+      const result = await gateOn(pocketbaseEslintRepo({ [`${folder}/eslint.config.ts`]: "export default [];\n" }, { folder }), folder);
+      expect(result.lines).toContain(`eslint-preset (${folder}): failed`);
+      expect(result.findings.map(({ rule }) => rule)).toContain("preset-missing");
+    },
+    LONG,
+  );
+});
+
+it('keeps oxlint and oxfmt for a folder on tools: "oxc"', async () => {
+  vi.spyOn(runner, "runTool").mockResolvedValue([]);
+  const lines = (await ciGate(pocketbaseRepo().root)).report.split("\n");
+  expect(lines).toEqual(expect.arrayContaining([`oxfmt (${PB}): passed`, `oxlint (${PB}): passed`]));
+  expect(lines.filter((line) => line.startsWith("eslint") && line.includes(`(${PB})`))).toEqual([]);
 });

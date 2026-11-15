@@ -23,7 +23,7 @@ export const DEFAULT_TOOLS: Record<ShapeName, ToolSetName> = {
   "makerkit-app": "oxc",
   "makerkit-feature": "oxc",
   supabase: "none",
-  e2e: "oxc",
+  e2e: "eslint-prettier",
   "vite-spa": "eslint-prettier",
-  pocketbase: "oxc",
+  pocketbase: "eslint-prettier",
 };

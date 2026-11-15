@@ -15,20 +15,20 @@ tests/<suite>/<name>.test.ts   tests against a running PocketBase
 tsconfig.json, package.json, README.md
 ```
 
-- An entry has no top-level `import` or `export`: PocketBase runs it as a script, not a module. Take types from
-  `import("...")` type expressions or from `types/`.
-- In an entry, `require(...)` sits inside a handler: a handler does not see a value required at the top of the file.
+- An entry has no top-level `import` or `export`: PocketBase runs it as a script. Types come from `import("...")`.
+- In an entry, call `require` inside a handler, typed as `require<typeof import("./<area>/<name>.js")>(...)`: no cast.
+  Declare it once in `types/require.d.ts`.
 - `shared/` has no `require`, no PocketBase globals (`$app`, `$http`, `$os` and the rest) and no Node built-ins, so
   both the VM and the app can load it.
 - A migration the branch's upstream or the remote default branch held when the prompt arrived is applied: it cannot be
   edited, deleted or moved, by tool or by shell. Without a remote, every migration in the tree when the prompt arrived
   counts as applied.
-- Rewriting the migration history is the user's step: `pocketbase migrate down` and `pocketbase migrate history-sync`
-  are denied.
-- `types/pocketbase*.d.ts` is vendored: denied to direct edits and exempt from size limits. `pb_migrations/` has no
-  folder-size limit.
+- `pocketbase migrate down` and `migrate history-sync` are denied: rewriting the migration history is the user's step.
+- `types/pocketbase*.d.ts` is vendored: no direct edits, no size limits. `pb_migrations/` has no folder-size limit.
 - The type check uses this folder's own `tsconfig.json`. The tests run in the gates only when the workspace names a
   `test` package script in `harness.config.ts`. Lint-disable and `@ts-` comments are reported.
+- The typed lint rules report a call on `any`, so a PocketBase type widened to `any` (an `Omit` over `core.App`, whose
+  index signature is `any`) is reported at every call: extend the type with `&` instead.
 
 ## Where code goes
 
@@ -37,4 +37,4 @@ tsconfig.json, package.json, README.md
 - Need a value the app reads too → put it in `shared/<name>.ts`.
 - Need a declaration → put it in `types/<name>.d.ts`; the vendored file is a copy of PocketBase's `pb_data/types.d.ts`.
 - Need a test → put it in `tests/<suite>/<name>.test.ts`.
-- Need to log → use $app.logger(); console is denied by the lint pass.
+- Need to log → use $app.logger(); console is denied by lint.

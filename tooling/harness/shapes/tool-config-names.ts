@@ -22,5 +22,8 @@ export const TOOL_CONFIG_NAMES = {
 
 export const ALL_TOOL_CONFIG_NAMES: readonly string[] = Object.values(TOOL_CONFIG_NAMES).flat();
 
+/** A pocketbase or e2e folder runs its own ESLint and Prettier, so their configs sit at its top beside the project's files. */
+export const OWN_TOOL_CONFIGS: readonly string[] = [...TOOL_CONFIG_NAMES.eslint, ...TOOL_CONFIG_NAMES.prettier, ".prettierignore"];
+
 /** The JavaScript-only names among them, which the TypeScript-everywhere rule must let through. */
 export const JS_TOOL_CONFIG_NAMES: readonly string[] = ALL_TOOL_CONFIG_NAMES.filter((name) => /\.(?:js|mjs|cjs)$/.test(name));

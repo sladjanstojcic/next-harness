@@ -1,10 +1,11 @@
 import { checkTests, type TestsLayout } from "../e2e.ts";
+import { JS_TOOL_CONFIG_NAMES, OWN_TOOL_CONFIGS as toolConfigs } from "../tool-config-names.ts";
 import { deny, GENERIC_FOLDERS, KEBAB, onlyGitkeepHidden, PLAIN_SHAPE, type ContentProfile, type PathVerdict, type Shape } from "../shape.ts";
 import { POCKETBASE_LAYOUT as LAYOUT, pocketbaseSourceRules } from "./source-rules.ts";
 
 const ok: PathVerdict = { ok: true };
 const topFolders = ["pb_hooks", "pb_migrations", "shared", "types", "tests"];
-const topEntries = [...topFolders, "tsconfig.json", "package.json", "README.md", "AGENTS.md", "CLAUDE.md", ".gitignore"];
+const topEntries = [...topFolders, "tsconfig.json", "package.json", "README.md", "AGENTS.md", "CLAUDE.md", ".gitignore", ...toolConfigs];
 
 const ENTRY = /^[a-z0-9]+(?:-[a-z0-9]+)*\.pb\.ts$/;
 const KEBAB_TS = /^[a-z0-9]+(?:-[a-z0-9]+)*\.ts$/;
@@ -69,6 +70,15 @@ function checkPath(path: string): PathVerdict {
   }
 }
 
+/** The paths the ESLint preset check probes, `{name}` standing for a fresh token: an entry, hook code, a migration, a shared value, a test. */
+export const POCKETBASE_PROBES: readonly string[] = [
+  "pb_hooks/{name}.pb.ts",
+  "pb_hooks/{name}/{name}.ts",
+  "pb_migrations/1_{name}.ts",
+  "shared/{name}.ts",
+  "tests/{name}/{name}.test.ts",
+];
+
 const NONE = "";
 const pocketbaseContent: ContentProfile = {
   actionBuilders: [],
@@ -96,6 +106,7 @@ export const pocketbase: Shape = {
   topEntries,
   topEntryPattern: /^README(?:-[a-z0-9-]+)?\.md$/,
   topFolders,
+  jsExceptions: JS_TOOL_CONFIG_NAMES.filter((name) => toolConfigs.includes(name)),
   checkHidden: onlyGitkeepHidden(topFolders, (top) => `Keep visible files in ${top}/; only .gitkeep may be hidden ${LAYOUT}.`),
   checkPath,
   vendoredPattern: /^types\/pocketbase[^/]*\.d\.ts$/,

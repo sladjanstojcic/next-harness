@@ -12,27 +12,35 @@ import { viteBoundaryBlocks } from "./eslint-boundaries/vite.ts";
 /**
  * Where the workspace keeps its code: an app's src/modules/ and src/shared/, the same folders at the top of an app
  * without src/ ("app-root"), a shared package's src/, an Electron app's src/main/, src/preload/, src/renderer/ and src/shared/,
- * or a Vite single-page app's src/app/, src/modules/, src/backend/ and src/shared/ ("spa").
+ * a Vite single-page app's src/app/, src/modules/, src/backend/ and src/shared/ ("spa"), or a PocketBase backend's
+ * pb_hooks/, pb_migrations/, shared/, types/ and tests/ ("pocketbase"), or a Playwright suite's tests/ ("e2e").
  */
-export type PresetLayout = "app" | "app-root" | "package" | "electron" | "spa";
+export type PresetLayout = "app" | "app-root" | "package" | "electron" | "spa" | "pocketbase" | "e2e";
+/** The layouts without UI: no shadcn controls and no console exemption. */
+type WithoutUi = "package" | "pocketbase" | "e2e";
+const withUi = (layout: PresetLayout): layout is Exclude<PresetLayout, WithoutUi> => layout !== "package" && layout !== "pocketbase" && layout !== "e2e";
 
+/** Test code has no adapter folder: a page object is code, so no file is exempt from the cast rules. */
+const NO_ADAPTER = "test code has no adapter folder for such a cast (e2e layout)";
 /** The folder that may hold adapter casts, as the messages name it and as the rule blocks match it. */
-const ADAPTERS: Record<PresetLayout, string> = {
+const ADAPTERS: Record<Exclude<PresetLayout, "e2e">, string> = {
   app: "src/modules/<module>/server/",
   "app-root": "modules/<module>/server/",
   package: "src/server/",
   electron: "src/main/ or a guard in src/shared/",
   spa: "src/modules/<module>/data/ or src/backend/",
+  pocketbase: "a declaration in types/ (PocketBase layout)",
 };
-const ADAPTER_GLOBS: Record<PresetLayout, string> = {
+const ADAPTER_GLOBS: Record<Exclude<PresetLayout, "e2e">, string> = {
   app: "src/modules/*/server/**",
   "app-root": "modules/*/server/**",
   package: "src/server/**",
   electron: "src/{main,shared}/**",
   spa: "src/{modules/*/data,backend}/**",
+  pocketbase: "types/**",
 };
 /** Where console output is the point: automation, and an app's own log helper. */
-const CONSOLE: Record<Exclude<PresetLayout, "package">, string[]> = {
+const CONSOLE: Record<Exclude<PresetLayout, WithoutUi>, string[]> = {
   app: ["tooling/**", "scripts/**", "src/shared/lib/log.ts"],
   "app-root": ["tooling/**", "scripts/**", "shared/lib/log.ts"],
   electron: ["tooling/**", "scripts/**", "src/main/**/log.ts"],
@@ -51,7 +59,10 @@ const namedExports = {
 
 const neverCastIn = (layout: PresetLayout) => ({
   selector: "TSAsExpression > TSNeverKeyword.typeAnnotation",
-  message: `Fix the type instead of casting to never; an unavoidable adapter cast belongs in ${ADAPTERS[layout]}.`,
+  message:
+    layout === "e2e"
+      ? `Fix the type instead of casting to never; ${NO_ADAPTER}.`
+      : `Fix the type instead of casting to never; an unavoidable adapter cast belongs in ${ADAPTERS[layout]}.`,
 });
 const computedImport = {
   selector: "ImportExpression[source.type!='Literal']",
@@ -63,13 +74,16 @@ const requireCall = {
 };
 const doubleCastIn = (layout: PresetLayout) => ({
   selector: "TSAsExpression > TSAsExpression",
-  message: `Validate unknown data before using it; unavoidable adapter casts belong in ${ADAPTERS[layout]}.`,
+  message:
+    layout === "e2e"
+      ? `Validate unknown data before using it; ${NO_ADAPTER}.`
+      : `Validate unknown data before using it; unavoidable adapter casts belong in ${ADAPTERS[layout]}.`,
 });
 /** Whether a workspace is set up for shadcn: `components.json` at its top. The preset, its check and the code index all ask here. */
 export const usesShadcn = (workspaceDir: string): boolean => fs.existsSync(path.join(workspaceDir, "components.json"));
 
 /** Where the generated shadcn components live, by layout; a package holds none. */
-const UI: Record<Exclude<PresetLayout, "package">, string> = {
+const UI: Record<Exclude<PresetLayout, WithoutUi>, string> = {
   app: "src/shared/ui/",
   "app-root": "shared/ui/",
   electron: "src/renderer/src/shared/ui/",
@@ -79,14 +93,22 @@ const UI: Record<Exclude<PresetLayout, "package">, string> = {
 export const RAW_CONTROLS: readonly string[] = ["button", "input", "select", "textarea", "label", "table", "dialog"];
 /** One selector per element, so the message names the component to use; none in a workspace without shadcn. */
 const rawControlsIn = (layout: PresetLayout, shadcn: boolean): { selector: string; message: string }[] =>
-  !shadcn || layout === "package"
+  !shadcn || !withUi(layout)
     ? []
     : RAW_CONTROLS.map((element) => ({
         selector: `JSXOpeningElement[name.type='JSXIdentifier'][name.name='${element}']`,
         message: `Use the shadcn component from ${UI[layout]} instead of a raw <${element}>; add a missing one with \`pnpm dlx shadcn add ${element}\`. If shadcn has no component for this, say so in the handoff before building it by hand.`,
       }));
 
-const workaroundsIn = (layout: PresetLayout) => [namedExports, neverCastIn(layout), computedImport, requireCall];
+/** A cast on require's result goes unchecked: TypeScript infers a generic require's type from the cast itself. */
+const requireCast = {
+  selector: "TSAsExpression > CallExpression[callee.name='require']",
+  message: 'Give require its type instead of casting its result: require<typeof import("./<area>/<name>.js")>(...) (PocketBase layout).',
+};
+/** In a PocketBase backend require() is the module system, and the shape's own rule judges where it sits. */
+const requireBanIn = (layout: PresetLayout) => [layout === "pocketbase" ? requireCast : requireCall];
+const requireImportsIn = (layout: PresetLayout): RuleBlock["rules"] => (layout === "pocketbase" ? { "@typescript-eslint/no-require-imports": "off" } : {});
+const workaroundsIn = (layout: PresetLayout) => [namedExports, neverCastIn(layout), computedImport, ...requireBanIn(layout)];
 export const doubleCast = doubleCastIn("app");
 export const workarounds = workaroundsIn("app");
 
@@ -123,6 +145,8 @@ export interface RuleBlock {
   rules: Record<string, Setting>;
 }
 
+const consoleExemptionIn = (layout: PresetLayout): RuleBlock[] => (withUi(layout) ? [{ files: CONSOLE[layout], rules: { "no-console": "off" } }] : []);
+
 const ELECTRON_CONSOLE_BLOCK: RuleBlock = {
   files: ["**/*.{ts,tsx}"],
   ignores: CONSOLE.electron,
@@ -157,12 +181,14 @@ export const HOOK_RULES: RuleBlock["rules"] = {
 };
 /**
  * Where React code can sit: in an Electron app the renderer alone, elsewhere every TypeScript file but browser tests
- * and automation, where a Playwright fixture's `use` and a script's `use…` function are no hooks.
+ * and automation, where a Playwright fixture's `use` and a script's `use…` function are no hooks. A PocketBase backend
+ * runs no React, and in a Playwright suite a fixture's `use` is no hook.
  */
-const hooksIn = (layout: PresetLayout): RuleBlock =>
-  layout === "electron"
-    ? { files: ["src/renderer/**/*.{ts,tsx}"], rules: HOOK_RULES }
-    : { files: ["**/*.{ts,tsx}"], ignores: ["e2e/**", "scripts/**", "tooling/**"], rules: HOOK_RULES };
+const hooksIn = (layout: PresetLayout): RuleBlock[] => {
+  if (layout === "pocketbase" || layout === "e2e") return [];
+  if (layout === "electron") return [{ files: ["src/renderer/**/*.{ts,tsx}"], rules: HOOK_RULES }];
+  return [{ files: ["**/*.{ts,tsx}"], ignores: ["e2e/**", "scripts/**", "tooling/**"], rules: HOOK_RULES }];
+};
 
 /**
  * The harness's own rules, block by block in the preset's order: the preset spreads them into its config, and the
@@ -191,11 +217,12 @@ export function harnessRuleBlocks(layout: PresetLayout = "app", aliases?: Electr
         "no-new-func": "error",
         "max-lines": ["error", { max: MAX_FILE_LINES, skipBlankLines: false, skipComments: false }],
         "no-restricted-syntax": ["error", ...workarounds, ...controls],
+        ...requireImportsIn(layout),
       },
     },
     {
       files: ["**/*.{ts,tsx}"],
-      ignores: [ADAPTER_GLOBS[layout]],
+      ...(layout === "e2e" ? {} : { ignores: [ADAPTER_GLOBS[layout]] }),
       rules: {
         "@typescript-eslint/consistent-type-assertions": ["error", { assertionStyle: "as", objectLiteralTypeAssertions: "never" }],
         "@typescript-eslint/no-unsafe-type-assertion": "error",
@@ -204,15 +231,16 @@ export function harnessRuleBlocks(layout: PresetLayout = "app", aliases?: Electr
     },
     {
       // Tests load fixtures they just wrote and cast fixture data; the other workaround rules still apply.
-      files: ["**/*.test.{ts,tsx}"],
+      files: ["**/*.test.{ts,tsx}", ...(layout === "e2e" ? ["**/*.spec.ts", "**/*.setup.ts"] : [])],
       rules: {
         "@typescript-eslint/no-non-null-assertion": "off",
         "@typescript-eslint/no-unsafe-type-assertion": "off",
-        "no-restricted-syntax": ["error", namedExports, neverCast, requireCall, doubleCast, ...controls],
+        "no-restricted-syntax": ["error", namedExports, neverCast, ...requireBanIn(layout), doubleCast, ...controls],
       },
     },
-    layout === "package" ? PACKAGE_DOMAIN : { files: CONSOLE[layout], rules: { "no-console": "off" } },
-    hooksIn(layout),
+    ...(layout === "package" ? [PACKAGE_DOMAIN] : []),
+    ...consoleExemptionIn(layout),
+    ...hooksIn(layout),
     ...(layout === "electron" ? [ELECTRON_CONSOLE_BLOCK, ELECTRON_CONSOLE_OUTSIDE_MAIN, ...electronBoundaryBlocks(aliases)] : []),
     ...(layout === "spa" ? viteBoundaryBlocks() : []),
   ];

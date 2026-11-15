@@ -1,10 +1,11 @@
+import { JS_TOOL_CONFIG_NAMES, OWN_TOOL_CONFIGS } from "./tool-config-names.ts";
 import { deny, GENERIC_FOLDERS, KEBAB, onlyGitkeepHidden, PLAIN_SHAPE, type ContentProfile, type PathVerdict, type Shape } from "./shape.ts";
 
 const LAYOUT = "(e2e layout)";
 const ok: PathVerdict = { ok: true };
 /** A suite folder and two levels of area folders inside it: tests/<suite>/<area>/<area>/. */
 const MAX_FOLDERS = 3;
-const topEntries = ["tests", "package.json", "playwright.config.ts", "tsconfig.json", "AGENTS.md", "CLAUDE.md", ".gitignore"];
+const topEntries = ["tests", "package.json", "playwright.config.ts", "tsconfig.json", "AGENTS.md", "CLAUDE.md", ".gitignore", ...OWN_TOOL_CONFIGS];
 
 const TOP_ADVICE = `An e2e workspace takes package.json, playwright.config.ts, tsconfig.json and tests/ at its top; put test code in tests/<suite>/ ${LAYOUT}.`;
 /** A kebab-case stem and at most one role, such as spec, setup or po. */
@@ -48,6 +49,9 @@ function checkPath(path: string): PathVerdict {
   return top === "tests" && inside.length > 0 ? checkTests(inside, E2E_TESTS) : ok;
 }
 
+/** The paths the ESLint preset check probes, `{name}` standing for a fresh token: a spec, a setup file, a page object. */
+export const E2E_PROBES: readonly string[] = ["tests/{name}.spec.ts", "tests/{name}/{name}.setup.ts", "tests/{name}/{name}.po.ts"];
+
 const NONE = "";
 const e2eContent: ContentProfile = {
   actionBuilders: [],
@@ -75,6 +79,7 @@ export const e2e: Shape = {
   // The committed and local .env files; the env guard decides which of them an agent may write.
   topEntryPattern: /^(?:README(?:-[a-z0-9-]+)?\.md|\.env(?:\.[a-z]+){0,2})$/,
   topFolders: ["tests"],
+  jsExceptions: JS_TOOL_CONFIG_NAMES.filter((name) => OWN_TOOL_CONFIGS.includes(name)),
   topAdvice: TOP_ADVICE,
   checkHidden: onlyGitkeepHidden(["tests"], () => `Keep visible test files in tests/; only .gitkeep may be hidden ${LAYOUT}.`),
   checkPath,

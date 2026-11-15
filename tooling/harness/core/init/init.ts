@@ -15,6 +15,7 @@ import { TYPESCRIPT_API_REASON, TYPESCRIPT_NATIVE_REASON } from "../../presets/l
 import { nativeTypescript, needsTypescriptApi, peerInstall, starterInstall } from "./peers.ts";
 import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
 import { shadcnTodo } from "./shadcn/shadcn-steps.ts";
+import { e2eTodo, isLintOnly, lintOnlySteps } from "./lint-only/lint-only.ts";
 import { pocketbaseTodo } from "./pocketbase/pocketbase-steps.ts";
 import { viteTodo } from "./vite/vite-steps.ts";
 import { CONFIG_FILE, isConfigOnly, type WorkspaceEntry } from "../../config.ts";
@@ -147,7 +148,7 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
       return own.length === 0 ? [] : [inFolder(workspace, `${exec} prettier --write ${own.join(" ")}`)];
     });
   const { legacy } = harness.config;
-  const ownTests = workspaces.filter((workspace) => workspace.test === undefined && runsOwnTests(root, workspace) !== undefined);
+  const ownTests = workspaces.filter((workspace) => !isLintOnly(workspace) && workspace.test === undefined && runsOwnTests(root, workspace) !== undefined);
   const items = [
     ...workspaces.flatMap((workspace) => {
       const command = peerInstall(root, harness.config, workspace);
@@ -172,6 +173,7 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
     ),
     ...viteTodo(root, workspaces),
     ...pocketbaseTodo(root, harness.workspaces),
+    ...e2eTodo(root, workspaces),
     ...shadcnTodo(root, workspaces),
     ...(preparesHooks(root) ? [] : [`Add to the root package.json "prepare" script, so a fresh clone gets the pre-push hook: ${PREPARE}`]),
     ...(format.length === 0 ? [] : [`Format the app's own files once in the preset's style: ${format.join("; ")}`]),
@@ -212,12 +214,16 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
     claudeStep(root),
     scriptsStep(root, "package.json", PACKAGE_SCRIPTS, { prepare: PREPARE, ...(atRoot === undefined ? {} : toolScripts(atRoot, root, starter)) }, force),
     ...(atRoot === undefined ? [gitignoreStep(root, "", [HARNESS_MODULES])] : []),
-    ...workspaces.flatMap((workspace) => [
-      ...(workspace.path === ""
-        ? []
-        : [scriptsStep(root, `${workspace.path}/package.json`, {}, toolScripts(workspace, path.join(root, workspace.path), starter), force)]),
-      ...toolConfigSteps(root, workspace, force, starter),
-    ]),
+    ...workspaces.flatMap((workspace) =>
+      isLintOnly(workspace)
+        ? lintOnlySteps(root, workspace)
+        : [
+            ...(workspace.path === ""
+              ? []
+              : [scriptsStep(root, `${workspace.path}/package.json`, {}, toolScripts(workspace, path.join(root, workspace.path), starter), force)]),
+            ...toolConfigSteps(root, workspace, force, starter),
+          ],
+    ),
     ...rootIgnoreSteps(root, all),
   ];
   const lines = steps.map((step) => `${step.status} ${step.target}: ${step.detail}`);

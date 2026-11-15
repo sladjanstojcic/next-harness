@@ -42,19 +42,29 @@ describe("loadConfig", () => {
     ["makerkit-feature", "oxc"],
     ["supabase", "none"],
     ["vite-spa", "eslint-prettier"],
+    ["e2e", "eslint-prettier"],
   ] as const)("parses the %s shape with %s tools by default", (shape, tools) => {
     const repo = makeRepo({ "harness.config.ts": `export default { workspaces: [{ path: "a", shape: "${shape}" }] };\n` });
     expect(expandWorkspaces(repo.root, loadConfig(repo.root))).toEqual([{ path: "a", shape, tools, next: false }]);
   });
 
-  it("gives a pocketbase workspace the oxc tool set", () => {
+  it("gives a pocketbase workspace the eslint-prettier tool set", () => {
     const repo = makeRepo({ "harness.config.ts": 'export default { workspaces: [{ path: "pocketbase", shape: "pocketbase" }] };\n' });
-    expect(expandWorkspaces(repo.root, loadConfig(repo.root))[0]?.tools).toBe("oxc");
+    expect(expandWorkspaces(repo.root, loadConfig(repo.root))[0]?.tools).toBe("eslint-prettier");
+  });
+
+  it.each(["oxc", "eslint-prettier"] as const)("accepts tools: %s on a pocketbase workspace", (tools) => {
+    const repo = makeRepo({ "harness.config.ts": `export default { workspaces: [{ path: "pocketbase", shape: "pocketbase", tools: "${tools}" }] };\n` });
+    expect(expandWorkspaces(repo.root, loadConfig(repo.root))[0]?.tools).toBe(tools);
+  });
+
+  it.each(["eslint-prettier", "oxc", "none"] as const)("accepts tools: %s on an e2e workspace", (tools) => {
+    const repo = makeRepo({ "harness.config.ts": `export default { workspaces: [{ path: "e2e", shape: "e2e", tools: "${tools}" }] };\n` });
+    expect(expandWorkspaces(repo.root, loadConfig(repo.root))[0]?.tools).toBe(tools);
   });
 
   it.each([
-    [{ tools: "none" }, 'workspaces.0.tools must be "oxc" for the pocketbase shape, which has no ESLint preset and needs its type check'],
-    [{ tools: "eslint-prettier" }, 'workspaces.0.tools must be "oxc" for the pocketbase shape, which has no ESLint preset and needs its type check'],
+    [{ tools: "none" }, 'workspaces.0.tools must not be "none" for the pocketbase shape, which needs its lint and type check'],
     [{ next: true }, "workspaces.0.next must not be true for the pocketbase shape, which is not a Next app"],
   ])("refuses %j on a pocketbase workspace", (extra, message) => {
     const workspace = JSON.stringify({ path: "pocketbase", shape: "pocketbase", ...extra });

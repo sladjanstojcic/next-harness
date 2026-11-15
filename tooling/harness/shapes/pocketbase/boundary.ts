@@ -1,6 +1,7 @@
 import { posix } from "node:path";
 import type ts from "typescript";
 import type { SourceFinding } from "../shape.ts";
+import { OWN_TOOL_CONFIGS } from "../tool-config-names.ts";
 import { POCKETBASE_LAYOUT as LAYOUT } from "./source-rules.ts";
 
 type Compiler = typeof ts;
@@ -38,11 +39,13 @@ function crossing(home: string | undefined, workspaces: readonly string[], targe
 
 /**
  * The app imports only a pocketbase workspace's shared/, and the workspace imports nothing outside its own folder.
- * `file` is the repository path; a non-relative specifier, a package or an alias, is not judged.
+ * `file` is the repository path; a non-relative specifier, a package or an alias, is not judged, nor is a tool config at
+ * the workspace's top, which imports the harness presets.
  */
 export function pocketbaseBoundary(file: string, source: ts.SourceFile, workspaces: readonly string[], ts: Compiler): SourceFinding[] {
   if (workspaces.length === 0) return [];
   const home = workspaces.filter((folder) => within(folder, file)).sort((a, b) => b.length - a.length)[0];
+  if (home !== undefined && posix.join(home, posix.basename(file)) === file && OWN_TOOL_CONFIGS.includes(posix.basename(file))) return [];
   const findings: SourceFinding[] = [];
   const visit = (node: ts.Node): void => {
     const specifier = specifierOf(ts, node);

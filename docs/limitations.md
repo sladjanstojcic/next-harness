@@ -23,12 +23,14 @@ parent: Reference
   template's `App.tsx` replaced by routes, then all ten gate steps passed, with the real `vite build`.
   It was run again with shadcn, a PocketBase client in `src/backend/` and a module with `data/`; the
   types file was written by hand, and no PocketBase server ran. No agent session has worked there yet.
-- The `pocketbase` shape was run once, on a fresh create-next-app 16 project with the PocketBase 0.40.5
-  binary on Linux x86-64: an entry, the module it requires and a migration, built with `tsc` and served
-  until the route answered, then the full check passed. The first pass of that run failed three steps:
-  oxfmt and oxlint judged the vendored declarations, and the root knip reported the folder. Those were
-  fixed before the second pass. Not run: tests with a `test` script, `shared/`, an agent session, and
-  PocketBase on macOS or Windows.
+- The `pocketbase` shape was run twice on a fresh create-next-app 16 project: an entry, the module it
+  requires and a migration, built with `tsc` and served until the route answered, then the full check
+  passed. The first run, on Linux x86-64 with the `oxc` tool set, failed three steps on its first pass:
+  oxfmt and oxlint judged the vendored declarations, and the root knip reported the folder. The second,
+  on macOS arm64 with ESLint and Prettier, failed one: the folder's ESLint judged the gitignored
+  `dist/` and `pb_data/`. Each was fixed before the next pass. Not run: tests with a `test` script,
+  `shared/`, an agent session, PocketBase on Windows, ESLint and Prettier on Linux, and the `oxc`
+  tool set again since the default changed.
 - Init's printed shadcn steps were run as printed on create-next-app with and without `src/`, the
   electron-vite scaffold, create-vite, and a create-vite app at `apps/web` of a pnpm workspace. The
   Tailwind steps for a Next.js app without Tailwind were run as printed on create-next-app made with
@@ -86,12 +88,20 @@ parent: Reference
   block, which can turn a one-line change into a larger one.
 - The full lint step has a 120 s limit. On a loaded machine a large app reached it, though the lint
   alone took 33 s.
-- The `e2e` shape has no ESLint preset: its lint and type check run with the `oxc` tool set only. With
-  `tools: "none"` the paths, names and folder size are still judged, but the 250-line limit is not,
-  because that limit is a lint rule. The Playwright tests themselves run in the gates only when the
-  workspace names a `test` script, and they need whatever the tests need: a running app or database.
-- The `pocketbase` shape has no ESLint preset either: `tools: "eslint-prettier"` is refused there. A
-  project whose app uses ESLint and Prettier installs oxlint and oxfmt for the folder.
+- With `tools: "none"` on the `e2e` shape the paths, names and folder size are still judged, but the
+  250-line limit is not, because that limit is a lint rule. The Playwright tests themselves run in the
+  gates only when the workspace names a `test` script, and they need whatever the tests need: a
+  running app or database.
+- The `e2e` shape on ESLint and Prettier was not run on a real project or in an agent session. It ran
+  in a scratch monorepo: a copy of the harness and an `apps/e2e` folder with a Playwright scaffold's
+  config and spec, then the real `init` and `check ci`.
+  - Without a `tsconfig.json`, the scaffold's own state, ESLint failed on each spec: "was not found by
+    the project service".
+  - With a `tsconfig.json` that has no `include`, `tsc` failed with TS5097 in `eslint.config.ts`,
+    `tooling/harness/config.ts` and the presets, because the compiler follows the config's import
+    into the harness.
+  - With `"include": ["tests", "playwright.config.ts"]`, lint, format and the preset check passed.
+  - Init now prints a step for the first two cases. That step was tested on fixtures, not rerun there.
 - The `pocketbase` guards match the binary's name. A project script that wraps it, such as a
   `db:reset` script running `pocketbase migrate down`, is not covered.
 - `pb-shared-pure` follows identifiers. A PocketBase global reached through `globalThis.$app` in
@@ -115,9 +125,10 @@ parent: Reference
   `React.createElement` , a tag kept in a variable or a namespaced tag such as `<motion.button>` is not seen either.
 - Content rules are mostly regular expressions; the duplicate check is the only syntax-tree rule.
 - The fast gate was measured at about 1.6 s per edit on the empty template, not on a large project.
-- The `oxc` tool set runs oxlint without `--type-aware`, because oxlint-tsgolint is not installed
-  where it was measured. Type-aware rules such as `no-floating-promises` do not run there. oxlint's
-  default rules also miss `any`; a project enables the rules it wants in its locked `.oxlintrc.json`.
+- The `oxc` tool set, the default only for the Makerkit shapes, runs oxlint without `--type-aware`,
+  because oxlint-tsgolint is not installed where it was measured. Type-aware rules such as
+  `no-floating-promises` do not run there. oxlint's default rules also miss `any`; a project enables
+  the rules it wants in its locked `.oxlintrc.json`.
 - The legacy list in CI: CI has no `legacy-append` check, so once a longer list is committed (which
   needs the user's unlock) CI tolerates harness-rule findings on the newly listed file; tool findings
   there still fail. On the default branch itself CI compares with HEAD, so a legacy file changed by a
