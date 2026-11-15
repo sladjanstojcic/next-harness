@@ -123,9 +123,12 @@ export function tsconfigSteps(root: string, workspace: WorkspaceEntry, force: bo
     const contract = workspace.shape === "electron-vite";
     if (!readsTop && !contract) return [];
     const target = path.posix.join(workspace.path, project);
+    // The same project checks the code beside src/: without these, a first file in scripts/ or e2e/ would need a locked edit.
+    const beside = readsTop ? [...(workspace.path === "" ? ["scripts/**/*.ts"] : []), "e2e/**/*.ts"] : [];
+    const includeByHand = [...beside, ...(contract ? [SHARED_CONTRACT] : [])];
     const byHand = [
+      ...(includeByHand.length === 0 ? [] : [`"include": [..., ${includeByHand.map((entry) => `"${entry}"`).join(", ")}]`]),
       ...(readsTop ? [`"exclude": [..., ${left.map((entry) => `"${entry}"`).join(", ")}]`] : []),
-      ...(contract ? [`"include": [..., "${SHARED_CONTRACT}"]`] : []),
     ].join("\n    ");
     let config: Record<string, unknown> | undefined;
     try {
@@ -136,9 +139,7 @@ export function tsconfigSteps(root: string, workspace: WorkspaceEntry, force: bo
     if (config === undefined) return [];
     const exclude: unknown[] = Array.isArray(config.exclude) ? config.exclude.map((entry: unknown) => entry) : DEFAULT_EXCLUDE;
     const added = readsTop ? left.filter((entry) => !exclude.includes(entry)) : [];
-    // The same project checks the code beside src/: without these, a first file in scripts/ or e2e/ would need a locked edit.
     const include: unknown[] | undefined = Array.isArray(config.include) ? config.include.map((entry: unknown) => entry) : undefined;
-    const beside = readsTop ? [...(workspace.path === "" ? ["scripts/**/*.ts"] : []), "e2e/**/*.ts"] : [];
     // Every project of an Electron app reads the contract between its three programs, for the same reason.
     const wanted = [...beside, ...(contract && include !== undefined && !readsShared(include) ? [SHARED_CONTRACT] : [])];
     const included = include === undefined ? [] : wanted.filter((entry) => !include.includes(entry));

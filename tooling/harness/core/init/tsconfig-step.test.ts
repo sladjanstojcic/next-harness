@@ -87,6 +87,18 @@ describe("a workspace type-checked project by project (electron-vite)", () => {
     expect(tsconfigSteps(repo.root, DESK, false, ["eslint.config.ts"]).map((step) => step.status)).toEqual(["unchanged"]);
   });
 
+  it("names scripts/, e2e/ and src/shared/ in what to set by hand when a project has comments", () => {
+    const repo = makeRepo({
+      ...files,
+      "tsconfig.node.json": '{\n  /* Bundler mode */\n  "compilerOptions": { "composite": true }, "include": ["*.config.ts"]\n}\n',
+    });
+    const node = tsconfigSteps(repo.root, DESK, false, ["eslint.config.ts"])[0];
+    expect(node?.status).toBe("kept");
+    expect(node?.detail).toBe(
+      'has comments or is not plain JSON; set by hand:\n    "include": [..., "scripts/**/*.ts", "e2e/**/*.ts", "src/shared/**/*"]\n    "exclude": [..., "tooling/harness", "harness.config.ts", "eslint.config.ts"]',
+    );
+  });
+
   it("leaves a project that already reads src/shared/ or all of src/ as it is", () => {
     const repo = makeRepo({
       ...files,
