@@ -94,9 +94,9 @@ const schema = z.strictObject({
           path: ["next"],
           message: "must not be true for the e2e shape, which is not a Next app",
         })
-        .refine((workspace) => workspace.shape !== "pocketbase" || (workspace.tools ?? "oxc") === "oxc", {
+        .refine((workspace) => workspace.shape !== "pocketbase" || workspace.tools !== "none", {
           path: ["tools"],
-          message: 'must be "oxc" for the pocketbase shape, which has no ESLint preset and needs its type check',
+          message: 'must not be "none" for the pocketbase shape, which needs its lint and type check',
         })
         .refine((workspace) => workspace.shape !== "pocketbase" || workspace.next !== true, {
           path: ["next"],
