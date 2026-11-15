@@ -6,15 +6,19 @@ import { electronAliases } from "./electron-aliases.ts";
 import { harnessRuleBlocks, HOOKS_PLUGIN, usesShadcn, type PresetLayout } from "./eslint-rules.ts";
 import { call, defaultOf, isRecord, list, member, toolLoader } from "./load-tool.ts";
 
-const VENDORED = ["shared/ui/**", "shared/lib/utils.ts"];
-/** The backend/ folder of the Next and Vite layouts holds generated database types. */
-const GENERATED: Partial<Record<PresetLayout, string[]>> = {
-  app: GENERATED_TYPE_GLOBS.map((glob) => `src/backend/${glob}`),
-  "app-root": GENERATED_TYPE_GLOBS.map((glob) => `backend/${glob}`),
-  spa: GENERATED_TYPE_GLOBS.map((glob) => `src/backend/${glob}`),
+/** The generated shadcn files under the folder that holds shared/. */
+const shadcnIn = (root: string): string[] => [`${root}shared/ui/**`, `${root}shared/lib/utils.ts`];
+/** The generated database types in a backend/ folder. */
+const generatedIn = (folder: string): string[] => GENERATED_TYPE_GLOBS.map((glob) => `${folder}${glob}`);
+/** The files each layout does not write by hand: shadcn's, the database types of the Next and Vite layouts, PocketBase's declarations. */
+const VENDORED: Record<PresetLayout, string[]> = {
+  app: [...shadcnIn("src/"), ...generatedIn("src/backend/")],
+  "app-root": [...shadcnIn(""), ...generatedIn("backend/")],
+  package: shadcnIn("src/"),
+  electron: shadcnIn("src/renderer/src/"),
+  spa: [...shadcnIn("src/"), ...generatedIn("src/backend/")],
+  pocketbase: ["types/pocketbase*.d.ts"],
 };
-/** The folder that holds shared/, by layout. */
-const VENDORED_ROOT: Record<PresetLayout, string> = { app: "src/", "app-root": "", package: "src/", electron: "src/renderer/src/", spa: "src/" };
 
 /** The TypeScript tool configs at a workspace top; a consumer's tsconfig leaves them out, so they are linted without types. */
 const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
@@ -24,7 +28,7 @@ const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
 export interface HarnessEslintOptions {
   /** The workspace folder holding tsconfig.json, for typed rules; ESLint and its plugins load from there. */
   root: string;
-  /** "app-root" for an app without src/ (app/, modules/, shared/ at its top), "package" for a shared package, "electron" for an electron-vite app, "spa" for a Vite single-page app; an app's src/ layout by default. */
+  /** "app-root" for an app without src/ (app/, modules/, shared/ at its top), "package" for a shared package, "electron" for an electron-vite app, "spa" for a Vite single-page app, "pocketbase" for a PocketBase backend; an app's src/ layout by default. */
   layout?: PresetLayout;
   /** Adds the Next.js core-web-vitals and TypeScript configs. */
   next?: boolean;
@@ -55,7 +59,7 @@ const isEntry = (value: unknown): value is EslintEntry => isRecord(value) && (va
 /** The harness's ESLint rules for a next-modules or package workspace; a project with its own config appends these after its entries. */
 export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
   const { root, layout = "app", next = false, base = true, harness = "ignore" } = options;
-  const vendored = options.vendored ?? [...VENDORED.map((glob) => `${VENDORED_ROOT[layout]}${glob}`), ...(GENERATED[layout] ?? [])];
+  const vendored = options.vendored ?? VENDORED[layout];
   // An Electron or create-vite project's tsconfig projects name src/ and its own configs, so harness.config.ts is in none of them.
   const untyped = layout === "electron" || layout === "spa" ? [...CONFIG_FILES, "harness.config.ts"] : CONFIG_FILES;
   const tool = toolLoader(root, options.toolsFrom);
