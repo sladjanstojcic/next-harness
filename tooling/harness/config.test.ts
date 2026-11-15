@@ -42,6 +42,7 @@ describe("loadConfig", () => {
     ["makerkit-feature", "oxc"],
     ["supabase", "none"],
     ["vite-spa", "eslint-prettier"],
+    ["e2e", "eslint-prettier"],
   ] as const)("parses the %s shape with %s tools by default", (shape, tools) => {
     const repo = makeRepo({ "harness.config.ts": `export default { workspaces: [{ path: "a", shape: "${shape}" }] };\n` });
     expect(expandWorkspaces(repo.root, loadConfig(repo.root))).toEqual([{ path: "a", shape, tools, next: false }]);
@@ -54,6 +55,11 @@ describe("loadConfig", () => {
 
   it.each(["oxc", "eslint-prettier"] as const)("accepts tools: %s on a pocketbase workspace", (tools) => {
     const repo = makeRepo({ "harness.config.ts": `export default { workspaces: [{ path: "pocketbase", shape: "pocketbase", tools: "${tools}" }] };\n` });
+    expect(expandWorkspaces(repo.root, loadConfig(repo.root))[0]?.tools).toBe(tools);
+  });
+
+  it.each(["eslint-prettier", "oxc", "none"] as const)("accepts tools: %s on an e2e workspace", (tools) => {
+    const repo = makeRepo({ "harness.config.ts": `export default { workspaces: [{ path: "e2e", shape: "e2e", tools: "${tools}" }] };\n` });
     expect(expandWorkspaces(repo.root, loadConfig(repo.root))[0]?.tools).toBe(tools);
   });
 

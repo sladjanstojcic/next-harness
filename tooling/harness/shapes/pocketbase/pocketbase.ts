@@ -1,7 +1,6 @@
 import { checkTests, type TestsLayout } from "../e2e.ts";
-import { JS_TOOL_CONFIG_NAMES } from "../tool-config-names.ts";
+import { JS_TOOL_CONFIG_NAMES, OWN_TOOL_CONFIGS as toolConfigs } from "../tool-config-names.ts";
 import { deny, GENERIC_FOLDERS, KEBAB, onlyGitkeepHidden, PLAIN_SHAPE, type ContentProfile, type PathVerdict, type Shape } from "../shape.ts";
-import { OWN_TOOL_CONFIGS as toolConfigs } from "./own-tools.ts";
 import { POCKETBASE_LAYOUT as LAYOUT, pocketbaseSourceRules } from "./source-rules.ts";
 
 const ok: PathVerdict = { ok: true };

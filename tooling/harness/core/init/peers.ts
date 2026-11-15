@@ -5,7 +5,7 @@ import { analysisOf, type HarnessConfig, type WorkspaceEntry } from "../../confi
 import { managerCommands } from "./bootstrap.ts";
 import { lacksTypescriptApi, TYPESCRIPT_API, typescriptNative, typescriptVersion } from "../../presets/load-tool.ts";
 import { broughtByBase, bringsOwnBase, bringsOwnNext } from "../../tools/eslint-preset.ts";
-import { isLintOnly } from "./pocketbase/pocketbase-configs.ts";
+import { isLintOnly } from "./lint-only/lint-only.ts";
 import { runsOwnTests } from "./tool-configs.ts";
 
 const HARNESS = path.resolve(import.meta.dirname, "../..");

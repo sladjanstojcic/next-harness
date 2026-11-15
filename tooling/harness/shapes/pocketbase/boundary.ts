@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 import type ts from "typescript";
 import type { SourceFinding } from "../shape.ts";
-import { OWN_TOOL_CONFIGS } from "./own-tools.ts";
+import { OWN_TOOL_CONFIGS } from "../tool-config-names.ts";
 import { POCKETBASE_LAYOUT as LAYOUT } from "./source-rules.ts";
 
 type Compiler = typeof ts;

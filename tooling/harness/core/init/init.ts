@@ -15,7 +15,7 @@ import { TYPESCRIPT_API_REASON, TYPESCRIPT_NATIVE_REASON } from "../../presets/l
 import { nativeTypescript, needsTypescriptApi, peerInstall, starterInstall } from "./peers.ts";
 import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
 import { shadcnTodo } from "./shadcn/shadcn-steps.ts";
-import { isLintOnly, lintOnlySteps } from "./pocketbase/pocketbase-configs.ts";
+import { isLintOnly, lintOnlySteps } from "./lint-only/lint-only.ts";
 import { pocketbaseTodo } from "./pocketbase/pocketbase-steps.ts";
 import { viteTodo } from "./vite/vite-steps.ts";
 import { CONFIG_FILE, isConfigOnly, type WorkspaceEntry } from "../../config.ts";
