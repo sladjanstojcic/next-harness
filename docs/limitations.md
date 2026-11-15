@@ -88,10 +88,12 @@ parent: Reference
   block, which can turn a one-line change into a larger one.
 - The full lint step has a 120 s limit. On a loaded machine a large app reached it, though the lint
   alone took 33 s.
-- The `e2e` shape has no ESLint preset: its lint and type check run with the `oxc` tool set only. With
-  `tools: "none"` the paths, names and folder size are still judged, but the 250-line limit is not,
-  because that limit is a lint rule. The Playwright tests themselves run in the gates only when the
-  workspace names a `test` script, and they need whatever the tests need: a running app or database.
+- With `tools: "none"` on the `e2e` shape the paths, names and folder size are still judged, but the
+  250-line limit is not, because that limit is a lint rule. The Playwright tests themselves run in the
+  gates only when the workspace names a `test` script, and they need whatever the tests need: a
+  running app or database.
+- The `e2e` shape on ESLint and Prettier was not run on a real project. Its lint layout ran on test
+  fixtures only: a spec, a setup file, a page object and Playwright's output folders.
 - The `pocketbase` guards match the binary's name. A project script that wraps it, such as a
   `db:reset` script running `pocketbase migrate down`, is not covered.
 - `pb-shared-pure` follows identifiers. A PocketBase global reached through `globalThis.$app` in
@@ -115,9 +117,10 @@ parent: Reference
   `React.createElement` , a tag kept in a variable or a namespaced tag such as `<motion.button>` is not seen either.
 - Content rules are mostly regular expressions; the duplicate check is the only syntax-tree rule.
 - The fast gate was measured at about 1.6 s per edit on the empty template, not on a large project.
-- The `oxc` tool set runs oxlint without `--type-aware`, because oxlint-tsgolint is not installed
-  where it was measured. Type-aware rules such as `no-floating-promises` do not run there. oxlint's
-  default rules also miss `any`; a project enables the rules it wants in its locked `.oxlintrc.json`.
+- The `oxc` tool set, the default only for the Makerkit shapes, runs oxlint without `--type-aware`,
+  because oxlint-tsgolint is not installed where it was measured. Type-aware rules such as
+  `no-floating-promises` do not run there. oxlint's default rules also miss `any`; a project enables
+  the rules it wants in its locked `.oxlintrc.json`.
 - The legacy list in CI: CI has no `legacy-append` check, so once a longer list is committed (which
   needs the user's unlock) CI tolerates harness-rule findings on the newly listed file; tool findings
   there still fail. On the default branch itself CI compares with HEAD, so a legacy file changed by a

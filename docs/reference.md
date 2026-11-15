@@ -126,9 +126,9 @@ shapes/
   shape.ts          the contract every shape implements
 guides/             the AGENTS.md block: one guide per shape and common.md, each with a line limit
 presets/            the rule sets the tool configs import: ESLint, with one layout each for app,
-                    app-root, package, electron, spa and pocketbase; Prettier, Vitest, Knip, Playwright,
-                    depcruise, jscpd; starter/ holds the src/shared/lib/ helpers and the e2e smoke test
-                    as text for `init --starter`
+                    app-root, package, electron, spa, pocketbase and e2e; Prettier, Vitest, Knip,
+                    Playwright, depcruise, jscpd; starter/ holds the src/shared/lib/ helpers and the
+                    e2e smoke test as text for `init --starter`
 tools/
   tool-set.ts       the contract every tool set implements, and binary lookup per workspace
   eslint-prettier.ts the eslint-prettier tool set: format, lint, type check and test steps

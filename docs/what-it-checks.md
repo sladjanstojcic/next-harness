@@ -163,4 +163,5 @@ This page shows the families. The rules as the agent reads them are in
 their own shape with the same ideas; see [Adopt it](adopt.md). The hooks and migrations of a PocketBase
 backend have one too, with two rules for what PocketBase requires of an entry file and one,
 `pb-boundary`, for the imports between the folder and the app. Its own ESLint config takes the
-preset's `pocketbase` layout; see [A PocketBase backend](pocketbase.md).
+preset's `pocketbase` layout; see [A PocketBase backend](pocketbase.md). A folder of Playwright tests
+gets the `e2e` layout, where spec and setup files may assert and cast and page objects may not.
