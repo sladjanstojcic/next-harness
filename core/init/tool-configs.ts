@@ -25,7 +25,7 @@ interface ToolConfig {
   packageKey?: string;
 }
 
-const ESLINT: ToolConfig = {
+export const ESLINT: ToolConfig = {
   names: TOOL_CONFIG_NAMES.eslint,
   marker: "harnessEslint(",
   text: (workspace) => `import { harnessEslint } from "${presetImport(workspace.path, "eslint.ts")}";\n\nexport default ${presetCall(workspace)};\n`,
@@ -39,7 +39,7 @@ const ESLINT: ToolConfig = {
 };
 
 /** A project's formatting style is its own: a kept Prettier config, in any form, needs nothing from the preset. */
-const PRETTIER: ToolConfig = {
+export const PRETTIER: ToolConfig = {
   names: TOOL_CONFIG_NAMES.prettier,
   marker: "presets/prettier.ts",
   text: (workspace) => `export { default } from "${presetImport(workspace.path, "prettier.ts")}";\n`,
@@ -96,7 +96,7 @@ const PLAYWRIGHT: ToolConfig = {
   ],
 };
 
-const label = (workspace: WorkspaceEntry, file: string): string => (workspace.path === "" ? file : `${workspace.path}/${file}`);
+export const label = (workspace: WorkspaceEntry, file: string): string => (workspace.path === "" ? file : `${workspace.path}/${file}`);
 
 /** The workspace's package.json as an object; an absent or unreadable one is empty. */
 function packageJson(root: string, workspace: WorkspaceEntry): Record<string, unknown> {
@@ -131,7 +131,7 @@ function find(root: string, workspace: WorkspaceEntry, tool: ToolConfig): Found 
   return { state: text.includes(tool.marker) ? "preset" : "own", file, text };
 }
 
-function toolConfigStep(root: string, workspace: WorkspaceEntry, tool: ToolConfig): Step {
+export function toolConfigStep(root: string, workspace: WorkspaceEntry, tool: ToolConfig): Step {
   const found = find(root, workspace, tool);
   const file = tool.names[0] ?? "";
   if (found.state === "absent") {

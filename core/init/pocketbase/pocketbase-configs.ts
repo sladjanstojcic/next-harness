@@ -1,0 +1,18 @@
+import type { WorkspaceEntry } from "../../../config.ts";
+import type { ShapeName } from "../../../shape-names.ts";
+import type { Step } from "../files.ts";
+import { ignoreEntriesStep, prettierIgnored } from "../ignore-files.ts";
+import { ESLINT, label, PRETTIER, toolConfigStep } from "../tool-configs.ts";
+
+/** Shapes whose folder init gives only its ESLint and Prettier configs and its .prettierignore: no package scripts, tests, analysis or tsconfig. */
+const LINT_ONLY: readonly ShapeName[] = ["pocketbase"];
+
+export const isLintOnly = (workspace: WorkspaceEntry): boolean => LINT_ONLY.includes(workspace.shape);
+
+/** The config steps of a lint-only workspace. */
+export function lintOnlySteps(root: string, workspace: WorkspaceEntry): Step[] {
+  return [
+    ...[ESLINT, PRETTIER].map((tool) => toolConfigStep(root, workspace, tool)),
+    ignoreEntriesStep(root, label(workspace, ".prettierignore"), prettierIgnored(workspace)),
+  ];
+}

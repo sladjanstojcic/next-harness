@@ -1,10 +1,13 @@
 import { checkTests, type TestsLayout } from "../e2e.ts";
+import { JS_TOOL_CONFIG_NAMES, TOOL_CONFIG_NAMES } from "../tool-config-names.ts";
 import { deny, GENERIC_FOLDERS, KEBAB, onlyGitkeepHidden, PLAIN_SHAPE, type ContentProfile, type PathVerdict, type Shape } from "../shape.ts";
 import { POCKETBASE_LAYOUT as LAYOUT, pocketbaseSourceRules } from "./source-rules.ts";
 
 const ok: PathVerdict = { ok: true };
 const topFolders = ["pb_hooks", "pb_migrations", "shared", "types", "tests"];
-const topEntries = [...topFolders, "tsconfig.json", "package.json", "README.md", "AGENTS.md", "CLAUDE.md", ".gitignore"];
+/** The folder runs its own ESLint and Prettier, so their configs sit at its top beside the project's files. */
+const toolConfigs = [...TOOL_CONFIG_NAMES.eslint, ...TOOL_CONFIG_NAMES.prettier, ".prettierignore"];
+const topEntries = [...topFolders, "tsconfig.json", "package.json", "README.md", "AGENTS.md", "CLAUDE.md", ".gitignore", ...toolConfigs];
 
 const ENTRY = /^[a-z0-9]+(?:-[a-z0-9]+)*\.pb\.ts$/;
 const KEBAB_TS = /^[a-z0-9]+(?:-[a-z0-9]+)*\.ts$/;
@@ -105,6 +108,7 @@ export const pocketbase: Shape = {
   topEntries,
   topEntryPattern: /^README(?:-[a-z0-9-]+)?\.md$/,
   topFolders,
+  jsExceptions: JS_TOOL_CONFIG_NAMES.filter((name) => toolConfigs.includes(name)),
   checkHidden: onlyGitkeepHidden(topFolders, (top) => `Keep visible files in ${top}/; only .gitkeep may be hidden ${LAYOUT}.`),
   checkPath,
   vendoredPattern: /^types\/pocketbase[^/]*\.d\.ts$/,

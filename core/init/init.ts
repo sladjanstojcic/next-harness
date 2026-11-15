@@ -15,6 +15,7 @@ import { TYPESCRIPT_API_REASON, TYPESCRIPT_NATIVE_REASON } from "../../presets/l
 import { nativeTypescript, needsTypescriptApi, peerInstall, starterInstall } from "./peers.ts";
 import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
 import { shadcnTodo } from "./shadcn/shadcn-steps.ts";
+import { isLintOnly, lintOnlySteps } from "./pocketbase/pocketbase-configs.ts";
 import { pocketbaseTodo } from "./pocketbase/pocketbase-steps.ts";
 import { viteTodo } from "./vite/vite-steps.ts";
 import { CONFIG_FILE, isConfigOnly, type WorkspaceEntry } from "../../config.ts";
@@ -212,12 +213,16 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
     claudeStep(root),
     scriptsStep(root, "package.json", PACKAGE_SCRIPTS, { prepare: PREPARE, ...(atRoot === undefined ? {} : toolScripts(atRoot, root, starter)) }, force),
     ...(atRoot === undefined ? [gitignoreStep(root, "", [HARNESS_MODULES])] : []),
-    ...workspaces.flatMap((workspace) => [
-      ...(workspace.path === ""
-        ? []
-        : [scriptsStep(root, `${workspace.path}/package.json`, {}, toolScripts(workspace, path.join(root, workspace.path), starter), force)]),
-      ...toolConfigSteps(root, workspace, force, starter),
-    ]),
+    ...workspaces.flatMap((workspace) =>
+      isLintOnly(workspace)
+        ? lintOnlySteps(root, workspace)
+        : [
+            ...(workspace.path === ""
+              ? []
+              : [scriptsStep(root, `${workspace.path}/package.json`, {}, toolScripts(workspace, path.join(root, workspace.path), starter), force)]),
+            ...toolConfigSteps(root, workspace, force, starter),
+          ],
+    ),
     ...rootIgnoreSteps(root, all),
   ];
   const lines = steps.map((step) => `${step.status} ${step.target}: ${step.detail}`);
