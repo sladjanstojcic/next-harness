@@ -59,6 +59,13 @@ describe("the pocketbase import boundary", () => {
     expect(found(file, text)).toEqual([]);
   });
 
+  it("lets the folder's own ESLint and Prettier configs import the harness presets, and nothing else at its top or below", () => {
+    const presets = (file: string) => `import { x } from "${"../".repeat(file.split("/").length - 1)}tooling/harness/presets/eslint.ts";\n`;
+    for (const file of ["pocketbase/eslint.config.ts", "pocketbase/prettier.config.mjs", "services/pocketbase/eslint.config.ts"])
+      expect(found(file, presets(file), ["pocketbase", "services/pocketbase"]), file).toEqual([]);
+    for (const file of ["pocketbase/vitest.config.ts", "pocketbase/pb_hooks/eslint.config.ts"]) expect(found(file, presets(file)), file).toHaveLength(1);
+  });
+
   it("reports nothing in a repository without a pocketbase workspace", () => {
     expect(found("src/x.ts", 'import { x } from "../pocketbase/pb_hooks/a.ts";\n', [])).toEqual([]);
   });
