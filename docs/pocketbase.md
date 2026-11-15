@@ -36,7 +36,7 @@ pocketbase/
   is denied to direct edits.
 - `shared/` has no `require`, no PocketBase globals (`$app`, `$os` and the rest) and no Node built-ins,
   so PocketBase and the app can both load it. The app imports nothing else from the folder, and the
-  folder nothing from outside it: `pb-boundary`. Ignored folders, such as `pb_data/`, are not judged.
+  folder nothing from outside it but its tool configs' presets: `pb-boundary`. Ignored `pb_data/` is not judged.
 
 ## Before you start
 
@@ -80,7 +80,7 @@ node tooling/harness/cli.ts init
 ```
 
 It writes the folder's `eslint.config.ts`, `prettier.config.ts` and `.prettierignore`, and names the
-folder in the root's `.prettierignore`. Its numbered steps start with the folder's four, steps 3 to 5 here:
+folder in the root's `.prettierignore`. Its first four numbered steps are the folder's, sections 3 to 5 here; 5 holds two:
 
 ```text
   1. Install the harness's tools (init does not install): (cd pocketbase && pnpm add -D @eslint/js@9.39.5 jiti@2.7.0)
