@@ -173,6 +173,10 @@ node tooling/harness/cli.ts init    # adds wiring the new version needs, refresh
 
 Run both in your own terminal, since `tooling/harness/` is locked for agents.
 
+An `e2e` or `pocketbase` entry without `tools` now gets ESLint and Prettier. Add `tools: "oxc"` to it in
+`harness.config.ts` to keep the old tools, which a Makerkit project must. Otherwise run init, install the
+printed tools and format the folder once. The config is locked, so that edit is yours.
+
 ## More
 
 - [The documentation site](https://sladjanstojcic.github.io/next-harness/): what a harness is, what
