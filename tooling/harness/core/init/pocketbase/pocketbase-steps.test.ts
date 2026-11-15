@@ -51,8 +51,11 @@ describe("init on a pocketbase workspace", () => {
     }
   });
 
-  it("prints none of them once the folder has its tsconfig, its declarations and its tools", () => {
-    const repo = consumer({ "pocketbase/types/pocketbase-0.40.5.d.ts": "declare const $app: unknown;\n" });
+  it("prints none of them once the folder has its tsconfig, its declarations, its require and its tools", () => {
+    const repo = consumer({
+      "pocketbase/types/pocketbase-0.40.5.d.ts": "declare const $app: unknown;\n",
+      "pocketbase/types/require.d.ts": "declare function require<T = unknown>(path: string): T;\n",
+    });
     const { report, ok } = initHarness(repo.root, { force: false, starter: false });
     expect(ok).toBe(true);
     expect(report).not.toMatch(/pocketbase\/|oxlint oxfmt/);

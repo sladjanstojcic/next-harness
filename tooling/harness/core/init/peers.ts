@@ -5,6 +5,7 @@ import { analysisOf, type HarnessConfig, type WorkspaceEntry } from "../../confi
 import { managerCommands } from "./bootstrap.ts";
 import { lacksTypescriptApi, TYPESCRIPT_API, typescriptNative, typescriptVersion } from "../../presets/load-tool.ts";
 import { broughtByBase, bringsOwnBase, bringsOwnNext } from "../../tools/eslint-preset.ts";
+import { isLintOnly } from "./pocketbase/pocketbase-configs.ts";
 import { runsOwnTests } from "./tool-configs.ts";
 
 const HARNESS = path.resolve(import.meta.dirname, "../..");
@@ -67,7 +68,7 @@ function needs(root: string, config: HarnessConfig, workspace: WorkspaceEntry): 
     needed.add("eslint-config");
     if (workspace.next && !bringsOwnNext(dir)) needed.add("eslint-config-next");
   }
-  if (runsOwnTests(root, workspace) === undefined) needed.add("vitest");
+  if (!isLintOnly(workspace) && runsOwnTests(root, workspace) === undefined) needed.add("vitest");
   if (workspace.path === "" && workspace.next) needed.add("browser");
   return needed;
 }
