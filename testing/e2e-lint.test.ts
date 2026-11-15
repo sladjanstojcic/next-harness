@@ -21,6 +21,9 @@ const LOGGING = 'import { test } from "@playwright/test";\n\ntest("b", () => {\n
 const FIXTURE =
   'import { test as base } from "@playwright/test";\n\nexport const test = base.extend<{ order: string }>({\n  order: async ({ page }, use) => {\n    await use(page.url());\n  },\n});\n';
 
+/** What a local Playwright run leaves in the folder, gitignored, which ESLint does not read: a trace viewer's script, a result. */
+const OUTPUT = ["playwright-report/trace/sw.bundle.js", "test-results/a/run.js", "blob-report/a.ts"];
+
 /** One file per case of the brief, with the rule ids ESLint must report there. */
 const ROWS: [file: string, code: string, expected: string[]][] = [
   ["tests/a.spec.ts", SPEC, []],
@@ -61,16 +64,23 @@ describe("the e2e preset layout", () => {
     expect(blocks).not.toContain("JSXOpeningElement");
   });
 
-  it("lets a spec assert non-null, and reports an unchecked cast in a page object and console in a spec", () => {
+  it("lets a spec assert non-null, reports an unchecked cast in a page object and console in a spec, and skips Playwright's output", () => {
     const { root } = consumerRepo({
       "package.json": JSON.stringify({ name: "e2e", type: "module" }),
       "tsconfig.json": TSCONFIG,
       "eslint.config.ts": THIN,
       ...Object.fromEntries(ROWS.map(([file, code]) => [file, code])),
+      ...Object.fromEntries(OUTPUT.map((file) => [file, "var a = b; console.log(a)\n"])),
     });
-    const results = JSON.parse(run(root, "eslint", ["-f", "json", ...ROWS.map(([file]) => file)]).output) as Result[];
+    const results = JSON.parse(run(root, "eslint", ["-f", "json", ...ROWS.map(([file]) => file), ...OUTPUT]).output) as Result[];
     const found = (file: string) => results.find(({ filePath }) => filePath.endsWith(file))?.messages ?? [{ ruleId: "not linted", message: "" }];
     const ids = (file: string) => [...new Set(found(file).map(({ ruleId }) => ruleId))].sort();
     expect(ROWS.map(([file]) => [file, ids(file)])).toEqual(ROWS.map(([file, , expected]) => [file, [...expected].sort()]));
+    for (const file of OUTPUT) {
+      const [ignored, ...more] = found(file);
+      expect(more, file).toEqual([]);
+      expect(ignored?.ruleId, file).toBeNull();
+      expect(ignored?.message, file).toMatch(/ignore/i);
+    }
   }, 120_000);
 });
