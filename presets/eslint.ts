@@ -18,6 +18,7 @@ const VENDORED: Record<PresetLayout, string[]> = {
   electron: shadcnIn("src/renderer/src/"),
   spa: [...shadcnIn("src/"), ...generatedIn("src/backend/")],
   pocketbase: ["types/pocketbase*.d.ts"],
+  e2e: [],
 };
 
 /** The TypeScript tool configs at a workspace top; a consumer's tsconfig leaves them out, so they are linted without types. */
@@ -28,7 +29,7 @@ const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
 export interface HarnessEslintOptions {
   /** The workspace folder holding tsconfig.json, for typed rules; ESLint and its plugins load from there. */
   root: string;
-  /** "app-root" for an app without src/ (app/, modules/, shared/ at its top), "package" for a shared package, "electron" for an electron-vite app, "spa" for a Vite single-page app, "pocketbase" for a PocketBase backend; an app's src/ layout by default. */
+  /** "app-root" for an app without src/ (app/, modules/, shared/ at its top), "package" for a shared package, "electron" for an electron-vite app, "spa" for a Vite single-page app, "pocketbase" for a PocketBase backend, "e2e" for a folder of Playwright tests; an app's src/ layout by default. */
   layout?: PresetLayout;
   /** Adds the Next.js core-web-vitals and TypeScript configs. */
   next?: boolean;

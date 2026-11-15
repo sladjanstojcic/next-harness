@@ -86,10 +86,6 @@ const schema = z.strictObject({
           path: ["tools"],
           message: 'must be "none" for the supabase shape',
         })
-        .refine((workspace) => workspace.shape !== "e2e" || (workspace.tools ?? "oxc") !== "eslint-prettier", {
-          path: ["tools"],
-          message: 'must be "oxc" or "none" for the e2e shape, which has no ESLint preset',
-        })
         .refine((workspace) => workspace.shape !== "e2e" || workspace.next !== true, {
           path: ["next"],
           message: "must not be true for the e2e shape, which is not a Next app",

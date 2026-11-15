@@ -26,6 +26,10 @@ describe("e2e shape", () => {
     ".env",
     ".env.test",
     ".env.test.local",
+    "eslint.config.ts",
+    "eslint.config.js",
+    "prettier.config.ts",
+    ".prettierignore",
     "tests/healthcheck.spec.ts",
     "tests/auth.setup.ts",
     "tests/.gitkeep",
@@ -44,6 +48,8 @@ describe("e2e shape", () => {
   it.each([
     ["src/index.ts", "unknown-root", "An e2e workspace takes package.json, playwright.config.ts, tsconfig.json and tests/ at its top"],
     ["helpers.ts", "unknown-root", "put test code in tests/<suite>/"],
+    ["vitest.config.ts", "unknown-root", "put test code in tests/<suite>/"],
+    ["knip.config.ts", "unknown-root", "put test code in tests/<suite>/"],
     ["tests/clients.ts", "module-shape", "Only <name>.spec.ts and <name>.setup.ts sit directly in tests/"],
     ["tests/access-api/matrix/calls/tables/specs.ts", "nesting", "at most two levels of area folders"],
     ["tests/utils/mailbox.ts", "generic-folder", "Name the tests/ subfolder after what it tests or holds"],
@@ -64,10 +70,13 @@ describe("e2e shape", () => {
     expect(verdict("tests/account/account.spec.js")).toMatchObject({ ok: false, rule: "js-file" });
   });
 
-  it("runs the oxc tools by default, takes none, and refuses ESLint and a Next flag", () => {
-    expect(resolveHarness(repo().root).workspaces.find((workspace) => workspace.path === E2E)).toMatchObject({ shape: "e2e", tools: "oxc", next: false });
-    expect(loadConfig(repo(`{ path: "${E2E}", shape: "e2e", tools: "none" }`).root).workspaces).toHaveLength(2);
-    expect(() => loadConfig(repo(`{ path: "${E2E}", shape: "e2e", tools: "eslint-prettier" }`).root)).toThrow('must be "oxc" or "none" for the e2e shape');
+  it("runs ESLint and Prettier by default, takes oxc or none, and refuses a Next flag", () => {
+    expect(resolveHarness(repo().root).workspaces.find((workspace) => workspace.path === E2E)).toMatchObject({
+      shape: "e2e",
+      tools: "eslint-prettier",
+      next: false,
+    });
+    for (const tools of ["oxc", "none"]) expect(loadConfig(repo(`{ path: "${E2E}", shape: "e2e", tools: "${tools}" }`).root).workspaces).toHaveLength(2);
     expect(() => loadConfig(repo(`{ path: "${E2E}", shape: "e2e", next: true }`).root)).toThrow("must not be true for the e2e shape");
   });
 

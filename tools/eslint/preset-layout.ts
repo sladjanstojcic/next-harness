@@ -1,5 +1,6 @@
 import type { WorkspaceEntry } from "../../config.ts";
 import type { PresetLayout } from "../../presets/eslint-rules.ts";
+import { E2E_PROBES } from "../../shapes/e2e.ts";
 import { ELECTRON_PROBES } from "../../shapes/electron/electron-vite.ts";
 import { sourceProbes } from "../../shapes/next-probes.ts";
 import { PACKAGE_PROBES } from "../../shapes/package.ts";
@@ -14,6 +15,7 @@ const LAYOUTS: Partial<Record<WorkspaceEntry["shape"], PresetLayout>> = {
   "electron-vite": "electron",
   "vite-spa": "spa",
   pocketbase: "pocketbase",
+  e2e: "e2e",
 };
 
 /** The preset layout of a workspace; a next-modules workspace without src/ is "app-root". */
@@ -28,4 +30,5 @@ export const PRESET_PROBES: Record<PresetLayout, readonly string[]> = {
   electron: ELECTRON_PROBES,
   spa: VITE_PROBES,
   pocketbase: POCKETBASE_PROBES,
+  e2e: E2E_PROBES,
 };

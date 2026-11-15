@@ -15,9 +15,10 @@ export const BUNDLE_IGNORED: Partial<Record<ShapeName, readonly string[]>> = {
 };
 /** pnpm links the harness's own dependencies here once it is a workspace package; create-next-app ignores only `/node_modules`. */
 export const HARNESS_MODULES = "tooling/harness/node_modules/";
-/** Files the format check must skip: in a pocketbase folder the vendored declarations; elsewhere pnpm's own lockfile style, the vendored shadcn primitives, generated database types and the build output. */
+/** Files the format check must skip: in a pocketbase folder the vendored declarations, in an e2e folder none; elsewhere pnpm's own lockfile style, the vendored shadcn primitives, generated database types and the build output. */
 export function prettierIgnored(workspace: WorkspaceEntry): string[] {
   if (workspace.shape === "pocketbase") return ["types/pocketbase*.d.ts"];
+  if (workspace.shape === "e2e") return [];
   if (workspace.shape === "electron-vite") return ["pnpm-lock.yaml", "src/renderer/src/shared/ui", "out", "dist"];
   const generated = GENERATED_TYPE_GLOBS.map((glob) => `${sourceRootOf(workspace)}backend/${glob}`);
   if (workspace.shape === "vite-spa") return ["pnpm-lock.yaml", "src/shared/ui", "dist", ...generated];
