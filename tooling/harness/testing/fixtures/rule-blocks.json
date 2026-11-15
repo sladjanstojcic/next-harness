@@ -1,0 +1,4211 @@
+{
+  "app": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/ban-ts-comment": [
+          "error",
+          {
+            "ts-check": true,
+            "ts-ignore": true,
+            "ts-expect-error": true,
+            "ts-nocheck": true
+          }
+        ],
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-unsafe-assignment": "error",
+        "@typescript-eslint/no-unsafe-member-access": "error",
+        "@typescript-eslint/no-unsafe-call": "error",
+        "@typescript-eslint/no-unsafe-return": "error",
+        "@typescript-eslint/no-unsafe-argument": "error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "@typescript-eslint/no-non-null-assertion": "error",
+        "no-console": "error",
+        "no-eval": "error",
+        "no-new-func": "error",
+        "max-lines": [
+          "error",
+          {
+            "max": 250,
+            "skipBlankLines": false,
+            "skipComments": false
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/modules/<module>/server/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["src/modules/*/server/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "never"
+          }
+        ],
+        "@typescript-eslint/no-unsafe-type-assertion": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/modules/<module>/server/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/modules/<module>/server/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.test.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unsafe-type-assertion": "off",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/modules/<module>/server/."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/modules/<module>/server/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["tooling/**", "scripts/**", "src/shared/lib/log.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["e2e/**", "scripts/**", "tooling/**"],
+      "rules": {
+        "harness-react-hooks/rules-of-hooks": "error",
+        "harness-react-hooks/exhaustive-deps": "error",
+        "react-hooks/rules-of-hooks": "off",
+        "react-hooks/exhaustive-deps": "off"
+      }
+    }
+  ],
+  "app with shadcn": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/ban-ts-comment": [
+          "error",
+          {
+            "ts-check": true,
+            "ts-ignore": true,
+            "ts-expect-error": true,
+            "ts-nocheck": true
+          }
+        ],
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-unsafe-assignment": "error",
+        "@typescript-eslint/no-unsafe-member-access": "error",
+        "@typescript-eslint/no-unsafe-call": "error",
+        "@typescript-eslint/no-unsafe-return": "error",
+        "@typescript-eslint/no-unsafe-argument": "error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "@typescript-eslint/no-non-null-assertion": "error",
+        "no-console": "error",
+        "no-eval": "error",
+        "no-new-func": "error",
+        "max-lines": [
+          "error",
+          {
+            "max": 250,
+            "skipBlankLines": false,
+            "skipComments": false
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/modules/<module>/server/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='button']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <button>; add a missing one with `pnpm dlx shadcn add button`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='input']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <input>; add a missing one with `pnpm dlx shadcn add input`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='select']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <select>; add a missing one with `pnpm dlx shadcn add select`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='textarea']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <textarea>; add a missing one with `pnpm dlx shadcn add textarea`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='label']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <label>; add a missing one with `pnpm dlx shadcn add label`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='table']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <table>; add a missing one with `pnpm dlx shadcn add table`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='dialog']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <dialog>; add a missing one with `pnpm dlx shadcn add dialog`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["src/modules/*/server/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "never"
+          }
+        ],
+        "@typescript-eslint/no-unsafe-type-assertion": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/modules/<module>/server/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/modules/<module>/server/."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='button']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <button>; add a missing one with `pnpm dlx shadcn add button`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='input']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <input>; add a missing one with `pnpm dlx shadcn add input`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='select']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <select>; add a missing one with `pnpm dlx shadcn add select`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='textarea']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <textarea>; add a missing one with `pnpm dlx shadcn add textarea`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='label']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <label>; add a missing one with `pnpm dlx shadcn add label`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='table']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <table>; add a missing one with `pnpm dlx shadcn add table`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='dialog']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <dialog>; add a missing one with `pnpm dlx shadcn add dialog`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.test.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unsafe-type-assertion": "off",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/modules/<module>/server/."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/modules/<module>/server/."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='button']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <button>; add a missing one with `pnpm dlx shadcn add button`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='input']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <input>; add a missing one with `pnpm dlx shadcn add input`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='select']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <select>; add a missing one with `pnpm dlx shadcn add select`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='textarea']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <textarea>; add a missing one with `pnpm dlx shadcn add textarea`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='label']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <label>; add a missing one with `pnpm dlx shadcn add label`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='table']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <table>; add a missing one with `pnpm dlx shadcn add table`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='dialog']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <dialog>; add a missing one with `pnpm dlx shadcn add dialog`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["tooling/**", "scripts/**", "src/shared/lib/log.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["e2e/**", "scripts/**", "tooling/**"],
+      "rules": {
+        "harness-react-hooks/rules-of-hooks": "error",
+        "harness-react-hooks/exhaustive-deps": "error",
+        "react-hooks/rules-of-hooks": "off",
+        "react-hooks/exhaustive-deps": "off"
+      }
+    }
+  ],
+  "app-root": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/ban-ts-comment": [
+          "error",
+          {
+            "ts-check": true,
+            "ts-ignore": true,
+            "ts-expect-error": true,
+            "ts-nocheck": true
+          }
+        ],
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-unsafe-assignment": "error",
+        "@typescript-eslint/no-unsafe-member-access": "error",
+        "@typescript-eslint/no-unsafe-call": "error",
+        "@typescript-eslint/no-unsafe-return": "error",
+        "@typescript-eslint/no-unsafe-argument": "error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "@typescript-eslint/no-non-null-assertion": "error",
+        "no-console": "error",
+        "no-eval": "error",
+        "no-new-func": "error",
+        "max-lines": [
+          "error",
+          {
+            "max": 250,
+            "skipBlankLines": false,
+            "skipComments": false
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in modules/<module>/server/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["modules/*/server/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "never"
+          }
+        ],
+        "@typescript-eslint/no-unsafe-type-assertion": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in modules/<module>/server/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in modules/<module>/server/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.test.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unsafe-type-assertion": "off",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in modules/<module>/server/."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in modules/<module>/server/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["tooling/**", "scripts/**", "shared/lib/log.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["e2e/**", "scripts/**", "tooling/**"],
+      "rules": {
+        "harness-react-hooks/rules-of-hooks": "error",
+        "harness-react-hooks/exhaustive-deps": "error",
+        "react-hooks/rules-of-hooks": "off",
+        "react-hooks/exhaustive-deps": "off"
+      }
+    }
+  ],
+  "app-root with shadcn": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/ban-ts-comment": [
+          "error",
+          {
+            "ts-check": true,
+            "ts-ignore": true,
+            "ts-expect-error": true,
+            "ts-nocheck": true
+          }
+        ],
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-unsafe-assignment": "error",
+        "@typescript-eslint/no-unsafe-member-access": "error",
+        "@typescript-eslint/no-unsafe-call": "error",
+        "@typescript-eslint/no-unsafe-return": "error",
+        "@typescript-eslint/no-unsafe-argument": "error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "@typescript-eslint/no-non-null-assertion": "error",
+        "no-console": "error",
+        "no-eval": "error",
+        "no-new-func": "error",
+        "max-lines": [
+          "error",
+          {
+            "max": 250,
+            "skipBlankLines": false,
+            "skipComments": false
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in modules/<module>/server/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='button']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <button>; add a missing one with `pnpm dlx shadcn add button`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='input']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <input>; add a missing one with `pnpm dlx shadcn add input`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='select']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <select>; add a missing one with `pnpm dlx shadcn add select`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='textarea']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <textarea>; add a missing one with `pnpm dlx shadcn add textarea`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='label']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <label>; add a missing one with `pnpm dlx shadcn add label`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='table']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <table>; add a missing one with `pnpm dlx shadcn add table`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='dialog']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <dialog>; add a missing one with `pnpm dlx shadcn add dialog`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["modules/*/server/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "never"
+          }
+        ],
+        "@typescript-eslint/no-unsafe-type-assertion": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in modules/<module>/server/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in modules/<module>/server/."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='button']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <button>; add a missing one with `pnpm dlx shadcn add button`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='input']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <input>; add a missing one with `pnpm dlx shadcn add input`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='select']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <select>; add a missing one with `pnpm dlx shadcn add select`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='textarea']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <textarea>; add a missing one with `pnpm dlx shadcn add textarea`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='label']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <label>; add a missing one with `pnpm dlx shadcn add label`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='table']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <table>; add a missing one with `pnpm dlx shadcn add table`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='dialog']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <dialog>; add a missing one with `pnpm dlx shadcn add dialog`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.test.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unsafe-type-assertion": "off",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in modules/<module>/server/."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in modules/<module>/server/."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='button']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <button>; add a missing one with `pnpm dlx shadcn add button`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='input']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <input>; add a missing one with `pnpm dlx shadcn add input`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='select']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <select>; add a missing one with `pnpm dlx shadcn add select`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='textarea']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <textarea>; add a missing one with `pnpm dlx shadcn add textarea`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='label']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <label>; add a missing one with `pnpm dlx shadcn add label`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='table']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <table>; add a missing one with `pnpm dlx shadcn add table`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='dialog']",
+            "message": "Use the shadcn component from shared/ui/ instead of a raw <dialog>; add a missing one with `pnpm dlx shadcn add dialog`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["tooling/**", "scripts/**", "shared/lib/log.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["e2e/**", "scripts/**", "tooling/**"],
+      "rules": {
+        "harness-react-hooks/rules-of-hooks": "error",
+        "harness-react-hooks/exhaustive-deps": "error",
+        "react-hooks/rules-of-hooks": "off",
+        "react-hooks/exhaustive-deps": "off"
+      }
+    }
+  ],
+  "package": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/ban-ts-comment": [
+          "error",
+          {
+            "ts-check": true,
+            "ts-ignore": true,
+            "ts-expect-error": true,
+            "ts-nocheck": true
+          }
+        ],
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-unsafe-assignment": "error",
+        "@typescript-eslint/no-unsafe-member-access": "error",
+        "@typescript-eslint/no-unsafe-call": "error",
+        "@typescript-eslint/no-unsafe-return": "error",
+        "@typescript-eslint/no-unsafe-argument": "error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "@typescript-eslint/no-non-null-assertion": "error",
+        "no-console": "error",
+        "no-eval": "error",
+        "no-new-func": "error",
+        "max-lines": [
+          "error",
+          {
+            "max": 250,
+            "skipBlankLines": false,
+            "skipComments": false
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/server/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["src/server/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "never"
+          }
+        ],
+        "@typescript-eslint/no-unsafe-type-assertion": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/server/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/server/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.test.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unsafe-type-assertion": "off",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/server/."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/server/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/domain/**/*.ts"],
+      "ignores": ["**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters",
+              "server-only"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|(?:react|react-dom|next)(?:/|$))|(?:^|/)(?:components|server)(?:/|\\.(?:js|ts)x?$|$)",
+                "message": "Keep src/domain/ pure: put React UI in src/components/ and Node, Next or I/O code in src/server/ (package layout)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["e2e/**", "scripts/**", "tooling/**"],
+      "rules": {
+        "harness-react-hooks/rules-of-hooks": "error",
+        "harness-react-hooks/exhaustive-deps": "error",
+        "react-hooks/rules-of-hooks": "off",
+        "react-hooks/exhaustive-deps": "off"
+      }
+    }
+  ],
+  "package with shadcn": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/ban-ts-comment": [
+          "error",
+          {
+            "ts-check": true,
+            "ts-ignore": true,
+            "ts-expect-error": true,
+            "ts-nocheck": true
+          }
+        ],
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-unsafe-assignment": "error",
+        "@typescript-eslint/no-unsafe-member-access": "error",
+        "@typescript-eslint/no-unsafe-call": "error",
+        "@typescript-eslint/no-unsafe-return": "error",
+        "@typescript-eslint/no-unsafe-argument": "error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "@typescript-eslint/no-non-null-assertion": "error",
+        "no-console": "error",
+        "no-eval": "error",
+        "no-new-func": "error",
+        "max-lines": [
+          "error",
+          {
+            "max": 250,
+            "skipBlankLines": false,
+            "skipComments": false
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/server/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["src/server/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "never"
+          }
+        ],
+        "@typescript-eslint/no-unsafe-type-assertion": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/server/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/server/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.test.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unsafe-type-assertion": "off",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/server/."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/server/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/domain/**/*.ts"],
+      "ignores": ["**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters",
+              "server-only"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|(?:react|react-dom|next)(?:/|$))|(?:^|/)(?:components|server)(?:/|\\.(?:js|ts)x?$|$)",
+                "message": "Keep src/domain/ pure: put React UI in src/components/ and Node, Next or I/O code in src/server/ (package layout)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["e2e/**", "scripts/**", "tooling/**"],
+      "rules": {
+        "harness-react-hooks/rules-of-hooks": "error",
+        "harness-react-hooks/exhaustive-deps": "error",
+        "react-hooks/rules-of-hooks": "off",
+        "react-hooks/exhaustive-deps": "off"
+      }
+    }
+  ],
+  "electron": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/ban-ts-comment": [
+          "error",
+          {
+            "ts-check": true,
+            "ts-ignore": true,
+            "ts-expect-error": true,
+            "ts-nocheck": true
+          }
+        ],
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-unsafe-assignment": "error",
+        "@typescript-eslint/no-unsafe-member-access": "error",
+        "@typescript-eslint/no-unsafe-call": "error",
+        "@typescript-eslint/no-unsafe-return": "error",
+        "@typescript-eslint/no-unsafe-argument": "error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "@typescript-eslint/no-non-null-assertion": "error",
+        "no-console": "error",
+        "no-eval": "error",
+        "no-new-func": "error",
+        "max-lines": [
+          "error",
+          {
+            "max": 250,
+            "skipBlankLines": false,
+            "skipComments": false
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/main/ or a guard in src/shared/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["src/{main,shared}/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "never"
+          }
+        ],
+        "@typescript-eslint/no-unsafe-type-assertion": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/main/ or a guard in src/shared/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/main/ or a guard in src/shared/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.test.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unsafe-type-assertion": "off",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/main/ or a guard in src/shared/."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/main/ or a guard in src/shared/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["tooling/**", "scripts/**", "src/main/**/log.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["src/renderer/**/*.{ts,tsx}"],
+      "rules": {
+        "harness-react-hooks/rules-of-hooks": "error",
+        "harness-react-hooks/exhaustive-deps": "error",
+        "react-hooks/rules-of-hooks": "off",
+        "react-hooks/exhaustive-deps": "off"
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["tooling/**", "scripts/**", "src/main/**/log.ts"],
+      "rules": {
+        "no-console": "off",
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "console",
+            "message": "Log through a file named log.ts in a src/main/ area folder (src/main/logging/log.ts), the one place console is allowed (Electron layout)."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/{preload,renderer}/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "console",
+            "message": "Do not log here: let the error throw, or send it to the main process over a channel; console is allowed only in a file named log.ts in a src/main/ area folder (Electron layout)."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/renderer/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|electron(?:/|$))",
+                "message": "Window code runs in a browser page without Node or Electron; ask the main process through the API on window that src/preload/ sets up (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/renderer/src/shared/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|electron(?:/|$))",
+                "message": "Window code runs in a browser page without Node or Electron; ask the main process through the API on window that src/preload/ sets up (Electron layout)"
+              },
+              {
+                "regex": "^(?:@/)modules(?:/|$)",
+                "message": "Code in the renderer's shared/ is used by every module and may import none; the code that needs a module belongs in src/renderer/src/modules/<module>/ (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/renderer/src/modules/*/domain/**/*.ts"],
+      "ignores": ["**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|electron(?:/|$))",
+                "message": "Window code runs in a browser page without Node or Electron; ask the main process through the API on window that src/preload/ sets up (Electron layout)"
+              },
+              {
+                "regex": "^(?:react|react-dom)(?:/|$)",
+                "message": "A domain/ rule is plain TypeScript; React belongs in the module's components/ or hooks/ (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/shared/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|(?:electron|react|react-dom)(?:/|$))|^(?:@/)",
+                "message": "All three parts load src/shared/, so it holds types, constants and guards only: no Node, Electron or React, and no window code (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/main/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(?:@/)|^(?:react|react-dom)(?:/|$)",
+                "message": "The main process and the preload script run outside the page; they take no window code and no React (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/preload/**/*.ts"],
+      "ignores": ["**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(?!electron(?:/|$)|\\.|(?:@shared/))",
+                "message": "A preload script is the bridge and nothing more: it imports electron and the contract in src/shared/ (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "electron with shadcn": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/ban-ts-comment": [
+          "error",
+          {
+            "ts-check": true,
+            "ts-ignore": true,
+            "ts-expect-error": true,
+            "ts-nocheck": true
+          }
+        ],
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-unsafe-assignment": "error",
+        "@typescript-eslint/no-unsafe-member-access": "error",
+        "@typescript-eslint/no-unsafe-call": "error",
+        "@typescript-eslint/no-unsafe-return": "error",
+        "@typescript-eslint/no-unsafe-argument": "error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "@typescript-eslint/no-non-null-assertion": "error",
+        "no-console": "error",
+        "no-eval": "error",
+        "no-new-func": "error",
+        "max-lines": [
+          "error",
+          {
+            "max": 250,
+            "skipBlankLines": false,
+            "skipComments": false
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/main/ or a guard in src/shared/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='button']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <button>; add a missing one with `pnpm dlx shadcn add button`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='input']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <input>; add a missing one with `pnpm dlx shadcn add input`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='select']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <select>; add a missing one with `pnpm dlx shadcn add select`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='textarea']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <textarea>; add a missing one with `pnpm dlx shadcn add textarea`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='label']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <label>; add a missing one with `pnpm dlx shadcn add label`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='table']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <table>; add a missing one with `pnpm dlx shadcn add table`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='dialog']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <dialog>; add a missing one with `pnpm dlx shadcn add dialog`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["src/{main,shared}/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "never"
+          }
+        ],
+        "@typescript-eslint/no-unsafe-type-assertion": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/main/ or a guard in src/shared/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/main/ or a guard in src/shared/."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='button']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <button>; add a missing one with `pnpm dlx shadcn add button`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='input']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <input>; add a missing one with `pnpm dlx shadcn add input`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='select']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <select>; add a missing one with `pnpm dlx shadcn add select`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='textarea']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <textarea>; add a missing one with `pnpm dlx shadcn add textarea`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='label']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <label>; add a missing one with `pnpm dlx shadcn add label`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='table']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <table>; add a missing one with `pnpm dlx shadcn add table`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='dialog']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <dialog>; add a missing one with `pnpm dlx shadcn add dialog`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.test.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unsafe-type-assertion": "off",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/main/ or a guard in src/shared/."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/main/ or a guard in src/shared/."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='button']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <button>; add a missing one with `pnpm dlx shadcn add button`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='input']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <input>; add a missing one with `pnpm dlx shadcn add input`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='select']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <select>; add a missing one with `pnpm dlx shadcn add select`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='textarea']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <textarea>; add a missing one with `pnpm dlx shadcn add textarea`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='label']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <label>; add a missing one with `pnpm dlx shadcn add label`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='table']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <table>; add a missing one with `pnpm dlx shadcn add table`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='dialog']",
+            "message": "Use the shadcn component from src/renderer/src/shared/ui/ instead of a raw <dialog>; add a missing one with `pnpm dlx shadcn add dialog`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["tooling/**", "scripts/**", "src/main/**/log.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["src/renderer/**/*.{ts,tsx}"],
+      "rules": {
+        "harness-react-hooks/rules-of-hooks": "error",
+        "harness-react-hooks/exhaustive-deps": "error",
+        "react-hooks/rules-of-hooks": "off",
+        "react-hooks/exhaustive-deps": "off"
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["tooling/**", "scripts/**", "src/main/**/log.ts"],
+      "rules": {
+        "no-console": "off",
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "console",
+            "message": "Log through a file named log.ts in a src/main/ area folder (src/main/logging/log.ts), the one place console is allowed (Electron layout)."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/{preload,renderer}/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "console",
+            "message": "Do not log here: let the error throw, or send it to the main process over a channel; console is allowed only in a file named log.ts in a src/main/ area folder (Electron layout)."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/renderer/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|electron(?:/|$))",
+                "message": "Window code runs in a browser page without Node or Electron; ask the main process through the API on window that src/preload/ sets up (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/renderer/src/shared/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|electron(?:/|$))",
+                "message": "Window code runs in a browser page without Node or Electron; ask the main process through the API on window that src/preload/ sets up (Electron layout)"
+              },
+              {
+                "regex": "^(?:@/)modules(?:/|$)",
+                "message": "Code in the renderer's shared/ is used by every module and may import none; the code that needs a module belongs in src/renderer/src/modules/<module>/ (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/renderer/src/modules/*/domain/**/*.ts"],
+      "ignores": ["**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|electron(?:/|$))",
+                "message": "Window code runs in a browser page without Node or Electron; ask the main process through the API on window that src/preload/ sets up (Electron layout)"
+              },
+              {
+                "regex": "^(?:react|react-dom)(?:/|$)",
+                "message": "A domain/ rule is plain TypeScript; React belongs in the module's components/ or hooks/ (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/shared/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|(?:electron|react|react-dom)(?:/|$))|^(?:@/)",
+                "message": "All three parts load src/shared/, so it holds types, constants and guards only: no Node, Electron or React, and no window code (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/main/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(?:@/)|^(?:react|react-dom)(?:/|$)",
+                "message": "The main process and the preload script run outside the page; they take no window code and no React (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/preload/**/*.ts"],
+      "ignores": ["**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(?!electron(?:/|$)|\\.|(?:@shared/))",
+                "message": "A preload script is the bridge and nothing more: it imports electron and the contract in src/shared/ (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "spa": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/ban-ts-comment": [
+          "error",
+          {
+            "ts-check": true,
+            "ts-ignore": true,
+            "ts-expect-error": true,
+            "ts-nocheck": true
+          }
+        ],
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-unsafe-assignment": "error",
+        "@typescript-eslint/no-unsafe-member-access": "error",
+        "@typescript-eslint/no-unsafe-call": "error",
+        "@typescript-eslint/no-unsafe-return": "error",
+        "@typescript-eslint/no-unsafe-argument": "error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "@typescript-eslint/no-non-null-assertion": "error",
+        "no-console": "error",
+        "no-eval": "error",
+        "no-new-func": "error",
+        "max-lines": [
+          "error",
+          {
+            "max": 250,
+            "skipBlankLines": false,
+            "skipComments": false
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/modules/<module>/data/ or src/backend/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["src/{modules/*/data,backend}/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "never"
+          }
+        ],
+        "@typescript-eslint/no-unsafe-type-assertion": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/modules/<module>/data/ or src/backend/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/modules/<module>/data/ or src/backend/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.test.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unsafe-type-assertion": "off",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/modules/<module>/data/ or src/backend/."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/modules/<module>/data/ or src/backend/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["tooling/**", "scripts/**", "src/shared/lib/log.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["e2e/**", "scripts/**", "tooling/**"],
+      "rules": {
+        "harness-react-hooks/rules-of-hooks": "error",
+        "harness-react-hooks/exhaustive-deps": "error",
+        "react-hooks/rules-of-hooks": "off",
+        "react-hooks/exhaustive-deps": "off"
+      }
+    },
+    {
+      "files": ["src/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^node:",
+                "message": "The app runs in the browser without Node; a server task belongs to the backend (Vite layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/shared/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^node:",
+                "message": "The app runs in the browser without Node; a server task belongs to the backend (Vite layout)"
+              },
+              {
+                "regex": "^@/(?:modules|app|backend)(?:/|$)",
+                "message": "Code in src/shared/ is used by every module and may import no module, route or backend client; the code that needs one belongs in src/modules/<module>/ (Vite layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/backend/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^node:",
+                "message": "The app runs in the browser without Node; a server task belongs to the backend (Vite layout)"
+              },
+              {
+                "regex": "^@/(?:modules|app)(?:/|$)|^(?:react|react-dom)(?:/|$)",
+                "message": "src/backend/ holds the client and its types only: no React, module or route code (Vite layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/modules/*/domain/**/*.ts"],
+      "ignores": ["**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^node:",
+                "message": "The app runs in the browser without Node; a server task belongs to the backend (Vite layout)"
+              },
+              {
+                "regex": "^(?:react|react-dom)(?:/|$)",
+                "message": "A domain/ rule is plain TypeScript: React belongs in the module's components/ or hooks/, backend calls in its data/ (Vite layout)"
+              },
+              {
+                "regex": "^@/backend(?:/|$)",
+                "allowTypeImports": true,
+                "message": "Call the backend through the module's data/, which alone imports the client from src/backend/; elsewhere import its types with \"import type\" (Vite layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/app/**/*.{ts,tsx}", "src/modules/*/{components,hooks}/**/*.{ts,tsx}", "src/modules/*/{index,types,schemas}.ts", "src/main.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^node:",
+                "message": "The app runs in the browser without Node; a server task belongs to the backend (Vite layout)"
+              },
+              {
+                "regex": "^@/backend(?:/|$)",
+                "allowTypeImports": true,
+                "message": "Call the backend through the module's data/, which alone imports the client from src/backend/; elsewhere import its types with \"import type\" (Vite layout)"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "spa with shadcn": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/ban-ts-comment": [
+          "error",
+          {
+            "ts-check": true,
+            "ts-ignore": true,
+            "ts-expect-error": true,
+            "ts-nocheck": true
+          }
+        ],
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-unsafe-assignment": "error",
+        "@typescript-eslint/no-unsafe-member-access": "error",
+        "@typescript-eslint/no-unsafe-call": "error",
+        "@typescript-eslint/no-unsafe-return": "error",
+        "@typescript-eslint/no-unsafe-argument": "error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "@typescript-eslint/no-non-null-assertion": "error",
+        "no-console": "error",
+        "no-eval": "error",
+        "no-new-func": "error",
+        "max-lines": [
+          "error",
+          {
+            "max": 250,
+            "skipBlankLines": false,
+            "skipComments": false
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/modules/<module>/data/ or src/backend/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='button']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <button>; add a missing one with `pnpm dlx shadcn add button`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='input']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <input>; add a missing one with `pnpm dlx shadcn add input`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='select']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <select>; add a missing one with `pnpm dlx shadcn add select`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='textarea']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <textarea>; add a missing one with `pnpm dlx shadcn add textarea`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='label']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <label>; add a missing one with `pnpm dlx shadcn add label`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='table']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <table>; add a missing one with `pnpm dlx shadcn add table`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='dialog']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <dialog>; add a missing one with `pnpm dlx shadcn add dialog`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["src/{modules/*/data,backend}/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "never"
+          }
+        ],
+        "@typescript-eslint/no-unsafe-type-assertion": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/modules/<module>/data/ or src/backend/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/modules/<module>/data/ or src/backend/."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='button']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <button>; add a missing one with `pnpm dlx shadcn add button`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='input']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <input>; add a missing one with `pnpm dlx shadcn add input`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='select']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <select>; add a missing one with `pnpm dlx shadcn add select`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='textarea']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <textarea>; add a missing one with `pnpm dlx shadcn add textarea`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='label']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <label>; add a missing one with `pnpm dlx shadcn add label`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='table']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <table>; add a missing one with `pnpm dlx shadcn add table`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='dialog']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <dialog>; add a missing one with `pnpm dlx shadcn add dialog`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.test.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unsafe-type-assertion": "off",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/modules/<module>/data/ or src/backend/."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/modules/<module>/data/ or src/backend/."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='button']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <button>; add a missing one with `pnpm dlx shadcn add button`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='input']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <input>; add a missing one with `pnpm dlx shadcn add input`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='select']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <select>; add a missing one with `pnpm dlx shadcn add select`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='textarea']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <textarea>; add a missing one with `pnpm dlx shadcn add textarea`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='label']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <label>; add a missing one with `pnpm dlx shadcn add label`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='table']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <table>; add a missing one with `pnpm dlx shadcn add table`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          },
+          {
+            "selector": "JSXOpeningElement[name.type='JSXIdentifier'][name.name='dialog']",
+            "message": "Use the shadcn component from src/shared/ui/ instead of a raw <dialog>; add a missing one with `pnpm dlx shadcn add dialog`. If shadcn has no component for this, say so in the handoff before building it by hand."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["tooling/**", "scripts/**", "src/shared/lib/log.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["e2e/**", "scripts/**", "tooling/**"],
+      "rules": {
+        "harness-react-hooks/rules-of-hooks": "error",
+        "harness-react-hooks/exhaustive-deps": "error",
+        "react-hooks/rules-of-hooks": "off",
+        "react-hooks/exhaustive-deps": "off"
+      }
+    },
+    {
+      "files": ["src/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^node:",
+                "message": "The app runs in the browser without Node; a server task belongs to the backend (Vite layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/shared/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^node:",
+                "message": "The app runs in the browser without Node; a server task belongs to the backend (Vite layout)"
+              },
+              {
+                "regex": "^@/(?:modules|app|backend)(?:/|$)",
+                "message": "Code in src/shared/ is used by every module and may import no module, route or backend client; the code that needs one belongs in src/modules/<module>/ (Vite layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/backend/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^node:",
+                "message": "The app runs in the browser without Node; a server task belongs to the backend (Vite layout)"
+              },
+              {
+                "regex": "^@/(?:modules|app)(?:/|$)|^(?:react|react-dom)(?:/|$)",
+                "message": "src/backend/ holds the client and its types only: no React, module or route code (Vite layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/modules/*/domain/**/*.ts"],
+      "ignores": ["**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^node:",
+                "message": "The app runs in the browser without Node; a server task belongs to the backend (Vite layout)"
+              },
+              {
+                "regex": "^(?:react|react-dom)(?:/|$)",
+                "message": "A domain/ rule is plain TypeScript: React belongs in the module's components/ or hooks/, backend calls in its data/ (Vite layout)"
+              },
+              {
+                "regex": "^@/backend(?:/|$)",
+                "allowTypeImports": true,
+                "message": "Call the backend through the module's data/, which alone imports the client from src/backend/; elsewhere import its types with \"import type\" (Vite layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/app/**/*.{ts,tsx}", "src/modules/*/{components,hooks}/**/*.{ts,tsx}", "src/modules/*/{index,types,schemas}.ts", "src/main.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^node:",
+                "message": "The app runs in the browser without Node; a server task belongs to the backend (Vite layout)"
+              },
+              {
+                "regex": "^@/backend(?:/|$)",
+                "allowTypeImports": true,
+                "message": "Call the backend through the module's data/, which alone imports the client from src/backend/; elsewhere import its types with \"import type\" (Vite layout)"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "electron with aliases": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/ban-ts-comment": [
+          "error",
+          {
+            "ts-check": true,
+            "ts-ignore": true,
+            "ts-expect-error": true,
+            "ts-nocheck": true
+          }
+        ],
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-unsafe-assignment": "error",
+        "@typescript-eslint/no-unsafe-member-access": "error",
+        "@typescript-eslint/no-unsafe-call": "error",
+        "@typescript-eslint/no-unsafe-return": "error",
+        "@typescript-eslint/no-unsafe-argument": "error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "@typescript-eslint/no-non-null-assertion": "error",
+        "no-console": "error",
+        "no-eval": "error",
+        "no-new-func": "error",
+        "max-lines": [
+          "error",
+          {
+            "max": 250,
+            "skipBlankLines": false,
+            "skipComments": false
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/main/ or a guard in src/shared/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["src/{main,shared}/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "never"
+          }
+        ],
+        "@typescript-eslint/no-unsafe-type-assertion": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/main/ or a guard in src/shared/."
+          },
+          {
+            "selector": "ImportExpression[source.type!='Literal']",
+            "message": "Import with a literal path so dependency-cruiser sees the module; choose between modules with a static map of imports."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/main/ or a guard in src/shared/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.test.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unsafe-type-assertion": "off",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "List named exports in index.ts or server.ts; place implementations in the module's components/, domain/ or server/."
+          },
+          {
+            "selector": "TSAsExpression > TSNeverKeyword.typeAnnotation",
+            "message": "Fix the type instead of casting to never; an unavoidable adapter cast belongs in src/main/ or a guard in src/shared/."
+          },
+          {
+            "selector": "CallExpression[callee.name='require']",
+            "message": "Use import; require() hides the dependency from the import boundaries."
+          },
+          {
+            "selector": "TSAsExpression > TSAsExpression",
+            "message": "Validate unknown data before using it; unavoidable adapter casts belong in src/main/ or a guard in src/shared/."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["tooling/**", "scripts/**", "src/main/**/log.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["src/renderer/**/*.{ts,tsx}"],
+      "rules": {
+        "harness-react-hooks/rules-of-hooks": "error",
+        "harness-react-hooks/exhaustive-deps": "error",
+        "react-hooks/rules-of-hooks": "off",
+        "react-hooks/exhaustive-deps": "off"
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "ignores": ["tooling/**", "scripts/**", "src/main/**/log.ts"],
+      "rules": {
+        "no-console": "off",
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "console",
+            "message": "Log through a file named log.ts in a src/main/ area folder (src/main/logging/log.ts), the one place console is allowed (Electron layout)."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/{preload,renderer}/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "console",
+            "message": "Do not log here: let the error throw, or send it to the main process over a channel; console is allowed only in a file named log.ts in a src/main/ area folder (Electron layout)."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/renderer/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|electron(?:/|$))",
+                "message": "Window code runs in a browser page without Node or Electron; ask the main process through the API on window that src/preload/ sets up (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/renderer/src/shared/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|electron(?:/|$))",
+                "message": "Window code runs in a browser page without Node or Electron; ask the main process through the API on window that src/preload/ sets up (Electron layout)"
+              },
+              {
+                "regex": "^(?:@/|@renderer/)modules(?:/|$)",
+                "message": "Code in the renderer's shared/ is used by every module and may import none; the code that needs a module belongs in src/renderer/src/modules/<module>/ (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/renderer/src/modules/*/domain/**/*.ts"],
+      "ignores": ["**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|electron(?:/|$))",
+                "message": "Window code runs in a browser page without Node or Electron; ask the main process through the API on window that src/preload/ sets up (Electron layout)"
+              },
+              {
+                "regex": "^(?:react|react-dom)(?:/|$)",
+                "message": "A domain/ rule is plain TypeScript; React belongs in the module's components/ or hooks/ (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/shared/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "_http_agent",
+              "_http_client",
+              "_http_common",
+              "_http_incoming",
+              "_http_outgoing",
+              "_http_server",
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_wrap",
+              "_stream_writable",
+              "_tls_common",
+              "_tls_wrap",
+              "assert",
+              "assert/strict",
+              "async_hooks",
+              "buffer",
+              "child_process",
+              "cluster",
+              "console",
+              "constants",
+              "crypto",
+              "dgram",
+              "diagnostics_channel",
+              "dns",
+              "dns/promises",
+              "domain",
+              "events",
+              "fs",
+              "fs/promises",
+              "http",
+              "http2",
+              "https",
+              "inspector",
+              "inspector/promises",
+              "module",
+              "net",
+              "os",
+              "path",
+              "path/posix",
+              "path/win32",
+              "perf_hooks",
+              "process",
+              "punycode",
+              "querystring",
+              "readline",
+              "readline/promises",
+              "repl",
+              "stream",
+              "stream/consumers",
+              "stream/promises",
+              "stream/web",
+              "string_decoder",
+              "sys",
+              "timers",
+              "timers/promises",
+              "tls",
+              "trace_events",
+              "tty",
+              "url",
+              "util",
+              "util/types",
+              "v8",
+              "vm",
+              "wasi",
+              "worker_threads",
+              "zlib",
+              "node:sea",
+              "node:sqlite",
+              "node:test",
+              "node:test/reporters"
+            ],
+            "patterns": [
+              {
+                "regex": "^(?:node:|(?:electron|react|react-dom)(?:/|$))|^(?:@/|@renderer/)",
+                "message": "All three parts load src/shared/, so it holds types, constants and guards only: no Node, Electron or React, and no window code (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/main/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(?:@/|@renderer/)|^(?:react|react-dom)(?:/|$)",
+                "message": "The main process and the preload script run outside the page; they take no window code and no React (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/preload/**/*.ts"],
+      "ignores": ["**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(?!electron(?:/|$)|\\.|(?:@shared/|@contract/))",
+                "message": "A preload script is the bridge and nothing more: it imports electron and the contract in src/shared/ (Electron layout)"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
