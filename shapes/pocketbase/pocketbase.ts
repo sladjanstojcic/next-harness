@@ -69,6 +69,15 @@ function checkPath(path: string): PathVerdict {
   }
 }
 
+/** The paths the ESLint preset check probes, `{name}` standing for a fresh token: an entry, hook code, a migration, a shared value, a test. */
+export const POCKETBASE_PROBES: readonly string[] = [
+  "pb_hooks/{name}.pb.ts",
+  "pb_hooks/{name}/{name}.ts",
+  "pb_migrations/1_{name}.ts",
+  "shared/{name}.ts",
+  "tests/{name}/{name}.test.ts",
+];
+
 const NONE = "";
 const pocketbaseContent: ContentProfile = {
   actionBuilders: [],
