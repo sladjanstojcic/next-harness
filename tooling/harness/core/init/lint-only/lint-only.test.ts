@@ -22,11 +22,12 @@ const init = (repo: RepoFixture): string => {
 };
 
 describe("init on an e2e workspace with ESLint and Prettier", () => {
-  it("writes the folder's ESLint and Prettier configs from the presets, and nothing else", () => {
+  it("writes the folder's ESLint and Prettier configs from the presets, a .prettierignore for Playwright's output, and nothing else", () => {
     const repo = consumer();
     const report = init(repo);
     expect(repo.read(`${E2E}/eslint.config.ts`)).toContain('layout: "e2e"');
     expect(repo.read(`${E2E}/prettier.config.ts`)).toContain("presets/prettier.ts");
+    expect(repo.read(`${E2E}/.prettierignore`)).toBe("playwright-report\ntest-results\nblob-report\n");
     for (const file of ["vitest.config.ts", "knip.config.ts", ".dependency-cruiser.json", "playwright.config.ts", "tsconfig.json"])
       expect(exists(repo, `${E2E}/${file}`), file).toBe(false);
     expect(repo.read(`${E2E}/package.json`)).toBe("{}\n");

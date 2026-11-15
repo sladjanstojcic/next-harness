@@ -2,6 +2,7 @@ import { loadConfig } from "../config.ts";
 import { GENERATED_TYPE_GLOBS } from "../shapes/backend-folder.ts";
 import { pocketbaseFolders } from "../shapes/pocketbase/own-tools.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
+import { PLAYWRIGHT_OUTPUT } from "./e2e.ts";
 import { electronAliases } from "./electron-aliases.ts";
 import { harnessRuleBlocks, HOOKS_PLUGIN, usesShadcn, type PresetLayout } from "./eslint-rules.ts";
 import { call, defaultOf, isRecord, list, member, toolLoader } from "./load-tool.ts";
@@ -86,6 +87,7 @@ export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
         "build/**",
         ...(layout === "electron" || layout === "spa" || layout === "pocketbase" ? ["dist/**"] : []),
         ...(layout === "pocketbase" ? ["pb_data/**"] : []),
+        ...(layout === "e2e" ? PLAYWRIGHT_OUTPUT.map((folder) => `${folder}/**`) : []),
         ".superpowers/**",
         ".serena/**",
       ],
