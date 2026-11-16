@@ -1,5 +1,5 @@
 import { lastLines } from "./test-script.ts";
-import { bin, type ToolSet } from "./tool-set.ts";
+import { bin, TEST_TIMEOUT_MS, type ToolSet } from "./tool-set.ts";
 
 /** The runner puts a timeout notice on the first line; it stays, since the end of a cut-off run names no failure. */
 function explain(output: string): string {
@@ -13,9 +13,9 @@ export const vitest: ToolSet["test"] = {
   related: (dir, files) => ({
     name: "vitest",
     command: [bin(dir, "vitest"), "related", "--run", "--passWithNoTests", ...files],
-    timeoutMs: 600_000,
+    timeoutMs: TEST_TIMEOUT_MS,
     findings: () => [],
     explain,
   }),
-  all: (dir) => ({ name: "vitest", command: [bin(dir, "vitest"), "run"], timeoutMs: 600_000, findings: () => [], explain }),
+  all: (dir) => ({ name: "vitest", command: [bin(dir, "vitest"), "run"], timeoutMs: TEST_TIMEOUT_MS, findings: () => [], explain }),
 };

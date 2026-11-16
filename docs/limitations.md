@@ -126,9 +126,9 @@ parent: Reference
   the folder, its vendored `types/pocketbase-*.d.ts` included. This was not run on a real project.
 - `pb-boundary` judges relative specifiers only. An alias or a package name that maps to a
   `pocketbase` workspace, such as a `paths` entry in the app's `tsconfig.json`, is not judged.
-- The test step has a ten-minute limit. In this template most of that time is the harness's own tests:
-  about four minutes alone, and past the limit on a machine that was busy with something else. The
-  message then starts with "Tool timed out".
+- The test step has a twenty-minute limit. In this template most of that time is the harness's own
+  tests: about four minutes alone, and close to eleven on a machine that was busy with other agents,
+  which passed the earlier ten-minute limit. Past the limit the message starts with "Tool timed out".
 - The numbered steps in the guides were run by agents on one Linux server, each on a fresh scaffold. The
   Electron app's window was never opened there, and the browser for the smoke test was already
   downloaded. The Makerkit guide has not been run this way.
