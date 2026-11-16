@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { consumerRepo } from "./template-repo.ts";
@@ -6,9 +7,12 @@ import { consumerRepo } from "./template-repo.ts";
 const APP = "apps/dashboard";
 const PRESETS = "../../tooling/harness/presets";
 
-/** A monorepo as pnpm installs it: the tools sit in the workspace's node_modules, and the harness folder reaches none. */
+/**
+ * A monorepo as pnpm installs it: the tools sit in the workspace's node_modules, and the harness folder reaches none.
+ * The harness is a workspace package there, so its own zod, which its config needs, sits beside it.
+ */
 function monorepo() {
-  return consumerRepo(
+  const repo = consumerRepo(
     {
       "package.json": JSON.stringify({ name: "monorepo", type: "module" }),
       [`${APP}/package.json`]: JSON.stringify({ name: "dashboard", type: "module" }),
@@ -23,6 +27,10 @@ function monorepo() {
     },
     APP,
   );
+  const own = path.join(repo.root, "tooling/harness/node_modules");
+  fs.mkdirSync(own);
+  fs.symlinkSync(path.join(repo.root, APP, "node_modules/zod"), path.join(own, "zod"), "dir");
+  return repo;
 }
 
 function tool(root: string, name: string, args: string[]) {
