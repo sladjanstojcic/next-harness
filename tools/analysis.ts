@@ -82,8 +82,8 @@ function dependencyResult(root: string, workspace: WorkspaceEntry, stdout: strin
   // The preset's comments name src/ paths; a workspace without src/ reads them with its own.
   const advice = (comment = "Keep imports within the module or use its public API; cross-cutting code belongs in src/shared/lib/."): string =>
     sourceRootOf(workspace) === "" ? comment.replaceAll("src/", "") : comment;
-  // A violation names its rule without the rule's comment; the Electron and Vite presets' comments say which part may import what.
-  const rules = checksByProject(workspace.shape) ? (result.summary.ruleSetUsed?.forbidden ?? []) : [];
+  // A violation names its rule without the rule's comment; the Electron, Vite and Node presets' comments say which part may import what.
+  const rules = checksByProject(workspace.shape) || workspace.shape === "node-service" ? (result.summary.ruleSetUsed?.forbidden ?? []) : [];
   const comments = new Map(rules.map(({ name, comment }) => [name, comment]));
   const findings = result.summary.violations.map(({ rule, from, to }) => ({
     rule: rule.name,

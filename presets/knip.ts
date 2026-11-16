@@ -199,6 +199,15 @@ export function harnessKnipVite(dir = process.cwd()): KnipAppPreset {
   return appKnip(dir, VITE_ENTRY, VITE_IGNORE);
 }
 
+/** Knip for a node-service workspace: the service's entry and its optional worker, the generated backend types ignored. */
+export function harnessKnipNode(dir = process.cwd()): KnipAppPreset {
+  return appKnip(
+    dir,
+    ["src/main.ts", "src/worker.ts"],
+    GENERATED_TYPE_GLOBS.map((glob) => `src/backend/${glob}`),
+  );
+}
+
 /** The Knip settings for a package: no Next plugin, and the exports of its entry files are judged too. */
 interface KnipPackage {
   entry: string[];
