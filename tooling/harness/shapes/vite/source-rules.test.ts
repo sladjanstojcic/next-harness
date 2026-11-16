@@ -63,3 +63,10 @@ describe("the vite-spa content profile", () => {
     expect(viteContent.backend?.message.endsWith(VITE_LAYOUT)).toBe(true);
   });
 });
+
+describe("an integration test", () => {
+  it("keeps its clock, which a unit test may not read", () => {
+    expect(rules("src/modules/ads/data/ads.int.test.ts", "export const now = Date.now();\n")).toEqual([]);
+    expect(rules("src/modules/ads/data/ads.test.ts", "export const now = Date.now();\n")).toEqual(["test-determinism"]);
+  });
+});

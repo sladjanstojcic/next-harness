@@ -23,6 +23,9 @@ parent: Reference
   template's `App.tsx` replaced by routes, then all ten gate steps passed, with the real `vite build`.
   It was run again with shadcn, a PocketBase client in `src/backend/` and a module with `data/`; the
   types file was written by hand, and no PocketBase server ran. No agent session has worked there yet.
+  A third run added a `vitest.int.config.ts` and two `*.int.test.ts` files: `vitest run` left them
+  out, the `test:int` script ran both, and all ten gate steps passed. In a `node-service` the same
+  config file is covered by this repository's lint test only, not by a run.
 - The `pocketbase` shape was run twice on a fresh create-next-app 16 project: an entry, the module it
   requires and a migration, built with `tsc` and served until the route answered, then the full check
   passed. The first run, on Linux x86-64 with the `oxc` tool set, failed three steps on its first pass:

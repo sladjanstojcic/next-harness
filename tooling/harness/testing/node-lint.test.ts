@@ -37,6 +37,7 @@ const BARE_FS = 'import { readFileSync } from "fs";\n\nexport const used = readF
 
 /** One file per row, and the one rule expected there, if any. */
 const ROWS: [file: string, code: string, expected: string[]][] = [
+  ["vitest.int.config.ts", 'export default { test: { include: ["src/**/*.int.test.ts"] } };\n', []],
   ["src/modules/ads/routes.ts", VALUE, ["no-restricted-imports"]],
   ["src/modules/ads/schemas.ts", TYPE, []],
   ["src/app/app.ts", VALUE, ["no-restricted-imports"]],

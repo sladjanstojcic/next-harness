@@ -1,5 +1,6 @@
 import { backendProfile } from "../backend-folder.ts";
 import type { ContentProfile } from "../shape.ts";
+import { INTEGRATION_TEST } from "../tool-config-names.ts";
 import { ENV_FILE, NODE_LAYOUT as LAYOUT, nodeSourceRules } from "./source-rules.ts";
 
 const NOT_NEXT = `is a Next.js directive, and a service has no client bundle or Server Actions; its I/O belongs in a module's data/ ${LAYOUT}`;
@@ -19,7 +20,7 @@ export const nodeContent: ContentProfile = {
   backend: backendProfile(/^src\//, /^src\/backend\//, "src/backend/", LAYOUT),
   domainFile: /^src\/modules\/[^/]+\/domain\/(?:[^/]+\/)?[^/]+\.ts$/,
   errorScope: /^src\/(?:app\/|modules\/[^/]+\/routes\.ts$)/,
-  integrationTests: /\.int\.test\.ts$/,
+  integrationTests: INTEGRATION_TEST,
   packageBoundary: `Import another workspace by its package name, and keep relative imports inside src/ ${LAYOUT}`,
   sourceRoot: "src/",
   sourceRules: nodeSourceRules,
