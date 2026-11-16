@@ -9,6 +9,7 @@ export const GUIDE_LIMITS: Readonly<Record<string, number>> = {
   "next-modules-root": 90,
   "electron-vite": 90,
   "vite-spa": 90,
+  "node-service": 90,
   "makerkit-app": 90,
   package: 40,
   "makerkit-feature": 40,
