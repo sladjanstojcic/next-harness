@@ -8,6 +8,7 @@ export const SHAPE_NAMES = [
   "e2e",
   "vite-spa",
   "pocketbase",
+  "node-service",
 ] as const;
 export const TOOL_SET_NAMES = ["eslint-prettier", "oxc", "none"] as const;
 export const ANALYSIS_NAMES = ["depcruise", "knip", "jscpd"] as const;
@@ -26,4 +27,5 @@ export const DEFAULT_TOOLS: Record<ShapeName, ToolSetName> = {
   e2e: "eslint-prettier",
   "vite-spa": "eslint-prettier",
   pocketbase: "eslint-prettier",
+  "node-service": "eslint-prettier",
 };

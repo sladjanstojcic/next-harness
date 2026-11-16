@@ -43,6 +43,8 @@ export const HARNESS_RULES: ReadonlySet<string> = new Set([
   "inline-disable",
   "package-boundary",
   "backend-package",
+  "node-import",
+  "thin-route",
   "electron-security",
   "electron-bridge",
   "ipc-channel",
