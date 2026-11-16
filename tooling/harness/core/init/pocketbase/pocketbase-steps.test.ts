@@ -62,12 +62,14 @@ describe("init on a pocketbase workspace", () => {
   });
 
   it("leaves the folder to its own tools: the root app's Prettier and ESLint skip it", async () => {
-    const repo = consumer({ "pocketbase/shared/loose.ts": LOOSE, "src/shared/lib/loose.ts": LOOSE });
+    const nested = "src/modules/pocketbase/server/loose.ts";
+    const repo = consumer({ "pocketbase/shared/loose.ts": LOOSE, "src/shared/lib/loose.ts": LOOSE, [nested]: LOOSE });
     expect(initHarness(repo.root, { force: false, starter: false }).ok).toBe(true);
-    expect(repo.read(".prettierignore").split("\n")).toContain("pocketbase");
+    expect(repo.read(".prettierignore").split("\n")).toContain("/pocketbase");
     const prettier = path.join(template, "node_modules/.bin/prettier");
     const listed = spawnSync(prettier, ["--list-different", "--no-config", "."], { cwd: repo.root, encoding: "utf8" }).stdout.split("\n");
     expect(listed).toContain("src/shared/lib/loose.ts");
+    expect(listed).toContain(nested);
     expect(listed).not.toContain("pocketbase/shared/loose.ts");
 
     fs.rmSync(path.join(repo.root, "node_modules"), { recursive: true });
