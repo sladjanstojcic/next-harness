@@ -1,0 +1,16 @@
+{
+  ".gitignore": "node_modules\n*.tsbuildinfo\n",
+  "package.json": "{\n  \"name\": \"ad-api\",\n  \"private\": true,\n  \"version\": \"0.0.0\",\n  \"type\": \"module\",\n  \"imports\": {\n    \"#/*\": \"./src/*\"\n  },\n  \"scripts\": {\n    \"start\": \"node src/main.ts\"\n  },\n  \"dependencies\": {\n    \"@supabase/supabase-js\": \"2.80.0\",\n    \"hono\": \"4.13.18\",\n    \"zod\": \"4.1.12\"\n  }\n}\n",
+  "tsconfig.json": "{\n  \"compilerOptions\": {\n    \"strict\": true,\n    \"target\": \"esnext\",\n    \"module\": \"nodenext\",\n    \"noEmit\": true,\n    \"allowImportingTsExtensions\": true,\n    \"erasableSyntaxOnly\": true,\n    \"verbatimModuleSyntax\": true\n  },\n  \"include\": [\n    \"src\"\n  ]\n}\n",
+  "Dockerfile": "FROM node:24-alpine\nWORKDIR /app\nCOPY . .\nCMD [\"node\", \"src/main.ts\"]\n",
+  "src/main.ts": "import { serve } from \"@hono/node-server\";\nimport { createApp } from \"#/app/app.ts\";\nimport { env } from \"#/shared/lib/env.ts\";\n\nserve({ fetch: createApp().fetch, port: env.PORT });\n",
+  "src/app/app.ts": "import { Hono } from \"hono\";\nimport { adsRoutes } from \"#/modules/ads/index.ts\";\n\nexport function createApp(): Hono {\n  const app = new Hono();\n  app.route(\"/ads\", adsRoutes);\n  return app;\n}\n",
+  "src/modules/ads/index.ts": "export { adsRoutes } from \"./routes.ts\";\nexport type { Ad } from \"./types.ts\";\n",
+  "src/modules/ads/types.ts": "export interface Ad {\n  id: string;\n  budgetCents: number;\n}\n",
+  "src/modules/ads/routes.ts": "import { Hono } from \"hono\";\nimport { listAds } from \"./data/ads.ts\";\nimport { formatBudget } from \"./domain/budget.ts\";\n\nexport const adsRoutes = new Hono().get(\"/\", async (c) => {\n  const ads = await listAds();\n  return c.json(ads.map((ad) => ({ ...ad, budget: formatBudget(ad.budgetCents) })));\n});\n",
+  "src/modules/ads/data/ads.ts": "import { db } from \"#/backend/client.ts\";\nimport type { Ad } from \"../types.ts\";\n\nexport async function listAds(): Promise<Ad[]> {\n  const { data } = await db.from(\"ads\").select(\"id, budgetCents\");\n  return data ?? [];\n}\n",
+  "src/modules/ads/domain/budget.ts": "export const formatBudget = (cents: number): string => `${(cents / 100).toFixed(2)} EUR`;\n",
+  "src/modules/ads/domain/budget.test.ts": "import { expect, it } from \"vitest\";\nimport { formatBudget } from \"./budget.ts\";\n\nit(\"shows the budget in euros\", () => {\n  expect(formatBudget(1250)).toBe(\"12.50 EUR\");\n});\n",
+  "src/backend/client.ts": "import { createClient } from \"@supabase/supabase-js\";\nimport { env } from \"#/shared/lib/env.ts\";\n\nexport const db = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });\n",
+  "src/shared/lib/env.ts": "import { z } from \"zod\";\n\nexport const env = z\n  .object({ PORT: z.coerce.number().default(3000), SUPABASE_URL: z.url(), SUPABASE_SERVICE_KEY: z.string().min(1) })\n  .parse(process.env);\n"
+}
