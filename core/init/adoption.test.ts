@@ -57,6 +57,25 @@ describe("init in an existing app", () => {
     expect(preset).toContain("Format the app's own files once in the preset's style: (cd apps/dashboard && pnpm exec prettier --write .)");
   });
 
+  it("prints a folder without package.json the path to its Prettier, since the manager's exec would run at the root", () => {
+    const pocketbase = (files: Record<string, string>) => {
+      const repo = makeRepo({
+        "harness.config.ts":
+          'export default {\n  workspaces: [{ path: ".", shape: "next-modules", next: true }, { path: "pocketbase", shape: "pocketbase" }],\n  root: { entries: ["pocketbase"] },\n};\n',
+        ".gitignore": "node_modules/\n",
+        "package.json": "{}\n",
+        "pocketbase/pb_hooks/main.pb.ts": "export {};\n",
+        ...files,
+      });
+      repo.git("config", "--unset", "core.hooksPath");
+      for (const file of Object.keys(files).filter((name) => name.includes(".bin/"))) fs.chmodSync(path.join(repo.root, file), 0o755);
+      return nextSteps(initHarness(repo.root, OFF).report).find((line) => line.includes("Format the app's own files")) ?? "";
+    };
+    expect(pocketbase({})).toContain("; (cd pocketbase && ../node_modules/.bin/prettier --write .)");
+    expect(pocketbase({ "pocketbase/node_modules/.bin/prettier": "#!/bin/sh\n" })).toContain("; (cd pocketbase && node_modules/.bin/prettier --write .)");
+    expect(pocketbase({ "pocketbase/package.json": "{}\n" })).toContain("; (cd pocketbase && pnpm exec prettier --write .)");
+  });
+
   it("writes no Vitest config beside a test script that does not run Vitest, and prints the config line that runs it", () => {
     const repo = dashboard({});
     const { report } = initHarness(repo.root, OFF);
