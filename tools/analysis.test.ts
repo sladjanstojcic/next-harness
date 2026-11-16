@@ -11,7 +11,7 @@ const workspace = (shape: WorkspaceEntry["shape"]): WorkspaceEntry => ({
 });
 
 describe("where jscpd writes its report", () => {
-  it.each(["package", "electron-vite", "vite-spa"] as const)("in a %s workspace, the node_modules cache, since it has no .next/", (shape) => {
+  it.each(["package", "electron-vite", "vite-spa", "node-service"] as const)("in a %s workspace, the node_modules cache, since it has no .next/", (shape) => {
     const command = jscpd.check("/repo/packages/billing", workspace(shape)).command.join(" ");
     expect(command).toContain(`--output ${JSCPD_CACHE}`);
     expect(toolScripts(workspace(shape)).jscpd).toMatch(new RegExp(`--output ${JSCPD_CACHE}$`));

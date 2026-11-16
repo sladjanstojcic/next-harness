@@ -106,6 +106,10 @@ const schema = z.strictObject({
           path: ["next"],
           message: "must not be true for the vite-spa shape, which is not a Next app",
         })
+        .refine((workspace) => workspace.shape !== "node-service" || workspace.next !== true, {
+          path: ["next"],
+          message: "must not be true for the node-service shape, which is not a Next app",
+        })
         .refine((workspace) => workspace.test === undefined || (workspace.tools ?? DEFAULT_TOOLS[workspace.shape]) !== "none", {
           path: ["test"],
           message: 'needs a tool set; a workspace with tools: "none" runs no steps',
