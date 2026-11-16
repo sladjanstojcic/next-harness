@@ -44,6 +44,18 @@ parent: Reference
 - The jscpd step of the full check now gets only the folders a workspace has. Before, a workspace
   below the root with `src/`, such as a create-vite app at `apps/web`, failed it with
   `Error: path does not exist: tooling`; the fix is covered by a unit test, not by a new real run.
+- jscpd writes its report to `node_modules/.cache/jscpd` in every workspace that is not a Next app.
+  Before, a package or another non-Next workspace kept the preset's `.next/jscpd/`, and in a monorepo
+  without Next the audit reported `packages/<name>/.next/jscpd/jscpd-report.json` as `unknown-root`.
+  Run on a pnpm monorepo with a `node-service` and a `package` workspace: both reports landed in the
+  cache.
+- The `node-service` shape was run on a pnpm monorepo: a Hono service in `apps/api` beside a package
+  whose `exports` point at its `.ts` source. Init's five printed steps, then all seventeen gate steps
+  passed; the service answered `/health` under Node 24.19.0 and in a Docker image built from the
+  repository root. No Supabase, AI SDK or Fabric code ran, no agent session has worked there, and
+  `turbo prune` and Coolify were not tried. In a container, the root `prepare` script init adds
+  (`git config core.hooksPath .githooks`) fails without git, so the image installs with
+  `--ignore-scripts`.
 
 - By reading the step, not from a run: the Electron shadcn step leaves its empty `vite.config.ts`
   behind when `shadcn init` fails, and replaces a `vite.config.ts` that already exists.

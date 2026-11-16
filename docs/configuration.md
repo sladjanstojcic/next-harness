@@ -30,7 +30,7 @@ export default defineHarness({
 - A file belongs to the workspace with the longest matching path, and its shape sees the path inside
   that workspace. A file in no workspace gets only the root layout rules.
 - In a configured workspace `next` defaults to false. `tools` follows the shape: `eslint-prettier` for
-  next-modules, package, electron-vite, vite-spa, pocketbase and e2e, `oxc` for the Makerkit shapes,
+  next-modules, package, electron-vite, vite-spa, node-service, pocketbase and e2e, `oxc` for the Makerkit shapes,
   `none` for supabase. The pocketbase shape refuses `none`, which would drop its lint and type check.
 - A file that starts a new folder under a `/*` workspace is checked against that workspace's shape
   before the folder exists.
@@ -85,7 +85,7 @@ The legacy list is a ratchet: old code is tolerated, new and touched code is hel
 - **`env: "local"`** denies only `.env*.local` and allows the committed `.env`, `.env.development`,
   `.env.production` and `.env.test`. Without it every `.env*` but `.env.example` is denied.
 - **`analysis`** lists which of `depcruise`, `knip` and `jscpd` run in Done and CI, in each
-  next-modules, package, electron-vite and vite-spa workspace's folder. All three run unless the field
+  next-modules, package, electron-vite, vite-spa and node-service workspace's folder. All three run unless the field
   lists some; none runs in the Makerkit, supabase, e2e and pocketbase shapes.
 - **`backendPackages`** adds package names to the list the `backend-package` rule knows; see
   [the reference](reference.md#shapes-and-backend-packages).
@@ -166,3 +166,4 @@ Knip starts from these entries, and the session-start code index lists these fil
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
 | `electron-vite` | `electron.vite.config.ts`, `src/main/index.ts`, `src/preload/index.ts`, `src/renderer/index.html`, `src/renderer/src/main.tsx` | `src/shared/`, each renderer module's `index.ts`, the renderer's `shared/lib/` |
 | `vite-spa`      | `index.html`, `src/main.tsx`, `vite.config.ts`                                                                                 | `src/backend/`, each module's `index.ts`, `shared/lib/`                        |
+| `node-service`  | `src/main.ts`, `src/worker.ts`                                                                                                 | `src/backend/`, each module's `index.ts`, `shared/lib/`                        |

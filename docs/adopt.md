@@ -17,6 +17,7 @@ There are two ways in. A new project starts from this template. An existing proj
 | Turborepo or other monorepo             | [A monorepo](monorepo.md)                  |
 | Electron app (electron-vite)            | [An Electron project](electron.md)         |
 | Vite single-page React app              | [A Vite single-page app](vite.md)          |
+| Node HTTP service (Hono or similar)     | [A Node service](node-service.md)          |
 | Makerkit project                        | [A Makerkit project](makerkit.md)          |
 | PocketBase backend beside a Next.js app | [A PocketBase backend](pocketbase.md)      |
 
