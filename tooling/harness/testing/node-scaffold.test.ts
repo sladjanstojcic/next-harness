@@ -24,7 +24,7 @@ const DONE = {
 const MODULE_LINE =
   'Make Node load src/ as ES modules and resolve #/ to it (init does not edit apps/api/package.json): add "type": "module" and "imports": {"#/*":"./src/*"}';
 const OPTIONS_LINE =
-  'Set the compiler options Node runs TypeScript with (init does not edit them in apps/api/tsconfig.json): "module": "nodenext", "noEmit": true, "erasableSyntaxOnly": true, "verbatimModuleSyntax": true';
+  'Set the compiler options Node runs TypeScript with (init does not edit them in apps/api/tsconfig.json): "module": "nodenext" (or "node20"), "noEmit": true, "erasableSyntaxOnly": true, "verbatimModuleSyntax": true';
 
 describe("init in a node-service folder", () => {
   it("writes the service's configs and prints its two hand steps", () => {

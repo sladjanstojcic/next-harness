@@ -85,7 +85,8 @@ function checkSource(path: string): PathVerdict {
     return deny("app-file", `src/app/ takes app.ts and its test only: each module's routes belong in its routes.ts, mounted in app.ts ${LAYOUT}`);
   }
   if (area === "modules") return checkModule(inside);
-  if (area === "backend") return checkBackendFolder(inside, "src/backend/", LAYOUT);
+  // An integration test of the client is judged as the client's own name.
+  if (area === "backend") return checkBackendFolder([...inside.slice(0, -1), untested(inside.at(-1) ?? "")], "src/backend/", LAYOUT);
   if (area === "shared") {
     if (inside[0] !== "lib" || inside.length < 2) return deny("shared-shape", `Put shared code in src/shared/lib/; a service has no shared UI ${LAYOUT}`);
     if (inside.length > 2) return deny("nesting", `Keep src/shared/lib/ flat; move feature code into src/modules/<module>/ ${LAYOUT}`);

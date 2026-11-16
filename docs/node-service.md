@@ -89,7 +89,7 @@ A service folder that is not set up for Node yet gets two more printed steps, be
 
 ```text
 Make Node load src/ as ES modules and resolve #/ to it (init does not edit apps/api/package.json): add "type": "module" and "imports": {"#/*":"./src/*"}
-Set the compiler options Node runs TypeScript with (init does not edit them in apps/api/tsconfig.json): "module": "nodenext", "noEmit": true, "erasableSyntaxOnly": true, "verbatimModuleSyntax": true
+Set the compiler options Node runs TypeScript with (init does not edit them in apps/api/tsconfig.json): "module": "nodenext" (or "node20"), "noEmit": true, "erasableSyntaxOnly": true, "verbatimModuleSyntax": true
 ```
 
 Each lists only what is missing.
@@ -184,7 +184,7 @@ src/
   `src/shared/lib/log.ts`. `app.ts` and each `routes.ts` stay at most 80 lines (`thin-route`). A
   backend package such as `@supabase/supabase-js` is imported only in `src/backend/`.
 - **tsconfig.** `tsconfig-strict` and `tsconfig-node` judge `tsconfig.json` with what it extends: the
-  options shown above, and no `paths`. With `erasableSyntaxOnly`, tsc reports an `enum` or a
+  options shown above, with `"node20"` also taken for `module`, and no `paths`. With `erasableSyntaxOnly`, tsc reports an `enum` or a
   parameter property, which Node cannot strip.
 - **The lock** covers every `tsconfig*.json` of the workspace, beside the tool configs. The
   `Dockerfile` stays open.
