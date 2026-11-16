@@ -20,6 +20,7 @@ const VENDORED: Record<PresetLayout, string[]> = {
   spa: [...shadcnIn("src/"), ...generatedIn("src/backend/")],
   pocketbase: ["types/pocketbase*.d.ts"],
   e2e: [],
+  service: generatedIn("src/backend/"),
 };
 
 /** The TypeScript tool configs at a workspace top; a consumer's tsconfig leaves them out, so they are linted without types. */
@@ -30,7 +31,7 @@ const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
 export interface HarnessEslintOptions {
   /** The workspace folder holding tsconfig.json, for typed rules; ESLint and its plugins load from there. */
   root: string;
-  /** "app-root" for an app without src/ (app/, modules/, shared/ at its top), "package" for a shared package, "electron" for an electron-vite app, "spa" for a Vite single-page app, "pocketbase" for a PocketBase backend, "e2e" for a folder of Playwright tests; an app's src/ layout by default. */
+  /** "app-root" for an app without src/ (app/, modules/, shared/ at its top), "package" for a shared package, "electron" for an electron-vite app, "spa" for a Vite single-page app, "pocketbase" for a PocketBase backend, "e2e" for a folder of Playwright tests, "service" for a Node service; an app's src/ layout by default. */
   layout?: PresetLayout;
   /** Adds the Next.js core-web-vitals and TypeScript configs. */
   next?: boolean;
@@ -63,7 +64,7 @@ export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
   const { root, layout = "app", next = false, base = true, harness = "ignore" } = options;
   const vendored = options.vendored ?? VENDORED[layout];
   // An Electron or create-vite project's tsconfig projects name src/ and its own configs, so harness.config.ts is in none of them.
-  const untyped = layout === "electron" || layout === "spa" ? [...CONFIG_FILES, "harness.config.ts"] : CONFIG_FILES;
+  const untyped = layout === "electron" || layout === "spa" || layout === "service" ? [...CONFIG_FILES, "harness.config.ts"] : CONFIG_FILES;
   const tool = toolLoader(root, options.toolsFrom);
   const eslint = tool("eslint/config");
   const tseslint = defaultOf(tool("typescript-eslint"));

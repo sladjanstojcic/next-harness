@@ -7,7 +7,9 @@ parent: Adopt it
 # A Turborepo or other monorepo
 
 A monorepo gets one file, `harness.config.ts`, that says which folder has which shape. Each app is a
-workspace with its own shape; folders outside every workspace get only the root layout rules.
+workspace with its own shape; folders outside every workspace get only the root layout rules. A
+Node HTTP service beside the apps is a `node-service` workspace; [A Node service](node-service.md)
+shows one in a pnpm monorepo.
 
 The steps below were run on a fresh create-turbo project: two Next.js apps and three packages. It
 reached a passing check in the twelve steps below, which run the 21 steps init printed, with

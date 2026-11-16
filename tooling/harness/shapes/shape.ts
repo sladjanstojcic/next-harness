@@ -206,6 +206,31 @@ export function codeIndexBuilder(workspaceDir: string) {
   return { lines, section, sources };
 }
 
+/** The code index of a layout with src/backend/, src/modules/<module>/index.ts and src/shared/lib/, as the Vite and Node shapes have. */
+export function backendModulesIndex(workspaceDir: string): string[] {
+  const { lines, section, sources } = codeIndexBuilder(workspaceDir);
+  section("src/backend", "src/backend", sources("src/backend"));
+  for (const entry of sortedEntries(join(workspaceDir, "src/modules")).filter((entry) => entry.isDirectory())) {
+    section(entry.name, `src/modules/${entry.name}`, ["index.ts"]);
+  }
+  section("shared/lib", "src/shared/lib", sources("src/shared/lib"));
+  return lines;
+}
+
+/** `import.meta.env`, `import.meta["env"]`, or `env` destructured from `import.meta`; the compiler is passed in, so a shape loads without it. */
+export function readsImportMetaEnv(compiler: typeof ts, node: ts.Node): boolean {
+  const isMeta = (target: ts.Node): boolean =>
+    compiler.isMetaProperty(target) && target.keywordToken === compiler.SyntaxKind.ImportKeyword && target.name.text === "meta";
+  const isEnv = (key: ts.Node): boolean => (compiler.isIdentifier(key) || compiler.isStringLiteralLike(key)) && key.text === "env";
+  if (compiler.isPropertyAccessExpression(node)) return isEnv(node.name) && isMeta(node.expression);
+  if (compiler.isElementAccessExpression(node)) {
+    return compiler.isStringLiteralLike(node.argumentExpression) && isEnv(node.argumentExpression) && isMeta(node.expression);
+  }
+  const pattern = compiler.isVariableDeclaration(node) && node.initializer !== undefined && isMeta(node.initializer) ? node.name : undefined;
+  if (pattern === undefined || !compiler.isObjectBindingPattern(pattern)) return false;
+  return pattern.elements.some((element) => isEnv(element.propertyName ?? element.name));
+}
+
 /** The denials of a shared/ folder in a React app's source; each shape words them with its own paths and layout. */
 export interface SharedFolderText {
   shape: string;

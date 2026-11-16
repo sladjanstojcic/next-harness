@@ -4,6 +4,7 @@ import { electronVite } from "./electron/electron-vite.ts";
 import { makerkitApp } from "./makerkit/makerkit-app.ts";
 import { makerkitFeature } from "./makerkit/makerkit-feature.ts";
 import { nextModules, nextModulesAtRoot } from "./next-modules.ts";
+import { nodeService } from "./node/node-service.ts";
 import { packageShape } from "./package.ts";
 import { pocketbase } from "./pocketbase/pocketbase.ts";
 import type { Shape } from "./shape.ts";
@@ -20,6 +21,7 @@ const SHAPES: Partial<Record<ShapeName, Shape>> = {
   e2e,
   "vite-spa": viteSpa,
   pocketbase,
+  "node-service": nodeService,
 };
 
 /** A next-modules workspace whose source root is its own top gets that shape's root layout. */

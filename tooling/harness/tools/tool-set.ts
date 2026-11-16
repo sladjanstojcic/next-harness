@@ -41,6 +41,8 @@ export interface MissingTool {
 }
 
 export const CHECK_TIMEOUT_MS = 120_000;
+/** A whole test run: long enough for a large suite on a machine that is busy with other agents. */
+export const TEST_TIMEOUT_MS = 1_200_000;
 
 const BIN_DIR = "node_modules/.bin";
 

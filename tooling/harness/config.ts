@@ -106,6 +106,10 @@ const schema = z.strictObject({
           path: ["next"],
           message: "must not be true for the vite-spa shape, which is not a Next app",
         })
+        .refine((workspace) => workspace.shape !== "node-service" || workspace.next !== true, {
+          path: ["next"],
+          message: "must not be true for the node-service shape, which is not a Next app",
+        })
         .refine((workspace) => workspace.test === undefined || (workspace.tools ?? DEFAULT_TOOLS[workspace.shape]) !== "none", {
           path: ["test"],
           message: 'needs a tool set; a workspace with tools: "none" runs no steps',
@@ -225,7 +229,7 @@ export function workspaceOf<T extends WorkspaceEntry>(entries: readonly T[], fil
 export const isConfigOnly = (gitRoot: string, workspace: WorkspaceEntry): boolean =>
   workspace.shape === "package" && !fs.existsSync(path.join(gitRoot, workspace.path, "src"));
 
-/** depcruise, knip and jscpd run in next-modules, package, electron-vite and vite-spa workspaces; the Makerkit, supabase and e2e shapes do not install them. */
+/** depcruise, knip and jscpd run in next-modules, package, electron-vite, vite-spa and node-service workspaces; the Makerkit, supabase and e2e shapes do not install them. */
 export function analysisOf(config: HarnessConfig, entry: WorkspaceEntry): AnalysisName[] {
-  return ["next-modules", "package", "electron-vite", "vite-spa"].includes(entry.shape) ? (config.analysis ?? [...ANALYSIS_NAMES]) : [];
+  return ["next-modules", "package", "electron-vite", "vite-spa", "node-service"].includes(entry.shape) ? (config.analysis ?? [...ANALYSIS_NAMES]) : [];
 }

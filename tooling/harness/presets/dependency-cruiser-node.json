@@ -1,0 +1,75 @@
+{
+  "forbidden": [
+    {
+      "name": "no-circular",
+      "comment": "Break cycles by moving the shared rule to src/shared/lib/, or keep the dependency in one direction between module public APIs (Node layout).",
+      "severity": "error",
+      "from": {},
+      "to": { "circular": true }
+    },
+    {
+      "name": "edge-no-node",
+      "comment": "The HTTP edge parses, calls a module and answers; file, process and network work belongs in the module's data/ or in src/backend/ (Node layout).",
+      "severity": "error",
+      "from": { "path": "^src/(?:app/|modules/[^/]+/(?:routes|index|types|schemas)\\.ts$)", "pathNot": "\\.test\\.ts$" },
+      "to": { "dependencyTypes": ["core"] }
+    },
+    {
+      "name": "domain-no-node",
+      "comment": "A domain/ rule is plain TypeScript: file, process and network work belongs in the module's data/ (Node layout).",
+      "severity": "error",
+      "from": { "path": "^src/modules/[^/]+/domain/", "pathNot": "\\.test\\.ts$" },
+      "to": { "dependencyTypes": ["core"] }
+    },
+    {
+      "name": "backend-from-data-only",
+      "comment": "Call the backend through the module's data/, which alone imports the client from src/backend/; elsewhere import its types with \"import type\" (Node layout).",
+      "severity": "error",
+      "from": { "path": "^src/", "pathNot": ["^src/modules/[^/]+/data/", "^src/backend/", "\\.test\\.ts$"] },
+      "to": { "path": "^src/backend/", "dependencyTypesNot": ["type-only"] }
+    },
+    {
+      "name": "backend-own-code",
+      "comment": "src/backend/ holds the clients and their types only: no module or app code (Node layout).",
+      "severity": "error",
+      "from": { "path": "^src/backend/" },
+      "to": { "path": "^src/(app|modules)/" }
+    },
+    {
+      "name": "shared-not-up",
+      "comment": "Code in src/shared/ is used by every module and may import no module, app or backend client; the code that needs one belongs in src/modules/<module>/ (Node layout).",
+      "severity": "error",
+      "from": { "path": "^src/shared/" },
+      "to": { "path": "^src/(modules|app|backend)/" }
+    },
+    {
+      "name": "module-public-api",
+      "comment": "Import another module through its index.ts; keep internal imports inside their own module (Node layout).",
+      "severity": "error",
+      "from": { "path": "^src/(?:modules/([^/]+)/|app/|main\\.ts$|worker\\.ts$)" },
+      "to": {
+        "path": "^src/modules/([^/]+)/",
+        "pathNot": ["^src/modules/$1/", "^src/modules/[^/]+/index\\.ts$"]
+      }
+    },
+    {
+      "name": "domain-pure-path",
+      "comment": "A domain/ rule is plain TypeScript: I/O belongs in the module's data/ (Node layout).",
+      "severity": "error",
+      "from": { "path": "^src/modules/[^/]+/domain/", "pathNot": "\\.test\\.ts$" },
+      "to": { "path": "^src/modules/[^/]+/data/" }
+    },
+    {
+      "name": "not-to-test",
+      "comment": "Keep test fixtures and assertions in colocated *.test.ts files; move reusable production logic to domain/ or src/shared/lib/ (Node layout).",
+      "severity": "error",
+      "from": { "pathNot": "\\.test\\.ts$" },
+      "to": { "path": "\\.test\\.ts$" }
+    }
+  ],
+  "options": {
+    "tsConfig": { "fileName": "tsconfig.json" },
+    "tsPreCompilationDeps": true,
+    "doNotFollow": { "path": "node_modules" }
+  }
+}

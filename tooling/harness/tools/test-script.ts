@@ -1,5 +1,6 @@
 import { managerCommands } from "../core/init/bootstrap.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
+import { TEST_TIMEOUT_MS } from "./tool-set.ts";
 
 const TAIL_LINES = 40;
 
@@ -15,7 +16,7 @@ export function testScript(root: string, dir: string, script: string): ToolStep 
     name: "test",
     command: ["/bin/sh", "-c", 'exec "$@" 2>&1', "sh", ...managerCommands(root).run.split(" "), script],
     cwd: dir,
-    timeoutMs: 600_000,
+    timeoutMs: TEST_TIMEOUT_MS,
     findings: (stdout, exitCode) => {
       if (exitCode === 0) return [];
       const message = `The "${script}" script exited with ${String(exitCode)}. ${lastLines(stdout)}`;

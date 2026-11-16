@@ -2,13 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { sourcePaths, sourceRootOf, type WorkspaceEntry } from "../../config.ts";
 import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
-import { JSCPD_CACHE } from "../../tools/analysis.ts";
+import { jscpdOutput } from "../../tools/analysis.ts";
 import { eslintPresetLines, exportedName, exportsCall, presetCall, presetImport } from "../../tools/eslint-preset.ts";
 import { isObject, readJson, starterSteps, writer, type Step } from "./files.ts";
 import { BUNDLE_IGNORED, developsHarness, gitignoreStep, HARNESS_MODULES, IGNORED, prettierIgnored, ignoreEntriesStep } from "./ignore-files.ts";
-import { checksByProject, typecheckProjects } from "../../tools/typescript.ts";
+import { typecheckProjects } from "../../tools/typescript.ts";
 import { tsconfigSteps } from "./tsconfig-step.ts";
-import { viteVitestText } from "./vite/vite-steps.ts";
+import { cruiserPreset, knipPreset, vitestLines, vitestText } from "./shape-presets/shape-presets.ts";
 import { LINT_SCRIPT } from "./wiring.ts";
 
 interface ToolConfig {
@@ -49,30 +49,8 @@ export const PRETTIER: ToolConfig = {
 const VITEST: ToolConfig = {
   names: TOOL_CONFIG_NAMES.vitest,
   marker: "harnessVitest(",
-  text: (workspace) =>
-    workspace.shape === "vite-spa"
-      ? viteVitestText(workspace)
-      : `import { harnessVitest } from "${presetImport(workspace.path, "vitest.ts")}";\n\nexport default harnessVitest();\n`,
-  // An Electron project's own Vitest config holds its aliases and needs nothing from the preset.
-  lines: (workspace) =>
-    workspace.shape === "electron-vite"
-      ? []
-      : [
-          `import { mergeConfig } from "vitest/config"; import { harnessVitest } from "${presetImport(workspace.path, "vitest.ts")}";`,
-          "export default mergeConfig(harnessVitest(), yourConfig);",
-        ],
-};
-
-const KNIP_PRESETS: Partial<Record<WorkspaceEntry["shape"], string>> = {
-  package: "harnessKnipPackage",
-  "electron-vite": "harnessKnipElectron",
-  "vite-spa": "harnessKnipVite",
-};
-const knipPreset = (workspace: WorkspaceEntry): string => KNIP_PRESETS[workspace.shape] ?? "harnessKnip";
-const CRUISER_PRESETS: Partial<Record<WorkspaceEntry["shape"], string>> = {
-  package: "dependency-cruiser-package.json",
-  "electron-vite": "dependency-cruiser-electron.json",
-  "vite-spa": "dependency-cruiser-vite.json",
+  text: vitestText,
+  lines: vitestLines,
 };
 
 const KNIP: ToolConfig = {
@@ -188,7 +166,7 @@ function ownTestsStep(root: string, workspace: WorkspaceEntry): Step[] {
 function dependencyCruiserStep(root: string, workspace: WorkspaceEntry, force: boolean): Step {
   const target = label(workspace, ".dependency-cruiser.json");
   const file = path.join(root, target);
-  const preset = CRUISER_PRESETS[workspace.shape] ?? "dependency-cruiser.json";
+  const preset = cruiserPreset(workspace);
   const text = `{\n  "extends": "${presetImport(workspace.path, preset)}"\n}\n`;
   const apply = writer(file, text);
   if (!fs.existsSync(file)) return { target, status: "created", detail: "harness preset", apply };
@@ -209,7 +187,7 @@ export function toolScripts(workspace: WorkspaceEntry, dir = "", starter = false
   const analysis = {
     depcruise: `depcruise ${sources} --config .dependency-cruiser.json`,
     knip: "knip",
-    jscpd: `jscpd ${sources} --config ${presetImport(workspace.path, "jscpd.json")}${checksByProject(workspace.shape) ? ` --output ${JSCPD_CACHE}` : ""}`,
+    jscpd: [`jscpd ${sources} --config ${presetImport(workspace.path, "jscpd.json")}`, ...jscpdOutput(workspace.shape)].join(" "),
   };
   return {
     lint: LINT_SCRIPT,
@@ -224,7 +202,7 @@ export function toolScripts(workspace: WorkspaceEntry, dir = "", starter = false
 export function toolConfigSteps(root: string, workspace: WorkspaceEntry, force: boolean, starter: boolean): Step[] {
   const browser = workspace.path === "" && workspace.next;
   const app = isApp(workspace);
-  const bundled = workspace.shape === "electron-vite" || workspace.shape === "vite-spa";
+  const withoutStarter = ["electron-vite", "vite-spa", "node-service"].includes(workspace.shape);
   const ignored = [...(BUNDLE_IGNORED[workspace.shape] ?? IGNORED), ...(workspace.path === "" ? [HARNESS_MODULES] : [])];
   return [
     ...toolsOf(root, workspace).map((tool) => toolConfigStep(root, workspace, tool)),
@@ -235,7 +213,7 @@ export function toolConfigSteps(root: string, workspace: WorkspaceEntry, force: 
     ...(workspace.path === "" || !app ? [] : [ignoreEntriesStep(root, label(workspace, ".prettierignore"), prettierIgnored(workspace))]),
     ...(starter && workspace.shape === "next-modules" ? starterSteps(root, "next-modules", label(workspace, `${sourceRootOf(workspace)}shared/lib`)) : []),
     ...(starter && browser ? starterSteps(root, "e2e", label(workspace, "e2e")) : []),
-    ...(starter && bundled
+    ...(starter && withoutStarter
       ? [
           {
             target: label(workspace, "src"),

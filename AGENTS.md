@@ -138,7 +138,7 @@ Full rules: <https://sladjanstojcic.github.io/next-harness/>
 
 - A rule lives once, in code, and the guards, the audit and the block above read it there. A workspace's folders, names
   and content rules are in its shape's file in `tooling/harness/shapes/` (`next-modules.ts`, or the `electron/`,
-  `makerkit/` and `vite/` folders), its size limits in `shapes/limits.ts`, and the root layout in
+  `makerkit/`, `vite/` and `node/` folders), its size limits in `shapes/limits.ts`, and the root layout in
   `core/root-layout.ts`. Change that source when a rule must change.
 - The block between the harness markers is generated from `tooling/harness/guides/`: one guide per shape, plus
   `common.md`. Edit the guide, never the block, then run `node tooling/harness/cli.ts init`; the audit rule
@@ -157,6 +157,7 @@ Full rules: <https://sladjanstojcic.github.io/next-harness/>
   - `package`: one module moved out to a shared package ([docs/packages.md](docs/packages.md)).
   - `electron-vite`: an Electron app built with electron-vite ([docs/electron.md](docs/electron.md)).
   - `vite-spa`: a single-page React app built with Vite ([docs/vite.md](docs/vite.md)).
+  - `node-service`: a long-running Node HTTP service that runs its TypeScript source ([docs/node-service.md](docs/node-service.md)).
   - `makerkit-app` and `makerkit-feature`: a Makerkit app and its feature packages ([docs/makerkit.md](docs/makerkit.md)).
   - `supabase` and `e2e`: the database folder and a folder of Playwright tests
     ([docs/configuration.md](docs/configuration.md#shapes-without-a-page-of-their-own)).

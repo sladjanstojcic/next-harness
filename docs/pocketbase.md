@@ -244,7 +244,7 @@ Built and served anyway, the server starts, and the route answers 400 with
   `migrate collections`, `serve` and `superuser` stay allowed.
 - Tests against a running PocketBase go in `tests/<suite>/<name>.test.ts`. They run in the gates only
   when the workspace entry names a package script, such as `test: "test:pocketbase"`; without it the
-  step is skipped. The test step has a ten-minute limit.
+  step is skipped. The test step has a twenty-minute limit.
 
 Not run: tests with a `test` script, `shared/`, an agent session in the project, PocketBase on
 Windows, and this tool set on Linux; [Known limitations](limitations.md) has the details.

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { sourcePaths, sourceRootOf, type WorkspaceEntry } from "../config.ts";
+import { sourcePaths, sourceRootOf, type ShapeName, type WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import { shapeOf } from "../shapes/index.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
@@ -82,8 +82,8 @@ function dependencyResult(root: string, workspace: WorkspaceEntry, stdout: strin
   // The preset's comments name src/ paths; a workspace without src/ reads them with its own.
   const advice = (comment = "Keep imports within the module or use its public API; cross-cutting code belongs in src/shared/lib/."): string =>
     sourceRootOf(workspace) === "" ? comment.replaceAll("src/", "") : comment;
-  // A violation names its rule without the rule's comment; the Electron and Vite presets' comments say which part may import what.
-  const rules = checksByProject(workspace.shape) ? (result.summary.ruleSetUsed?.forbidden ?? []) : [];
+  // A violation names its rule without the rule's comment; the Electron, Vite and Node presets' comments say which part may import what.
+  const rules = checksByProject(workspace.shape) || workspace.shape === "node-service" ? (result.summary.ruleSetUsed?.forbidden ?? []) : [];
   const comments = new Map(rules.map(({ name, comment }) => [name, comment]));
   const findings = result.summary.violations.map(({ rule, from, to }) => ({
     rule: rule.name,
@@ -158,8 +158,10 @@ export const knip = {
   check: (dir: string): ToolStep => check(dir, "knip", "knip", []),
 };
 
-/** Where an Electron or Vite project's jscpd report goes: a folder every project ignores, since it has no .next/ for the preset's. */
+/** Where jscpd's report goes outside a Next app: a folder every project ignores, since it has no .next/ for the preset's. */
 export const JSCPD_CACHE = "node_modules/.cache/jscpd";
+/** The preset's own `output` is a Next app's .next/jscpd/; every other workspace names the cache instead. */
+export const jscpdOutput = (shape: ShapeName): string[] => (shape === "next-modules" ? [] : ["--output", JSCPD_CACHE]);
 
 /** The workspace's own .jscpd.json, or the harness preset; jscpd has no `extends`. */
 function jscpdConfig(dir: string, workspacePath: string): string {
@@ -184,8 +186,7 @@ export const jscpd = {
   }),
   check: (dir: string, workspace: WorkspaceEntry): ToolStep => {
     const folders = [...sources(dir, workspace), "tooling"].filter((file) => fs.existsSync(path.join(dir, file)));
-    const output = checksByProject(workspace.shape) ? ["--output", JSCPD_CACHE] : [];
-    return check(dir, "jscpd", "jscpd", [...folders, "--config", jscpdConfig(dir, workspace.path), ...output]);
+    return check(dir, "jscpd", "jscpd", [...folders, "--config", jscpdConfig(dir, workspace.path), ...jscpdOutput(workspace.shape)]);
   },
 };
 

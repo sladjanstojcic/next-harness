@@ -1,11 +1,12 @@
 import { existsSync } from "node:fs";
 import { join, posix, relative, sep } from "node:path";
-import { checksByProject, tsconfigInForce, type TsconfigInForce } from "../../tools/typescript.ts";
-import { resolveHarness } from "../path-check.ts";
-import type { Finding } from "./finding.ts";
+import { checksByProject, tsconfigInForce, type TsconfigInForce } from "../../../tools/typescript.ts";
+import { resolveHarness } from "../../path-check.ts";
+import type { Finding } from "../finding.ts";
+import { nodeTsconfigFindings } from "./tsconfig-node.ts";
 
 /** The shapes whose type check the harness relies on; the Makerkit and supabase shapes keep the kit's own settings. */
-const JUDGED = ["next-modules", "package", "electron-vite", "vite-spa", "pocketbase"];
+const JUDGED = ["next-modules", "package", "electron-vite", "vite-spa", "pocketbase", "node-service"];
 
 function judge(file: string, config: TsconfigInForce): Finding[] {
   const name = posix.basename(file);
@@ -44,6 +45,8 @@ export function auditTsconfigs(root: string): Finding[] {
       const config = tsconfigInForce(join(root, file));
       if (config === undefined) return [];
       // An electron-vite or vite-spa workspace is type-checked project by project, so each project it refers to is the one judged.
+      // A node-service workspace's source runs under Node as written, so its tsconfig.json also has Node's options.
+      if (workspace.shape === "node-service") return [...judge(file, config), ...nodeTsconfigFindings(file, config.options)];
       if (!checksByProject(workspace.shape) || !config.checksNothing || config.references.length === 0) return judge(file, config);
       return config.references.flatMap((reference) => {
         const referenced = tsconfigInForce(reference);
