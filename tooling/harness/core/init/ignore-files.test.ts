@@ -30,8 +30,18 @@ describe("a pocketbase folder is ignored at the root only", () => {
     expect(text).toBe(`build\n${APP_LINES}/pocketbase\n${HARNESS_LINES}`);
   });
 
-  it("anchors the older line with a trailing slash too", () => {
-    expect(prettierStep(`${APP_LINES}pocketbase/\n${HARNESS_LINES}`).text).toBe(`${APP_LINES}/pocketbase\n${HARNESS_LINES}`);
+  it("keeps `pocketbase/`, a line no init wrote, unchanged", () => {
+    const existing = `${APP_LINES}pocketbase/\n${HARNESS_LINES}`;
+    const { step, text } = prettierStep(existing);
+    expect(step?.status).toBe("unchanged");
+    expect(text).toBe(existing);
+  });
+
+  it("keeps a bare line beside the anchored one: then the bare line is the user's", () => {
+    const existing = `${APP_LINES}/pocketbase\npocketbase\n${HARNESS_LINES}`;
+    const { step, text } = prettierStep(existing);
+    expect(step?.status).toBe("unchanged");
+    expect(text).toBe(existing);
   });
 
   it("leaves an anchored line, and a user's own unanchored line, as they are", () => {

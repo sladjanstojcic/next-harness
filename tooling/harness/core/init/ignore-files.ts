@@ -47,7 +47,7 @@ function ignoreFileStep(
   target: string,
   entries: readonly string[],
   isMissing: (entry: string, current: string) => boolean,
-  replacing: (line: string) => string | undefined = () => undefined,
+  replacing: (line: string, before: string) => string | undefined = () => undefined,
 ): Step {
   const file = path.join(root, target);
   const before = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
@@ -55,7 +55,7 @@ function ignoreFileStep(
   const current = before
     .split("\n")
     .map((line) => {
-      const entry = replacing(line.trim());
+      const entry = replacing(line.trim(), before);
       if (entry === undefined) return line;
       replaced.push(`${line.trim()} → ${entry}`);
       return `${entry}${line.endsWith("\r") ? "\r" : ""}`;
@@ -80,18 +80,23 @@ export function gitignoreStep(root: string, folder: string, entries: readonly st
 
 /**
  * Appends the entries a gitignore-style file lacks; a listed entry counts with or without its leading or trailing slash.
- * An entry anchored at the root, `/name`, replaces a line `name`: in gitignore syntax that matches a folder of the name at any depth.
+ * An entry anchored at the root, `/name`, replaces the line `name` an older init wrote, which in gitignore syntax matches a
+ * folder of the name at any depth; beside a listed `/name` that line is the user's and stays.
  */
 export function ignoreEntriesStep(root: string, target: string, entries: readonly string[]): Step {
   const bare = (line: string): string => line.trim().replace(/^\/|\/$/g, "");
   const listed = (current: string): Set<string> => new Set(current.split(/\r?\n/).map(bare));
   const unanchored = new Map(entries.filter((entry) => /^\/[^/]+$/.test(entry)).map((entry) => [entry.slice(1), entry]));
+  const anchoredIn = (entry: string, before: string): boolean => before.split(/\r?\n/).some((line) => line.trim().replace(/\/$/, "") === entry);
   return ignoreFileStep(
     root,
     target,
     entries,
     (entry, current) => !listed(current).has(bare(entry)),
-    (line) => unanchored.get(line.replace(/\/$/, "")),
+    (line, before) => {
+      const entry = unanchored.get(line);
+      return entry === undefined || anchoredIn(entry, before) ? undefined : entry;
+    },
   );
 }
 
