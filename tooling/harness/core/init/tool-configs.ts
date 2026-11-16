@@ -5,7 +5,7 @@ import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { jscpdOutput } from "../../tools/analysis.ts";
 import { eslintPresetLines, exportedName, exportsCall, presetCall, presetImport } from "../../tools/eslint-preset.ts";
 import { isObject, readJson, starterSteps, writer, type Step } from "./files.ts";
-import { BUNDLE_IGNORED, developsHarness, gitignoreStep, HARNESS_MODULES, IGNORED, prettierIgnored, ignoreEntriesStep } from "./ignore-files.ts";
+import { BUNDLE_IGNORED, developsHarness, gitignoreStep, IGNORED, prettierIgnored, ignoreEntriesStep, rootIgnored } from "./ignore-files.ts";
 import { typecheckProjects } from "../../tools/typescript.ts";
 import { tsconfigSteps } from "./tsconfig-step.ts";
 import { cruiserPreset, knipPreset, vitestLines, vitestText } from "./shape-presets/shape-presets.ts";
@@ -203,7 +203,7 @@ export function toolConfigSteps(root: string, workspace: WorkspaceEntry, force: 
   const browser = workspace.path === "" && workspace.next;
   const app = isApp(workspace);
   const withoutStarter = ["electron-vite", "vite-spa", "node-service"].includes(workspace.shape);
-  const ignored = [...(BUNDLE_IGNORED[workspace.shape] ?? IGNORED), ...(workspace.path === "" ? [HARNESS_MODULES] : [])];
+  const ignored = [...(BUNDLE_IGNORED[workspace.shape] ?? IGNORED), ...(workspace.path === "" ? rootIgnored(root) : [])];
   return [
     ...toolsOf(root, workspace).map((tool) => toolConfigStep(root, workspace, tool)),
     ...ownTestsStep(root, workspace),

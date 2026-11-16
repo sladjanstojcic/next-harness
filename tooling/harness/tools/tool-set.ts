@@ -40,7 +40,8 @@ export interface MissingTool {
   finding: Finding;
 }
 
-export const CHECK_TIMEOUT_MS = 120_000;
+/** A format, lint, type or analysis step: long enough on a machine busy with other agents, and inside the 300 s a client gives the hook at the end of a turn. */
+export const CHECK_TIMEOUT_MS = 240_000;
 /** A whole test run: long enough for a large suite on a machine that is busy with other agents. */
 export const TEST_TIMEOUT_MS = 1_200_000;
 
