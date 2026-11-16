@@ -20,7 +20,8 @@ steps to add.
 
 **Ignore files.** The root `.gitignore` gets `tooling/harness/node_modules/`, since create-next-app
 ignores only `/node_modules`; the audit reports any committed `node_modules` file as
-`tracked-node-modules`. The root `.prettierignore`, which Prettier and oxfmt read, gets `tooling/harness`
+`tracked-node-modules`. Beside a `turbo.json` it also gets `.turbo/`, Turborepo's cache and logs.
+The root `.prettierignore`, which Prettier and oxfmt read, gets `tooling/harness`
 and `harness.config.ts`, and so does `.eslintignore`, which oxlint reads, when a workspace uses oxc. A
 project's `prettier --write .`, `oxfmt` or `oxlint --fix` then leaves the locked harness alone.
 

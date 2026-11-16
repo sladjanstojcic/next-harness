@@ -101,8 +101,10 @@ parent: Reference
   finds; they do not fail the step.
 - The legacy rule is per file. Touching an old file makes all of its old lint, format and type findings
   block, which can turn a one-line change into a larger one.
-- The full lint step has a 120 s limit. On a loaded machine a large app reached it, though the lint
-  alone took 33 s.
+- A format, lint, type or analysis step has a 240 s limit. It was 120 s, which a lint that takes 28 s
+  alone passed on a machine busy with other agents. The hook at the end of a turn has 300 s for all its
+  steps, set in the hook settings init writes, so a turn whose steps together need more is cut off by
+  the client; the pre-push hook and CI have no such total.
 - With `tools: "none"` on the `e2e` shape the paths, names and folder size are still judged, but the
   250-line limit is not, because that limit is a lint rule. The Playwright tests themselves run in the
   gates only when the workspace names a `test` script, and they need whatever the tests need: a
