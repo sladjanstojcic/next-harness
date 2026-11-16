@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { audit } from "../core/audit/audit.ts";
-import * as runner from "../core/gates/run-tool.ts";
-import { parseEvent } from "../core/hooks/event.ts";
-import { handleEvent } from "../core/hooks/handle.ts";
+import { audit } from "../../core/audit/audit.ts";
+import * as runner from "../../core/gates/run-tool.ts";
+import { parseEvent } from "../../core/hooks/event.ts";
+import { handleEvent } from "../../core/hooks/handle.ts";
 import { nodeMonorepo, nodeProject } from "./node-repo.ts";
-import type { RepoFixture } from "./temp-repo.ts";
+import type { RepoFixture } from "../temp-repo.ts";
 
 afterEach(() => vi.restoreAllMocks());
 

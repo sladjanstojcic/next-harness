@@ -8,7 +8,7 @@ import { isObject, readJson, starterSteps, writer, type Step } from "./files.ts"
 import { BUNDLE_IGNORED, developsHarness, gitignoreStep, HARNESS_MODULES, IGNORED, prettierIgnored, ignoreEntriesStep } from "./ignore-files.ts";
 import { typecheckProjects } from "../../tools/typescript.ts";
 import { tsconfigSteps } from "./tsconfig-step.ts";
-import { cruiserPreset, knipPreset, vitestLines, vitestText } from "./shape-presets.ts";
+import { cruiserPreset, knipPreset, vitestLines, vitestText } from "./shape-presets/shape-presets.ts";
 import { LINT_SCRIPT } from "./wiring.ts";
 
 interface ToolConfig {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { auditTsconfigs } from "../core/audit/tsconfig-rules.ts";
+import { auditTsconfigs } from "../core/audit/tsconfig/tsconfig-rules.ts";
 import { prettierIgnored } from "../core/init/ignore-files.ts";
 import { toolConfigSteps } from "../core/init/tool-configs.ts";
 import { isLocked } from "../core/lock.ts";

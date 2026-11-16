@@ -1,5 +1,5 @@
-import { ts } from "../../tools/typescript.ts";
-import type { Finding } from "./finding.ts";
+import { ts } from "../../../tools/typescript.ts";
+import type { Finding } from "../finding.ts";
 
 /** What Node needs to run the TypeScript source as it is, and tsc to check it the way Node runs it. */
 const REQUIRED: readonly { option: keyof ts.CompilerOptions; holds: (options: ts.CompilerOptions) => boolean; set: string; why: string }[] = [

@@ -1,6 +1,6 @@
-import type { WorkspaceEntry } from "../../config.ts";
-import { presetImport } from "../../tools/eslint-preset.ts";
-import { viteVitestText } from "./vite/vite-steps.ts";
+import type { WorkspaceEntry } from "../../../config.ts";
+import { presetImport } from "../../../tools/eslint-preset.ts";
+import { viteVitestText } from "../vite/vite-steps.ts";
 
 /** The knip preset of each shape that has its own; harnessKnip otherwise. */
 const KNIP_PRESETS: Partial<Record<WorkspaceEntry["shape"], string>> = {

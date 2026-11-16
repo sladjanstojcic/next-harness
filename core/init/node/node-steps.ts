@@ -1,7 +1,7 @@
 import path from "node:path";
 import type { WorkspaceEntry } from "../../../config.ts";
 import { compilerOptionsInForce } from "../../../tools/typescript.ts";
-import { nodeTsconfigFindings } from "../../audit/tsconfig-node.ts";
+import { nodeTsconfigFindings } from "../../audit/tsconfig/tsconfig-node.ts";
 import { isObject, readJson } from "../files.ts";
 
 /** Node loads src/ as ES modules, and `#/` resolves through package.json, since Node applies no tsconfig paths. */

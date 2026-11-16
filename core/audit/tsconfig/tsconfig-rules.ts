@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 import { join, posix, relative, sep } from "node:path";
-import { checksByProject, tsconfigInForce, type TsconfigInForce } from "../../tools/typescript.ts";
-import { resolveHarness } from "../path-check.ts";
-import type { Finding } from "./finding.ts";
+import { checksByProject, tsconfigInForce, type TsconfigInForce } from "../../../tools/typescript.ts";
+import { resolveHarness } from "../../path-check.ts";
+import type { Finding } from "../finding.ts";
 import { nodeTsconfigFindings } from "./tsconfig-node.ts";
 
 /** The shapes whose type check the harness relies on; the Makerkit and supabase shapes keep the kit's own settings. */

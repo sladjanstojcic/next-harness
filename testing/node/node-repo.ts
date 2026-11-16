@@ -1,14 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import type { RepoFixture } from "./temp-repo.ts";
-import { consumerRepo } from "./template-repo.ts";
+import type { RepoFixture } from "../temp-repo.ts";
+import { consumerRepo } from "../template-repo.ts";
 
 /**
  * A Node service in the node-service shape: the entry, the app that mounts one module's routes, the module's domain/
  * with its test and data/, the Supabase client in src/backend/ and the validated environment in src/shared/lib/.
  */
-const AD_API = z.record(z.string(), z.string()).parse(JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "fixtures/ad-api.json"), "utf8")));
+const AD_API = z.record(z.string(), z.string()).parse(JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "../fixtures/ad-api.json"), "utf8")));
 
 /** The service at the repository root. */
 export function nodeProject(): RepoFixture {
