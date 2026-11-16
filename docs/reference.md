@@ -105,6 +105,11 @@ shell snapshots per session. The Done gate takes a lock, so only one agent runs 
 incremental `tsc` at a time. A dead, corrupt or abandoned lock is removed; a live one is awaited for
 up to five minutes.
 
+A session started in one worktree may write into another worktree of the same repository. An Edit or
+Write call there is judged by the worktree that holds the file: its paths, its lock and its config. In
+a worktree without installed packages every call is denied except the plain install,
+`pnpm install --frozen-lockfile`.
+
 ## Inside `tooling/harness/`
 
 ```text
