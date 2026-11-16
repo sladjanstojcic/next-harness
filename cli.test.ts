@@ -65,6 +65,22 @@ describe("hook CLI", () => {
     expect(other.stderr).not.toContain("Cannot find package");
   }, 60_000);
 
+  it("judges a write into another worktree of the repository by that worktree, and leaves another repository alone", () => {
+    const repo = makeRepo({ "tsconfig.json": "{}\n" });
+    const linked = path.join(path.dirname(repo.root), "linked");
+    repo.git("worktree", "add", "-q", "--detach", linked);
+    const foreign = makeRepo();
+    const write = (file: string) =>
+      hook(repo.root, { session_id: "s", cwd: repo.root, hook_event_name: "PreToolUse", tool_name: "Write", tool_input: { file_path: file } });
+    const denied = write(path.join(linked, "src/utils/x.ts"));
+    expect(denied.stderr).toContain("src-shape");
+    expect(denied.status).toBe(2);
+    const locked = write(path.join(linked, "tsconfig.json"));
+    expect([locked.status, locked.stderr]).toEqual([2, expect.stringContaining("locked")]);
+    expect(write(path.join(linked, "src/modules/ads/index.ts")).status).toBe(0);
+    expect(write(path.join(foreign.root, "src/utils/x.ts")).status).toBe(0);
+  }, 60_000);
+
   it.each([
     ["PreToolUse", 2],
     ["PostToolUse", 0],
