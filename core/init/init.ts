@@ -173,7 +173,7 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
         `Bundle the packages the preload script imports, which a sandboxed preload cannot load and electron-vite leaves outside the bundle (init does not edit ${file}), by adding this to its preload section, and removing externalizeDepsPlugin() from that section's plugins when it is there: ${PRELOAD_BUNDLE_SETTING}`,
     ),
     ...viteTodo(root, workspaces),
-    ...nodeTodo(root, workspaces),
+    ...nodeTodo(root, harness.workspaces),
     ...pocketbaseTodo(root, harness.workspaces),
     ...e2eTodo(root, workspaces),
     ...shadcnTodo(root, workspaces),

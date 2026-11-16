@@ -1,5 +1,5 @@
 import type ts from "typescript";
-import { isImportMeta, type SourceFinding } from "../shape.ts";
+import { readsImportMetaEnv, type SourceFinding } from "../shape.ts";
 
 export const NODE_LAYOUT = "(Node layout)";
 export const ENV_FILE = "src/shared/lib/env.ts";
@@ -8,15 +8,15 @@ const MAX_ROUTE_LINES = 80;
 const ROUTE_FILE = /^src\/(?:app\/app|modules\/[^/]+\/routes)\.ts$/;
 type Compiler = typeof ts;
 
-/** The specifier of an import, a re-export, a dynamic import() or require(), when it is a string literal. */
-function specifierOf(ts: Compiler, node: ts.Node): ts.Node | undefined {
+/** The specifier of an import, a re-export, a dynamic import() or require(), when it is a string literal or a template without substitutions. */
+function specifierOf(ts: Compiler, node: ts.Node): ts.StringLiteralLike | undefined {
   if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
     return node.moduleSpecifier;
   }
   const call =
     ts.isCallExpression(node) &&
     (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === "require"));
-  return call && node.arguments[0] !== undefined && ts.isStringLiteral(node.arguments[0]) ? node.arguments[0] : undefined;
+  return call && node.arguments[0] !== undefined && ts.isStringLiteralLike(node.arguments[0]) ? node.arguments[0] : undefined;
 }
 
 /** Node runs the source as written: it resolves no extensionless path and applies no tsconfig `paths`. */
@@ -26,7 +26,7 @@ function importAdvice(specifier: string): string | undefined {
   }
   const local = specifier.startsWith(".") || specifier.startsWith("#/");
   if (!local || /\.(?:ts|json)$/.test(specifier)) return undefined;
-  return `Name the file with its .ts extension (${specifier.replace(/\.[cm]?js$/, "")}.ts): Node runs the TypeScript source and resolves the path exactly as written`;
+  return `Name the file with its .ts extension (${specifier.replace(/\.(?:[cm]?[jt]s|[jt]sx)$/, "")}.ts): Node runs the TypeScript source and resolves the path exactly as written`;
 }
 
 /**
@@ -49,14 +49,14 @@ export function nodeSourceRules(path: string, source: ts.SourceFile, ts: Compile
     );
   }
   const visit = (node: ts.Node): void => {
-    if (ts.isPropertyAccessExpression(node) && node.name.text === "env" && isImportMeta(ts, node.expression)) {
+    if (readsImportMetaEnv(ts, node)) {
       add("env-access", lineOf(node), `import.meta.env belongs to bundlers; read process.env in ${ENV_FILE} only, where it is validated once`);
     }
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text === "server-only") {
       add("server-only", lineOf(node), 'Remove "server-only": it is a Next.js package, and a service has no client bundle');
     }
     const specifier = specifierOf(ts, node);
-    const advice = specifier !== undefined && ts.isStringLiteral(specifier) ? importAdvice(specifier.text) : undefined;
+    const advice = specifier === undefined ? undefined : importAdvice(specifier.text);
     if (specifier !== undefined && advice !== undefined) add("node-import", lineOf(specifier), advice);
     ts.forEachChild(node, visit);
   };

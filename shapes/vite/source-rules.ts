@@ -1,24 +1,9 @@
 import type ts from "typescript";
-import { isImportMeta, type SourceFinding } from "../shape.ts";
+import { readsImportMetaEnv, type SourceFinding } from "../shape.ts";
 
 export const VITE_LAYOUT = "(Vite layout)";
 export const ENV_FILE = "src/shared/lib/env.ts";
 type Compiler = typeof ts;
-
-/** `import.meta.env`, `import.meta["env"]`, or `env` taken from `import.meta` by destructuring. */
-function readsEnv(ts: Compiler, node: ts.Node): boolean {
-  if (ts.isPropertyAccessExpression(node)) return node.name.text === "env" && isImportMeta(ts, node.expression);
-  if (ts.isElementAccessExpression(node)) {
-    const key = node.argumentExpression;
-    return ts.isStringLiteralLike(key) && key.text === "env" && isImportMeta(ts, node.expression);
-  }
-  if (!ts.isVariableDeclaration(node) || node.initializer === undefined || !isImportMeta(ts, node.initializer)) return false;
-  if (!ts.isObjectBindingPattern(node.name)) return false;
-  return node.name.elements.some((element) => {
-    const key = element.propertyName ?? element.name;
-    return (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) && key.text === "env";
-  });
-}
 
 /**
  * The rules only a Vite app has: under src/, `import.meta.env` is read in src/shared/lib/env.ts only, where it is
@@ -31,7 +16,7 @@ export function viteSourceRules(path: string, source: ts.SourceFile, ts: Compile
     findings.push({ rule, line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1, message: `${message} ${VITE_LAYOUT}` });
   };
   const visit = (node: ts.Node): void => {
-    if (path !== ENV_FILE && readsEnv(ts, node)) {
+    if (path !== ENV_FILE && readsImportMetaEnv(ts, node)) {
       add("env-access", node, `Read import.meta.env in ${ENV_FILE} only, where it is validated once; import its typed env value here`);
     }
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text === "server-only") {

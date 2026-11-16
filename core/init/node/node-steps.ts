@@ -9,7 +9,8 @@ const IMPORTS = { "#/*": "./src/*" };
 
 /**
  * The hand steps of a node-service workspace: its package.json makes src/ ES modules with the `#/` map, and its
- * tsconfig.json has the options Node runs TypeScript with. Init's own tsconfig step sets allowImportingTsExtensions.
+ * tsconfig.json has the options Node runs TypeScript with. Init's own tsconfig step sets allowImportingTsExtensions,
+ * in the eslint-prettier workspaces it writes configs for.
  */
 function workspaceTodo(root: string, workspace: WorkspaceEntry): string[] {
   const dir = path.join(root, workspace.path);
@@ -18,9 +19,13 @@ function workspaceTodo(root: string, workspace: WorkspaceEntry): string[] {
   const imports = isObject(manifest.imports) ? manifest.imports : {};
   const esModules = manifest.type === "module" && imports["#/*"] === IMPORTS["#/*"];
   const options = compilerOptionsInForce(path.join(dir, "tsconfig.json")) ?? {};
-  const missing = nodeTsconfigFindings("tsconfig.json", options)
+  const findings = nodeTsconfigFindings("tsconfig.json", options);
+  const hasPaths = (message: string): boolean => message.startsWith("compilerOptions.paths ");
+  const initSets = workspace.tools === "eslint-prettier" ? "allowImportingTsExtensions" : undefined;
+  const missing = findings
+    .filter(({ message }) => !hasPaths(message))
     .map(({ message }) => /set (.*?), since/.exec(message)?.[1] ?? "")
-    .filter((setting) => setting !== "" && !setting.includes("allowImportingTsExtensions"));
+    .filter((setting) => setting !== "" && (initSets === undefined || !setting.includes(initSets)));
   return [
     ...(esModules
       ? []
@@ -30,6 +35,11 @@ function workspaceTodo(root: string, workspace: WorkspaceEntry): string[] {
     ...(missing.length === 0
       ? []
       : [`Set the compiler options Node runs TypeScript with (init does not edit them in ${label("tsconfig.json")}): ${missing.join(", ")}`]),
+    ...(findings.some(({ message }) => hasPaths(message))
+      ? [
+          `Remove "paths" from compilerOptions (init does not edit ${label("tsconfig.json")}) and import through package.json "imports" (#/*): Node does not apply tsconfig paths`,
+        ]
+      : []),
   ];
 }
 

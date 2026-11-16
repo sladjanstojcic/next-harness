@@ -26,6 +26,9 @@ const MODULE_LINE =
 const OPTIONS_LINE =
   'Set the compiler options Node runs TypeScript with (init does not edit them in apps/api/tsconfig.json): "module": "nodenext" (or "node20"), "noEmit": true, "erasableSyntaxOnly": true, "verbatimModuleSyntax": true';
 
+const PATHS_LINE =
+  'Remove "paths" from compilerOptions (init does not edit apps/api/tsconfig.json) and import through package.json "imports" (#/*): Node does not apply tsconfig paths';
+
 describe("init in a node-service folder", () => {
   it("writes the service's configs and prints its two hand steps", () => {
     const repo = consumerRepo(FRESH);
@@ -43,6 +46,23 @@ describe("init in a node-service folder", () => {
     const lines = report.split("\n");
     expect(lines.filter((line) => line.endsWith(MODULE_LINE))).toHaveLength(1);
     expect(lines.filter((line) => line.endsWith(OPTIONS_LINE))).toHaveLength(1);
+  });
+
+  it("prints the paths removal as a step of its own", () => {
+    const tsconfig = JSON.stringify({ compilerOptions: { strict: true, paths: { "@/*": ["./src/*"] } }, include: ["src"] });
+    const { report } = initHarness(consumerRepo({ ...FRESH, "apps/api/tsconfig.json": tsconfig }).root, { force: false, starter: false });
+    const lines = report.split("\n");
+    expect(lines.filter((line) => line.endsWith(OPTIONS_LINE))).toHaveLength(1);
+    expect(lines.filter((line) => line.endsWith(PATHS_LINE))).toHaveLength(1);
+  });
+
+  it("prints every option for a service init writes no tsconfig setting in", () => {
+    const config = CONFIG.replace('shape: "node-service"', 'shape: "node-service", tools: "none"');
+    const { report, ok } = initHarness(consumerRepo({ ...FRESH, "harness.config.ts": config }).root, { force: false, starter: false });
+    expect(ok, report).toBe(true);
+    const lines = report.split("\n");
+    expect(lines.filter((line) => line.endsWith(MODULE_LINE))).toHaveLength(1);
+    expect(lines.filter((line) => line.endsWith(OPTIONS_LINE.replace('"noEmit": true', '"noEmit": true, "allowImportingTsExtensions": true')))).toHaveLength(1);
   });
 
   it("prints neither hand step once both are done", () => {
