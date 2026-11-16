@@ -10,7 +10,7 @@ import { listFiles, trackedDependencyFolders } from "./list-files.ts";
 import { auditPaths } from "./path-rules.ts";
 import { auditPreloadBundles } from "./preload-bundle.ts";
 import { auditUiStack } from "./stack/ui-stack.ts";
-import { auditTsconfigs } from "./tsconfig-rules.ts";
+import { auditTsconfigs } from "./tsconfig/tsconfig-rules.ts";
 
 /** Vendored files are exempt and upstream files are not the harness's to judge; legacy files are audited and reported as pre-existing. */
 function present(root: string, files: string[]): string[] {

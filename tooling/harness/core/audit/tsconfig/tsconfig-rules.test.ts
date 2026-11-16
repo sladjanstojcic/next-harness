@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pocketbaseRepo } from "../../testing/pocketbase/pocketbase-repo.ts";
+import { pocketbaseRepo } from "../../../testing/pocketbase/pocketbase-repo.ts";
 import { auditTsconfigs } from "./tsconfig-rules.ts";
 
 describe("auditTsconfigs", () => {
