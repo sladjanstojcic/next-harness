@@ -39,7 +39,7 @@ describe("dependency-cruiser, knip and jscpd in a package (create-turbo in minia
     expect((JSON.parse(repo.read(`${BILLING}/package.json`)) as { scripts: Record<string, string> }).scripts).toMatchObject({
       depcruise: "depcruise src --config .dependency-cruiser.json",
       knip: "knip",
-      jscpd: "jscpd src --config ../../tooling/harness/presets/jscpd.json",
+      jscpd: "jscpd src --config ../../tooling/harness/presets/jscpd.json --output node_modules/.cache/jscpd",
     });
     expect(fs.existsSync(path.join(repo.root, "packages/eslint-config/knip.config.ts"))).toBe(false);
     expect(await analyse(repo.root, BILLING)).toEqual([]);

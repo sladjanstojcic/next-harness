@@ -2,11 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { sourcePaths, sourceRootOf, type WorkspaceEntry } from "../../config.ts";
 import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
-import { JSCPD_CACHE } from "../../tools/analysis.ts";
+import { jscpdOutput } from "../../tools/analysis.ts";
 import { eslintPresetLines, exportedName, exportsCall, presetCall, presetImport } from "../../tools/eslint-preset.ts";
 import { isObject, readJson, starterSteps, writer, type Step } from "./files.ts";
 import { BUNDLE_IGNORED, developsHarness, gitignoreStep, HARNESS_MODULES, IGNORED, prettierIgnored, ignoreEntriesStep } from "./ignore-files.ts";
-import { checksByProject, typecheckProjects } from "../../tools/typescript.ts";
+import { typecheckProjects } from "../../tools/typescript.ts";
 import { tsconfigSteps } from "./tsconfig-step.ts";
 import { viteVitestText } from "./vite/vite-steps.ts";
 import { LINT_SCRIPT } from "./wiring.ts";
@@ -209,7 +209,7 @@ export function toolScripts(workspace: WorkspaceEntry, dir = "", starter = false
   const analysis = {
     depcruise: `depcruise ${sources} --config .dependency-cruiser.json`,
     knip: "knip",
-    jscpd: `jscpd ${sources} --config ${presetImport(workspace.path, "jscpd.json")}${checksByProject(workspace.shape) ? ` --output ${JSCPD_CACHE}` : ""}`,
+    jscpd: [`jscpd ${sources} --config ${presetImport(workspace.path, "jscpd.json")}`, ...jscpdOutput(workspace.shape)].join(" "),
   };
   return {
     lint: LINT_SCRIPT,
