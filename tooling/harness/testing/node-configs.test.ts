@@ -27,7 +27,9 @@ describe("the tsconfig of a node-service workspace", () => {
   });
 
   it("asks for each option Node needs, and against paths, which Node does not apply", () => {
-    expect(findings({ ...NODE_OPTIONS, allowImportingTsExtensions: false })).toEqual(["tsconfig-node apps/api/tsconfig.json compilerOptions.allowImportingTsExtensions"]);
+    expect(findings({ ...NODE_OPTIONS, allowImportingTsExtensions: false })).toEqual([
+      "tsconfig-node apps/api/tsconfig.json compilerOptions.allowImportingTsExtensions",
+    ]);
     expect(findings({ ...NODE_OPTIONS, module: "esnext" })).toEqual(["tsconfig-node apps/api/tsconfig.json compilerOptions.module"]);
     expect(findings({ ...NODE_OPTIONS, paths: { "@/*": ["./src/*"] } })).toEqual(["tsconfig-node apps/api/tsconfig.json compilerOptions.paths"]);
     expect(findings({ strict: true })).toHaveLength(5);
