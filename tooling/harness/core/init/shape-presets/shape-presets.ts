@@ -20,13 +20,14 @@ const CRUISER_PRESETS: Partial<Record<WorkspaceEntry["shape"], string>> = {
 };
 export const cruiserPreset = (workspace: WorkspaceEntry): string => CRUISER_PRESETS[workspace.shape] ?? "dependency-cruiser.json";
 
-/** A Node service's gates leave its integration tests out: they need a running backend. */
-const vitestCall = (workspace: WorkspaceEntry): string => (workspace.shape === "node-service" ? "harnessVitest({ integration: false })" : "harnessVitest()");
+/** The gates of a Node service and of a Vite app leave the integration tests out: they need a running backend. */
+const vitestCall = (workspace: WorkspaceEntry): string =>
+  ["node-service", "vite-spa"].includes(workspace.shape) ? "harnessVitest({ integration: false })" : "harnessVitest()";
 
 /** The Vitest config init writes: a Vite app's merges its vite.config.ts, every other one is the preset alone. */
 export const vitestText = (workspace: WorkspaceEntry): string =>
   workspace.shape === "vite-spa"
-    ? viteVitestText(workspace)
+    ? viteVitestText(workspace, vitestCall(workspace))
     : `import { harnessVitest } from "${presetImport(workspace.path, "vitest.ts")}";\n\nexport default ${vitestCall(workspace)};\n`;
 
 /** The lines that add the preset to a project's own Vitest config; an Electron project's holds its aliases and needs none. */

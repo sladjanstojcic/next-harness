@@ -197,8 +197,8 @@ src/
 - **Gates.** ESLint, Prettier, tsc, Vitest, depcruise, knip and jscpd, and `vite build` in CI. There is
   no Next type generation and no browser smoke test, and `next: true` is refused. The tsc step checks
   each project the root `tsconfig.json` refers to, and `tsconfig-strict` judges each. Init's
-  `vitest.config.ts` merges `vite.config.ts`, and runs only `src/**/*.test.{ts,tsx}`. knip's hints for
-  `src/main.tsx` and `vite.config.ts` do not fail the step.
+  `vitest.config.ts` merges `vite.config.ts` and runs `src/**/*.test.{ts,tsx}`; `*.int.test.ts` runs from
+  your own `vitest.int.config.ts`, [as in a service](node-service.md). knip's hints do not fail the step.
 - **The lock** also covers `vite.config.ts` and every `tsconfig*.json`. `index.html` stays open.
 
 ## A backend

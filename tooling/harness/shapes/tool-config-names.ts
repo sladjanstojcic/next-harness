@@ -22,6 +22,11 @@ export const TOOL_CONFIG_NAMES = {
 
 export const ALL_TOOL_CONFIG_NAMES: readonly string[] = Object.values(TOOL_CONFIG_NAMES).flat();
 
+/** A Vitest config of the project's own beside init's, such as vitest.int.config.ts for the integration tests the gates leave out. */
+export const OWN_VITEST_CONFIG = /^vitest\.[a-z0-9-]+\.config\.ts$/;
+/** A test that needs a running backend: `<name>.int.test.ts`, which the gates leave out and test-determinism leaves alone. */
+export const INTEGRATION_TEST = /\.int\.test\.ts$/;
+
 /** A pocketbase or e2e folder runs its own ESLint and Prettier, so their configs sit at its top beside the project's files. */
 export const OWN_TOOL_CONFIGS: readonly string[] = [...TOOL_CONFIG_NAMES.eslint, ...TOOL_CONFIG_NAMES.prettier, ".prettierignore"];
 

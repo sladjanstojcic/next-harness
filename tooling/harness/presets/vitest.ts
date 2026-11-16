@@ -11,7 +11,7 @@ function serverOnlyEntry(): string {
 export interface HarnessVitestOptions {
   /** A new project has no tests yet; the harness's own repository passes false so a vanished suite fails. */
   passWithNoTests?: boolean;
-  /** False leaves out the integration tests (`*.int.test.ts`), which need a running backend; a node-service workspace runs them with a config of its own. */
+  /** False leaves out the integration tests (`*.int.test.ts`), which need a running backend; a node-service or vite-spa workspace runs them with a config of its own. */
   integration?: boolean;
 }
 

@@ -1,15 +1,14 @@
 import { checkBackendFolder, GENERATED_TYPES } from "../backend-folder.ts";
 import { checkModuleFiles, TEST_FILE, type ModuleLayout } from "../next-modules.ts";
 import { backendModulesIndex, deny, KEBAB, onlyGitkeepHidden, PLAIN_SHAPE, type PathVerdict, type Shape } from "../shape.ts";
-import { ALL_TOOL_CONFIG_NAMES, JS_TOOL_CONFIG_NAMES } from "../tool-config-names.ts";
+import { ALL_TOOL_CONFIG_NAMES, JS_TOOL_CONFIG_NAMES, OWN_VITEST_CONFIG } from "../tool-config-names.ts";
 import { nodeContent } from "./content.ts";
 import { NODE_LAYOUT as LAYOUT } from "./source-rules.ts";
 
 const ok: PathVerdict = { ok: true };
 /** The tsconfig files tsc reads; the lock covers them. */
 export const NODE_CONFIGS = /^tsconfig(?:\.[\w-]+)?\.json$/;
-/** Beside the configs, a Vitest config of the project's own, such as vitest.int.config.ts for its integration tests. */
-const TOP_PATTERN = /^(?:tsconfig(?:\.[\w-]+)?\.json|vitest\.[a-z0-9-]+\.config\.ts)$/;
+const TOP_PATTERN = new RegExp(`${NODE_CONFIGS.source}|${OWN_VITEST_CONFIG.source}`);
 const topEntries = [
   "src",
   "package.json",

@@ -71,4 +71,7 @@ src/
 - With `components.json`, lint reports a raw `button`, `input`, `select`, `textarea`, `label`, `table` or `dialog`
   outside `src/shared/ui/`.
 - Need images, fonts or CSS → put them in `src/assets/`, or in `public/` when served as they are.
+- Need a test → `<name>.test.ts(x)` beside its source, deterministic, run by the gates. A test that needs a running
+  backend is `<name>.int.test.ts`: the gates leave it out, and the project runs it with a config of its own, such
+  as `vitest.int.config.ts`.
 - Need a browser test → put it in `e2e/`. Need automation → put it in `scripts/`.

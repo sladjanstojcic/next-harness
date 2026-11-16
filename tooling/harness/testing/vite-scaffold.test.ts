@@ -58,7 +58,7 @@ describe("init in a create-vite react-ts project (vite-spa)", () => {
       expect(repo.read(`${prefix}.dependency-cruiser.json`)).toContain("dependency-cruiser-vite.json");
       const vitest = repo.read(`${prefix}vitest.config.ts`);
       expect(vitest).toContain('import viteConfig from "./vite.config.ts";');
-      expect(vitest).toContain("mergeConfig(viteConfig, harnessVitest())");
+      expect(vitest).toContain("mergeConfig(viteConfig, harnessVitest({ integration: false }))");
       // The template's .gitignore ignores dist already; only the build info is new.
       expect(report).toContain(`updated ${prefix}.gitignore: *.tsbuildinfo\n`);
       expect(repo.read(`${prefix}.gitignore`).match(/^\/?dist\/?$/gm)).toEqual(["dist"]);

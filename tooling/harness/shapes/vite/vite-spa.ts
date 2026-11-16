@@ -11,13 +11,14 @@ import {
   type SharedFolderText,
   type Shape,
 } from "../shape.ts";
-import { ALL_TOOL_CONFIG_NAMES, JS_TOOL_CONFIG_NAMES } from "../tool-config-names.ts";
+import { ALL_TOOL_CONFIG_NAMES, INTEGRATION_TEST, JS_TOOL_CONFIG_NAMES, OWN_VITEST_CONFIG } from "../tool-config-names.ts";
 import { viteContent } from "./content.ts";
 import { VITE_LAYOUT as LAYOUT } from "./source-rules.ts";
 
 const ok: PathVerdict = { ok: true };
 /** The config files Vite and TypeScript read; the lock covers them. create-vite writes tsconfig.app.json and tsconfig.node.json. */
 export const VITE_CONFIGS = /^(?:vite\.config\.ts|tsconfig(?:\.[\w-]+)?\.json)$/;
+const TOP_PATTERN = new RegExp(`${VITE_CONFIGS.source}|${OWN_VITEST_CONFIG.source}`);
 const topFolders = ["src", "public", "e2e"];
 const topEntries = [
   ...topFolders,
@@ -109,7 +110,8 @@ function checkPath(path: string): PathVerdict {
   if (area === "assets") return /\.[cm]?[jt]sx?$/.test(file) ? deny("src-shape", `src/assets/ holds images, fonts and CSS; ${WHERE}`) : ok;
   if (area === "app") return checkApp(inside);
   if (area === "modules") return checkClientModule(inside.slice(1), MODULE, MODULE_TEXT);
-  if (area === "backend") return checkBackendFolder(inside, "src/backend/", LAYOUT);
+  // An integration test of the client is judged as the client's own name.
+  if (area === "backend") return checkBackendFolder([...inside.slice(0, -1), file.replace(INTEGRATION_TEST, ".ts")], "src/backend/", LAYOUT);
   if (area === "shared") return checkSharedFolder(inside, SHARED_TEXT);
   return deny("src-shape", `src/ takes app/, modules/, backend/, shared/ and assets/: ${WHERE}`);
 }
@@ -120,7 +122,7 @@ export const viteSpa: Shape = {
   name: "vite-spa",
   ciAdvice: `Fix application code where it belongs: ${WHERE}`,
   topEntries,
-  topEntryPattern: VITE_CONFIGS,
+  topEntryPattern: TOP_PATTERN,
   topFolders,
   topAdvice: `Use an approved entry: application code belongs in src/, static files in public/, browser tests in e2e/, harness code in tooling/ and automation in scripts/ ${LAYOUT}`,
   jsAdvice: `Use TypeScript (.ts/.tsx); only a tool config that cannot be TypeScript may be JavaScript ${LAYOUT}`,
