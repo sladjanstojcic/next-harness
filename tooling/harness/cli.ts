@@ -54,6 +54,36 @@ function resolveRoot(cwd: string): string {
   }
 }
 
+/** The file an Edit, Write or NotebookEdit call names. */
+function writtenFile(input: unknown): string | undefined {
+  const toolInput = typeof input === "object" && input !== null && "tool_input" in input ? input.tool_input : undefined;
+  if (typeof toolInput !== "object" || toolInput === null) return undefined;
+  const file = "file_path" in toolInput ? toolInput.file_path : "notebook_path" in toolInput ? toolInput.notebook_path : undefined;
+  return typeof file === "string" && file !== "" ? file : undefined;
+}
+
+const commonDir = (root: string): string =>
+  execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+
+/**
+ * The checkout a hook judges: the session's, or another worktree of the same repository when the tool writes a file
+ * there, so a session started in one worktree cannot edit a locked or misplaced file in the next. A file in any other
+ * repository is not this harness's to judge.
+ */
+function hookRoot(cwd: string, input: unknown): string {
+  const own = resolveRoot(cwd);
+  const file = writtenFile(input);
+  if (file === undefined) return own;
+  try {
+    let folder = path.dirname(path.resolve(cwd, file));
+    while (!fs.existsSync(folder) && folder !== path.dirname(folder)) folder = path.dirname(folder);
+    const holder = gitRoot(folder);
+    return holder !== own && commonDir(holder) === commonDir(own) ? holder : own;
+  } catch {
+    return own;
+  }
+}
+
 const [command, mode, ...paths] = process.argv.slice(2);
 let preTool = false;
 let input: unknown;
@@ -63,7 +93,7 @@ try {
     input = JSON.parse(fs.readFileSync(0, "utf8"));
     preTool = typeof input === "object" && input !== null && "hook_event_name" in input && input.hook_event_name === "PreToolUse";
   }
-  const root = resolveRoot(process.cwd());
+  const root = command === "hook" ? hookRoot(process.cwd(), input) : resolveRoot(process.cwd());
   if (command === "hook" || command === "check" || command === "audit") (await import("./config.ts")).loadConfig(root);
   if (command === "hook" && (mode === "claude" || mode === "codex")) {
     const { parseEvent } = await import("./core/hooks/event.ts");

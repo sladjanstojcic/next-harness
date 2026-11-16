@@ -206,5 +206,9 @@ parent: Reference
 - A cloned project keeps the harness version it was cloned with until the harness ships as a package.
 - The user-level Codex hook relies on Codex skipping project hooks in linked worktrees. If a later
   Codex loads them there, remove the user-level entries to avoid a double run.
+- A shell command that writes into another worktree (`cd ../other && ...`) is not seen by the session's
+  hooks: they compare the session's own checkout before and after. Edit and Write calls there are
+  judged, and that worktree's pre-push hook and CI still run the full gate. Codex's `apply_patch` is
+  judged by the session's checkout only.
 - Unit tests spawn git and the real tools; on a heavily loaded machine they can exceed their 30 s
   budget.
