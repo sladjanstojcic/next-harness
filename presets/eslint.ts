@@ -23,10 +23,16 @@ const VENDORED: Record<PresetLayout, string[]> = {
   service: generatedIn("src/backend/"),
 };
 
-/** The TypeScript tool configs at a workspace top; a consumer's tsconfig leaves them out, so they are linted without types. */
-const CONFIG_FILES = Object.values(TOOL_CONFIG_NAMES)
-  .flat()
-  .filter((name) => name.endsWith(".ts"));
+/**
+ * The TypeScript tool configs at a workspace top, and a Vitest config of the project's own (vitest.int.config.ts); a
+ * consumer's tsconfig leaves them out, so they are linted without types.
+ */
+const CONFIG_FILES = [
+  ...Object.values(TOOL_CONFIG_NAMES)
+    .flat()
+    .filter((name) => name.endsWith(".ts")),
+  "vitest.*.config.ts",
+];
 
 export interface HarnessEslintOptions {
   /** The workspace folder holding tsconfig.json, for typed rules; ESLint and its plugins load from there. */

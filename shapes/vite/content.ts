@@ -1,5 +1,6 @@
 import { backendProfile } from "../backend-folder.ts";
 import type { ContentProfile } from "../shape.ts";
+import { INTEGRATION_TEST } from "../tool-config-names.ts";
 import { ENV_FILE, VITE_LAYOUT as LAYOUT, viteSourceRules } from "./source-rules.ts";
 
 const NOT_NEXT = `is a Next.js directive and this app runs wholly in the browser; calls to the backend belong in a module's data/ ${LAYOUT}`;
@@ -18,6 +19,7 @@ export const viteContent: ContentProfile = {
   backend: backendProfile(/^src\//, /^src\/backend\//, "src/backend/", LAYOUT),
   domainFile: /^src\/modules\/[^/]+\/domain\/(?:[^/]+\/)?[^/]+\.ts$/,
   errorScope: /^src\/(?:app|(?:[^/]+\/)*components)\//,
+  integrationTests: INTEGRATION_TEST,
   sourceRules: viteSourceRules,
   messages: {
     serverOnly: `Remove "server-only": it is a Next.js package and this app has no server ${LAYOUT}`,

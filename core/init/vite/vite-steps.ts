@@ -11,13 +11,13 @@ import { LINT_SCRIPT } from "../wiring.ts";
 const VITE_CONFIG = "vite.config.ts";
 
 /** The project's Vite config holds its plugins and aliases, which the tests need too: the preset is merged over it. */
-export const viteVitestText = (workspace: WorkspaceEntry): string =>
+export const viteVitestText = (workspace: WorkspaceEntry, preset: string): string =>
   [
     'import { mergeConfig } from "vitest/config";',
     `import { harnessVitest } from "${presetImport(workspace.path, "vitest.ts")}";`,
     `import viteConfig from "./${VITE_CONFIG}";`,
     "",
-    "export default mergeConfig(viteConfig, harnessVitest());",
+    `export default mergeConfig(viteConfig, ${preset});`,
     "",
   ].join("\n");
 

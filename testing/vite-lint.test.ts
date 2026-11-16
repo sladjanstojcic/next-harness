@@ -38,6 +38,7 @@ const TYPE_ONLY = 'import type { pb as Pb } from "@/backend/client";\nimport { p
 
 /** One file per row: the folder and the import of the brief's table, and the one rule expected there, if any. */
 const ROWS: [file: string, code: string, expected: string[]][] = [
+  ["vitest.int.config.ts", 'export default { test: { include: ["src/**/*.int.test.ts"] } };\n', []],
   ["src/modules/ads/components/a.tsx", 'import { pb } from "@/backend/client";\n\nexport const used = pb;\n', ["no-restricted-imports"]],
   ["src/modules/ads/components/b.tsx", 'import type { Ad } from "@/backend/database.types";\n\nexport type Used = Ad;\n', []],
   ["src/modules/ads/data/ads.ts", 'import { pb } from "@/backend/client";\n\nexport const used = pb;\n', []],
