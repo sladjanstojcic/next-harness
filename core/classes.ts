@@ -29,6 +29,7 @@ export const HARNESS_RULES: ReadonlySet<string> = new Set([
   "folder-size",
   "duplicate-file-name",
   "tsconfig-strict",
+  "tsconfig-node",
   "server-only",
   "use-server-placement",
   "use-client-placement",
