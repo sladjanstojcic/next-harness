@@ -18,6 +18,7 @@ import { shadcnTodo } from "./shadcn/shadcn-steps.ts";
 import { e2eTodo, isLintOnly, lintOnlySteps } from "./lint-only/lint-only.ts";
 import { pocketbaseTodo } from "./pocketbase/pocketbase-steps.ts";
 import { viteTodo } from "./vite/vite-steps.ts";
+import { nodeTodo } from "./node/node-steps.ts";
 import { CONFIG_FILE, isConfigOnly, type WorkspaceEntry } from "../../config.ts";
 import { ciSteps, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH, PREPARE } from "./wiring.ts";
 
@@ -172,6 +173,7 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
         `Bundle the packages the preload script imports, which a sandboxed preload cannot load and electron-vite leaves outside the bundle (init does not edit ${file}), by adding this to its preload section, and removing externalizeDepsPlugin() from that section's plugins when it is there: ${PRELOAD_BUNDLE_SETTING}`,
     ),
     ...viteTodo(root, workspaces),
+    ...nodeTodo(root, workspaces),
     ...pocketbaseTodo(root, harness.workspaces),
     ...e2eTodo(root, workspaces),
     ...shadcnTodo(root, workspaces),
