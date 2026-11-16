@@ -22,8 +22,9 @@ const findings = (options: Record<string, unknown>): string[] =>
   );
 
 describe("the tsconfig of a node-service workspace", () => {
-  it("passes Node's options for running TypeScript", () => {
+  it("passes Node's options for running TypeScript, with node20 as well as nodenext", () => {
     expect(findings(NODE_OPTIONS)).toEqual([]);
+    expect(findings({ ...NODE_OPTIONS, module: "node20" })).toEqual([]);
   });
 
   it("asks for each option Node needs, and against paths, which Node does not apply", () => {

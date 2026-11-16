@@ -5,8 +5,8 @@ import type { Finding } from "../finding.ts";
 const REQUIRED: readonly { option: keyof ts.CompilerOptions; holds: (options: ts.CompilerOptions) => boolean; set: string; why: string }[] = [
   {
     option: "module",
-    holds: (o) => o.module === ts.ModuleKind.NodeNext,
-    set: '"module": "nodenext"',
+    holds: (o) => o.module === ts.ModuleKind.NodeNext || o.module === ts.ModuleKind.Node20,
+    set: '"module": "nodenext" (or "node20")',
     why: "Node's own resolution, with package.json imports and exports",
   },
   { option: "noEmit", holds: (o) => o.noEmit === true, set: '"noEmit": true', why: "Node runs the source, so tsc only checks it" },

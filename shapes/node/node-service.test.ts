@@ -40,6 +40,8 @@ const allowed = [
   "src/modules/ads/data/render/frame.ts",
   "src/backend/client.ts",
   "src/backend/database.types.ts",
+  "src/backend/client.test.ts",
+  "src/backend/client.int.test.ts",
   "src/shared/lib/env.ts",
   "src/shared/lib/log.ts",
 ];
