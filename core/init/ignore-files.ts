@@ -16,7 +16,12 @@ export const BUNDLE_IGNORED: Partial<Record<ShapeName, readonly string[]>> = {
   "node-service": ["*.tsbuildinfo"],
 };
 /** pnpm links the harness's own dependencies here once it is a workspace package; create-next-app ignores only `/node_modules`. */
-export const HARNESS_MODULES = "tooling/harness/node_modules/";
+const HARNESS_MODULES = "tooling/harness/node_modules/";
+/**
+ * What the root .gitignore takes whatever the workspaces are: the harness's own packages and, beside a turbo.json,
+ * Turborepo's cache and logs, which it writes at the root and in each workspace and a project made by hand does not ignore.
+ */
+export const rootIgnored = (root: string): string[] => [HARNESS_MODULES, ...(fs.existsSync(path.join(root, "turbo.json")) ? [".turbo/"] : [])];
 /** Files the format check must skip: in a pocketbase folder the vendored declarations, the build output and PocketBase's data, in an e2e folder Playwright's output, which a .gitignore above the folder does not hide from Prettier; elsewhere pnpm's own lockfile style, the vendored shadcn primitives, generated database types and the build output. */
 export function prettierIgnored(workspace: WorkspaceEntry): string[] {
   if (workspace.shape === "pocketbase") return ["types/pocketbase*.d.ts", "dist", "pb_data"];

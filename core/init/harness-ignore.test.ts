@@ -66,3 +66,23 @@ describe("a fresh clone gets the pre-push hook", () => {
     expect(second.report).toContain(`Add to the root package.json "prepare" script, so a fresh clone gets the pre-push hook: ${PREPARE}`);
   });
 });
+
+describe("a Turborepo's cache stays out of git", () => {
+  const MONOREPO = 'export default {\n  workspaces: [{ path: "apps/api", shape: "node-service" }],\n  root: { entries: ["apps", "turbo.json"] },\n};\n';
+  const turbo = { "package.json": "{}\n", "turbo.json": "{}\n" };
+
+  it("adds .turbo/ to the root .gitignore where turbo.json is, with an app at the root or without one", () => {
+    const app = unhooked(makeRepo(turbo));
+    expect(initHarness(app.root, OFF).report).toContain(".gitignore: .next/, test-results/, tooling/harness/node_modules/, .turbo/\n");
+    const monorepo = unhooked(makeRepo({ ...turbo, "harness.config.ts": MONOREPO, "apps/api/package.json": "{}\n" }));
+    expect(initHarness(monorepo.root, OFF).report).toContain("created .gitignore: tooling/harness/node_modules/, .turbo/\n");
+    expect(monorepo.git("check-ignore", "--no-index", ".turbo/cache/a.json", "apps/api/.turbo/turbo-lint.log").trim().split("\n")).toHaveLength(2);
+  });
+
+  it("leaves a project without turbo.json, and one that ignores the folder already, as they are", () => {
+    const plain = unhooked(makeRepo({ "package.json": "{}\n" }));
+    expect(initHarness(plain.root, OFF).report).not.toContain(".turbo");
+    const ignoring = unhooked(makeRepo({ ...turbo, ".gitignore": ".turbo\n" }));
+    expect(initHarness(ignoring.root, OFF).report).toContain("updated .gitignore: .next/, test-results/, tooling/harness/node_modules/\n");
+  });
+});

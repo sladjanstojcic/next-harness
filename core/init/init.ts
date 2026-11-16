@@ -10,7 +10,7 @@ import { auditPreloadBundles, PRELOAD_BUNDLE_SETTING } from "../audit/preload-bu
 import { resolveHarness, type Harness } from "../path-check.ts";
 import { ALL_TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { bin } from "../../tools/tool-set.ts";
-import { gitignoreStep, HARNESS_MODULES, rootIgnoreSteps } from "./ignore-files.ts";
+import { gitignoreStep, rootIgnored, rootIgnoreSteps } from "./ignore-files.ts";
 import { TYPESCRIPT_API_REASON, TYPESCRIPT_NATIVE_REASON } from "../../presets/load-tool.ts";
 import { nativeTypescript, needsTypescriptApi, peerInstall, starterInstall } from "./peers.ts";
 import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
@@ -215,7 +215,7 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
     agentsStep(root),
     claudeStep(root),
     scriptsStep(root, "package.json", PACKAGE_SCRIPTS, { prepare: PREPARE, ...(atRoot === undefined ? {} : toolScripts(atRoot, root, starter)) }, force),
-    ...(atRoot === undefined ? [gitignoreStep(root, "", [HARNESS_MODULES])] : []),
+    ...(atRoot === undefined ? [gitignoreStep(root, "", rootIgnored(root))] : []),
     ...workspaces.flatMap((workspace) =>
       isLintOnly(workspace)
         ? lintOnlySteps(root, workspace)
