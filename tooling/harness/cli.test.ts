@@ -53,6 +53,18 @@ describe("hook CLI", () => {
     expect(post.stderr).toContain("pnpm install --frozen-lockfile");
   }, 60_000);
 
+  it("lets the install through in a new worktree, whose config cannot load while the hook runs from an installed checkout", () => {
+    const repo = makeRepo({ "harness.config.ts": 'import { defineHarness } from "./tooling/harness/config.ts";\n\nexport default defineHarness({});\n' });
+    fs.cpSync(path.resolve(import.meta.dirname), path.join(repo.root, "tooling/harness"), { recursive: true });
+    const base = { session_id: "s", cwd: repo.root, hook_event_name: "PreToolUse" };
+    const install = hook(repo.root, { ...base, tool_name: "Bash", tool_input: { command: "pnpm install --frozen-lockfile" } });
+    expect([install.status, install.stdout, install.stderr]).toEqual([0, "", ""]);
+    const other = hook(repo.root, { ...base, tool_name: "Bash", tool_input: { command: "ls" } });
+    expect(other.status).toBe(2);
+    expect(other.stderr).toContain("pnpm install --frozen-lockfile");
+    expect(other.stderr).not.toContain("Cannot find package");
+  }, 60_000);
+
   it.each([
     ["PreToolUse", 2],
     ["PostToolUse", 0],

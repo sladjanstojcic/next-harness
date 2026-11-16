@@ -7,8 +7,10 @@ const INSTALL_COMMAND =
   /^[ \t]*(?:cd[ \t]+[\w@./:=^~-]+[ \t]*&&[ \t]*)?(?:corepack[ \t]+)?(?:pnpm|npm)[ \t]+(?:install|i|ci)(?:[ \t]+--(?:frozen-lockfile|prefer-offline|offline|no-audit|no-fund|silent|ignore-scripts|loglevel=[a-z-]+|reporter=[a-z-]+))*[ \t]*$/;
 const INSTALL_HINT = "Harness dependencies are missing: run `pnpm install --frozen-lockfile` and `pnpm run prepare` before other tool calls.";
 
-function isMissingDependency(error: unknown): boolean {
-  return error instanceof Error && "code" in error && error.code === "ERR_MODULE_NOT_FOUND";
+/** The failed import behind an error; loading harness.config.ts wraps it, as in a new worktree whose packages are not installed yet. */
+function missingDependency(error: unknown): Error | undefined {
+  if (!(error instanceof Error)) return undefined;
+  return "code" in error && error.code === "ERR_MODULE_NOT_FOUND" ? error : missingDependency(error.cause);
 }
 
 /** The harness's own file a failed import names, relative to the harness; undefined when a package is missing. */
@@ -19,8 +21,8 @@ function missingHarnessFile(error: Error): string | undefined {
   return relative.startsWith("..") || relative.split(path.sep).includes("node_modules") ? undefined : relative.split(path.sep).join("/");
 }
 
-function missingHint(error: unknown): string {
-  const file = error instanceof Error ? missingHarnessFile(error) : undefined;
+function missingHint(error: Error): string {
+  const file = missingHarnessFile(error);
   if (file === undefined) return INSTALL_HINT;
   return `The harness cannot load: its file tooling/harness/${file} is missing, and an install does not bring it back. Restore or create that file (for example \`git checkout -- tooling/harness/${file}\`); every tool call is denied until then, so ask the user to do it in their own terminal.`;
 }
@@ -148,10 +150,11 @@ try {
     );
   }
 } catch (error) {
-  if (command === "hook" && isMissingDependency(error)) {
+  const missing = command === "hook" ? missingDependency(error) : undefined;
+  if (missing !== undefined) {
     // A fresh clone has no node_modules yet: let the install through and tell the agent what to run first.
     const allowed = !preTool || isInstallCommand(input);
-    if (!allowed || !preTool) process.stderr.write(`${missingHint(error)}\n`);
+    if (!allowed || !preTool) process.stderr.write(`${missingHint(missing)}\n`);
     process.exitCode = allowed ? 0 : 2;
   } else {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
