@@ -9,10 +9,11 @@ import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { writer, type Step } from "./files.ts";
 
 export const IGNORED = [".next/", "test-results/"];
-/** The build output of the shapes a bundler builds, electron-vite's and Vite's, and the build info `tsc` writes beside each composite project it checks. */
+/** The build output of the shapes a bundler builds, electron-vite's and Vite's, and the build info `tsc` writes beside each composite project it checks; a Node service has only the build info. */
 export const BUNDLE_IGNORED: Partial<Record<ShapeName, readonly string[]>> = {
   "electron-vite": ["out/", "*.tsbuildinfo"],
   "vite-spa": ["dist/", "*.tsbuildinfo"],
+  "node-service": ["*.tsbuildinfo"],
 };
 /** pnpm links the harness's own dependencies here once it is a workspace package; create-next-app ignores only `/node_modules`. */
 export const HARNESS_MODULES = "tooling/harness/node_modules/";
@@ -23,6 +24,7 @@ export function prettierIgnored(workspace: WorkspaceEntry): string[] {
   if (workspace.shape === "electron-vite") return ["pnpm-lock.yaml", "src/renderer/src/shared/ui", "out", "dist"];
   const generated = GENERATED_TYPE_GLOBS.map((glob) => `${sourceRootOf(workspace)}backend/${glob}`);
   if (workspace.shape === "vite-spa") return ["pnpm-lock.yaml", "src/shared/ui", "dist", ...generated];
+  if (workspace.shape === "node-service") return ["pnpm-lock.yaml", ...generated];
   return ["pnpm-lock.yaml", `${sourceRootOf(workspace)}shared/ui`, ...generated, ".next"];
 }
 /**
