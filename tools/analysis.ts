@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { sourcePaths, sourceRootOf, type WorkspaceEntry } from "../config.ts";
+import { sourcePaths, sourceRootOf, type ShapeName, type WorkspaceEntry } from "../config.ts";
 import type { Finding } from "../core/audit/finding.ts";
 import { shapeOf } from "../shapes/index.ts";
 import type { ToolStep } from "../core/gates/run-tool.ts";
@@ -158,8 +158,10 @@ export const knip = {
   check: (dir: string): ToolStep => check(dir, "knip", "knip", []),
 };
 
-/** Where an Electron or Vite project's jscpd report goes: a folder every project ignores, since it has no .next/ for the preset's. */
+/** Where jscpd's report goes outside a Next app: a folder every project ignores, since it has no .next/ for the preset's. */
 export const JSCPD_CACHE = "node_modules/.cache/jscpd";
+/** The preset's own `output` is a Next app's .next/jscpd/; every other workspace names the cache instead. */
+export const jscpdOutput = (shape: ShapeName): string[] => (shape === "next-modules" ? [] : ["--output", JSCPD_CACHE]);
 
 /** The workspace's own .jscpd.json, or the harness preset; jscpd has no `extends`. */
 function jscpdConfig(dir: string, workspacePath: string): string {
@@ -184,8 +186,7 @@ export const jscpd = {
   }),
   check: (dir: string, workspace: WorkspaceEntry): ToolStep => {
     const folders = [...sources(dir, workspace), "tooling"].filter((file) => fs.existsSync(path.join(dir, file)));
-    const output = checksByProject(workspace.shape) ? ["--output", JSCPD_CACHE] : [];
-    return check(dir, "jscpd", "jscpd", [...folders, "--config", jscpdConfig(dir, workspace.path), ...output]);
+    return check(dir, "jscpd", "jscpd", [...folders, "--config", jscpdConfig(dir, workspace.path), ...jscpdOutput(workspace.shape)]);
   },
 };
 
