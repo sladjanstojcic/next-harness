@@ -1,12 +1,9 @@
 import type ts from "typescript";
-import type { SourceFinding } from "../shape.ts";
+import { isImportMeta, type SourceFinding } from "../shape.ts";
 
 export const VITE_LAYOUT = "(Vite layout)";
 export const ENV_FILE = "src/shared/lib/env.ts";
 type Compiler = typeof ts;
-
-const isImportMeta = (ts: Compiler, node: ts.Node): boolean =>
-  ts.isMetaProperty(node) && node.keywordToken === ts.SyntaxKind.ImportKeyword && node.name.text === "meta";
 
 /** `import.meta.env`, `import.meta["env"]`, or `env` taken from `import.meta` by destructuring. */
 function readsEnv(ts: Compiler, node: ts.Node): boolean {

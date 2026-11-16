@@ -1,7 +1,6 @@
-import { join } from "node:path";
 import { checkBackendFolder, GENERATED_TYPES } from "../backend-folder.ts";
 import { checkModuleFiles, TEST_FILE, type ModuleLayout } from "../next-modules.ts";
-import { codeIndexBuilder, deny, KEBAB, onlyGitkeepHidden, PLAIN_SHAPE, sortedEntries, type PathVerdict, type Shape } from "../shape.ts";
+import { backendModulesIndex, deny, KEBAB, onlyGitkeepHidden, PLAIN_SHAPE, type PathVerdict, type Shape } from "../shape.ts";
 import { ALL_TOOL_CONFIG_NAMES, JS_TOOL_CONFIG_NAMES } from "../tool-config-names.ts";
 import { nodeContent } from "./content.ts";
 import { NODE_LAYOUT as LAYOUT } from "./source-rules.ts";
@@ -75,9 +74,9 @@ function checkModule(parts: readonly string[]): PathVerdict {
 }
 
 function checkSource(path: string): PathVerdict {
-  const [top, area = "", ...inside] = path.split("/");
-  const file = path.split("/").at(-1) ?? "";
-  if (top !== "src" || file === ".gitkeep") return ok;
+  const parts = path.split("/");
+  const [top, area = "", ...inside] = parts;
+  if (top !== "src" || parts.at(-1) === ".gitkeep") return ok;
   if (inside.length === 0) {
     return ["main.ts", "worker.ts"].includes(untested(area)) ? ok : deny("src-shape", `src/ takes main.ts and an optional worker.ts at its top; ${WHERE}`);
   }
@@ -100,16 +99,6 @@ function checkPath(path: string): PathVerdict {
   const verdict = checkSource(path);
   if (!verdict.ok || !path.endsWith(".tsx")) return verdict;
   return deny("file-name", `A service renders no UI: use .ts files; ${WHERE}`);
-}
-
-function codeIndex(workspaceDir: string): string[] {
-  const { lines, section, sources } = codeIndexBuilder(workspaceDir);
-  section("src/backend", "src/backend", sources("src/backend"));
-  for (const entry of sortedEntries(join(workspaceDir, "src/modules")).filter((entry) => entry.isDirectory())) {
-    section(entry.name, `src/modules/${entry.name}`, ["index.ts"]);
-  }
-  section("shared/lib", "src/shared/lib", sources("src/shared/lib"));
-  return lines;
 }
 
 /** A long-running Node HTTP service that runs its TypeScript source directly: no UI, no build, one entry in src/main.ts. */
@@ -137,5 +126,5 @@ export const nodeService: Shape = {
     return inside.length <= 1 ? undefined : module;
   },
   content: nodeContent,
-  codeIndex,
+  codeIndex: backendModulesIndex,
 };

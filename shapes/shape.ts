@@ -206,6 +206,21 @@ export function codeIndexBuilder(workspaceDir: string) {
   return { lines, section, sources };
 }
 
+/** The code index of a layout with src/backend/, src/modules/<module>/index.ts and src/shared/lib/, as the Vite and Node shapes have. */
+export function backendModulesIndex(workspaceDir: string): string[] {
+  const { lines, section, sources } = codeIndexBuilder(workspaceDir);
+  section("src/backend", "src/backend", sources("src/backend"));
+  for (const entry of sortedEntries(join(workspaceDir, "src/modules")).filter((entry) => entry.isDirectory())) {
+    section(entry.name, `src/modules/${entry.name}`, ["index.ts"]);
+  }
+  section("shared/lib", "src/shared/lib", sources("src/shared/lib"));
+  return lines;
+}
+
+/** `import.meta`, for the rules that judge `import.meta.env`; the compiler is passed in, so a shape loads without it. */
+export const isImportMeta = (compiler: typeof ts, node: ts.Node): boolean =>
+  compiler.isMetaProperty(node) && node.keywordToken === compiler.SyntaxKind.ImportKeyword && node.name.text === "meta";
+
 /** The denials of a shared/ folder in a React app's source; each shape words them with its own paths and layout. */
 export interface SharedFolderText {
   shape: string;
