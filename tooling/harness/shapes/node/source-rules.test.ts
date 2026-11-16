@@ -19,6 +19,7 @@ describe("the node-service source rules", () => {
     'export * from "./b";',
     'export { c } from "../c.mjs";',
     'const m = await import("./lazy");',
+    "const m = await import(`./lazy`);",
     'import { env } from "@/shared/lib/env.ts";',
   ])("reports %s as node-import", (text) => {
     expect(rules("src/modules/ads/data/ads.ts", text)).toEqual(["node-import"]);
@@ -41,7 +42,21 @@ describe("the node-service source rules", () => {
 
   it("reports import.meta.env and server-only, which belong to other runtimes", () => {
     expect(rules("src/main.ts", "const mode = import.meta.env.MODE;")).toEqual(["env-access"]);
+    expect(rules("src/main.ts", 'const mode = import.meta["env"].MODE;')).toEqual(["env-access"]);
+    expect(rules("src/main.ts", "const { env } = import.meta;")).toEqual(["env-access"]);
+    expect(rules("src/main.ts", "const here = import.meta.dirname;")).toEqual([]);
     expect(rules("src/main.ts", 'import "server-only";')).toEqual(["server-only"]);
+  });
+
+  it.each([
+    ["./a.mts", "./a.ts"],
+    ["./a.cts", "./a.ts"],
+    ["./a.tsx", "./a.ts"],
+    ["../c.mjs", "../c.ts"],
+    ["#/shared/lib/env", "#/shared/lib/env.ts"],
+  ])("advises %s as %s", (specifier, advised) => {
+    const source = ts.createSourceFile("x.ts", `import { a } from "${specifier}";`, ts.ScriptTarget.Latest, true);
+    expect(nodeSourceRules("src/main.ts", source, ts).map(({ message }) => message)).toEqual([expect.stringContaining(`(${advised})`)]);
   });
 
   it("keeps app.ts and each routes.ts at 80 lines", () => {
