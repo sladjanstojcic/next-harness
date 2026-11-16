@@ -8,44 +8,13 @@ import type { ElectronAliases } from "./electron-aliases.ts";
 export type { ElectronAliases };
 import { electronBoundaryBlocks } from "./eslint-boundaries/electron.ts";
 import { viteBoundaryBlocks } from "./eslint-boundaries/vite.ts";
+import { ADAPTER_GLOBS, ADAPTERS, CONSOLE, hasLog, UI, withUi, type PresetLayout } from "./eslint-layouts.ts";
+import { nodeBoundaryBlocks } from "./eslint-boundaries/node.ts";
 
-/**
- * Where the workspace keeps its code: an app's src/modules/ and src/shared/, the same folders at the top of an app
- * without src/ ("app-root"), a shared package's src/, an Electron app's src/main/, src/preload/, src/renderer/ and src/shared/,
- * a Vite single-page app's src/app/, src/modules/, src/backend/ and src/shared/ ("spa"), or a PocketBase backend's
- * pb_hooks/, pb_migrations/, shared/, types/ and tests/ ("pocketbase"), or a Playwright suite's tests/ ("e2e").
- */
-export type PresetLayout = "app" | "app-root" | "package" | "electron" | "spa" | "pocketbase" | "e2e";
-/** The layouts without UI: no shadcn controls and no console exemption. */
-type WithoutUi = "package" | "pocketbase" | "e2e";
-const withUi = (layout: PresetLayout): layout is Exclude<PresetLayout, WithoutUi> => layout !== "package" && layout !== "pocketbase" && layout !== "e2e";
+export type { PresetLayout };
 
 /** Test code has no adapter folder: a page object is code, so no file is exempt from the cast rules. */
 const NO_ADAPTER = "test code has no adapter folder for such a cast (e2e layout)";
-/** The folder that may hold adapter casts, as the messages name it and as the rule blocks match it. */
-const ADAPTERS: Record<Exclude<PresetLayout, "e2e">, string> = {
-  app: "src/modules/<module>/server/",
-  "app-root": "modules/<module>/server/",
-  package: "src/server/",
-  electron: "src/main/ or a guard in src/shared/",
-  spa: "src/modules/<module>/data/ or src/backend/",
-  pocketbase: "a declaration in types/ (PocketBase layout)",
-};
-const ADAPTER_GLOBS: Record<Exclude<PresetLayout, "e2e">, string> = {
-  app: "src/modules/*/server/**",
-  "app-root": "modules/*/server/**",
-  package: "src/server/**",
-  electron: "src/{main,shared}/**",
-  spa: "src/{modules/*/data,backend}/**",
-  pocketbase: "types/**",
-};
-/** Where console output is the point: automation, and an app's own log helper. */
-const CONSOLE: Record<Exclude<PresetLayout, WithoutUi>, string[]> = {
-  app: ["tooling/**", "scripts/**", "src/shared/lib/log.ts"],
-  "app-root": ["tooling/**", "scripts/**", "shared/lib/log.ts"],
-  electron: ["tooling/**", "scripts/**", "src/main/**/log.ts"],
-  spa: ["tooling/**", "scripts/**", "src/shared/lib/log.ts"],
-};
 /** no-console has one fixed message, so in an Electron app the same ban is a rule that says where logging belongs. */
 const ELECTRON_CONSOLE = {
   object: "console",
@@ -82,13 +51,6 @@ const doubleCastIn = (layout: PresetLayout) => ({
 /** Whether a workspace is set up for shadcn: `components.json` at its top. The preset, its check and the code index all ask here. */
 export const usesShadcn = (workspaceDir: string): boolean => fs.existsSync(path.join(workspaceDir, "components.json"));
 
-/** Where the generated shadcn components live, by layout; a package holds none. */
-const UI: Record<Exclude<PresetLayout, WithoutUi>, string> = {
-  app: "src/shared/ui/",
-  "app-root": "shared/ui/",
-  electron: "src/renderer/src/shared/ui/",
-  spa: "src/shared/ui/",
-};
 /** The raw elements shadcn has a component for under the same name. */
 export const RAW_CONTROLS: readonly string[] = ["button", "input", "select", "textarea", "label", "table", "dialog"];
 /** One selector per element, so the message names the component to use; none in a workspace without shadcn. */
@@ -145,7 +107,7 @@ export interface RuleBlock {
   rules: Record<string, Setting>;
 }
 
-const consoleExemptionIn = (layout: PresetLayout): RuleBlock[] => (withUi(layout) ? [{ files: CONSOLE[layout], rules: { "no-console": "off" } }] : []);
+const consoleExemptionIn = (layout: PresetLayout): RuleBlock[] => (hasLog(layout) ? [{ files: CONSOLE[layout], rules: { "no-console": "off" } }] : []);
 
 const ELECTRON_CONSOLE_BLOCK: RuleBlock = {
   files: ["**/*.{ts,tsx}"],
@@ -182,10 +144,10 @@ export const HOOK_RULES: RuleBlock["rules"] = {
 /**
  * Where React code can sit: in an Electron app the renderer alone, elsewhere every TypeScript file but browser tests
  * and automation, where a Playwright fixture's `use` and a script's `use…` function are no hooks. A PocketBase backend
- * runs no React, and in a Playwright suite a fixture's `use` is no hook.
+ * and a Node service run no React, and in a Playwright suite a fixture's `use` is no hook.
  */
 const hooksIn = (layout: PresetLayout): RuleBlock[] => {
-  if (layout === "pocketbase" || layout === "e2e") return [];
+  if (layout === "pocketbase" || layout === "e2e" || layout === "service") return [];
   if (layout === "electron") return [{ files: ["src/renderer/**/*.{ts,tsx}"], rules: HOOK_RULES }];
   return [{ files: ["**/*.{ts,tsx}"], ignores: ["e2e/**", "scripts/**", "tooling/**"], rules: HOOK_RULES }];
 };
@@ -243,5 +205,6 @@ export function harnessRuleBlocks(layout: PresetLayout = "app", aliases?: Electr
     ...hooksIn(layout),
     ...(layout === "electron" ? [ELECTRON_CONSOLE_BLOCK, ELECTRON_CONSOLE_OUTSIDE_MAIN, ...electronBoundaryBlocks(aliases)] : []),
     ...(layout === "spa" ? viteBoundaryBlocks() : []),
+    ...(layout === "service" ? nodeBoundaryBlocks() : []),
   ];
 }

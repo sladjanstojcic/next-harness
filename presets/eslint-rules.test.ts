@@ -2,10 +2,10 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { harnessRuleBlocks } from "./eslint-rules.ts";
 
-const LAYOUTS = ["app", "app-root", "package", "electron", "spa"] as const;
+const LAYOUTS = ["app", "app-root", "package", "electron", "spa", "pocketbase", "e2e"] as const;
 const ALIASES = { renderer: ["@/", "@renderer/"], contract: ["@shared/", "@contract/"], paths: {} };
 
-/** The sha256 of each layout's JSON-encoded rule blocks, computed from the code at 5602b2b, before the pocketbase layout. */
+/** The sha256 of each layout's JSON-encoded rule blocks: the first five from the code at 5602b2b, before the pocketbase layout; pocketbase and e2e from 5db9446, before the service layout. */
 const BEFORE: Record<string, string> = {
   app: "090203077e29437684c7168107426c830417987d60889ca61ae5101d66d9d3ad",
   "app with shadcn": "77e31d301ee1f255549c7a78419df80941f2105adde840b763fc589bd1fc38db",
@@ -17,12 +17,16 @@ const BEFORE: Record<string, string> = {
   "electron with shadcn": "b1421ccf117506127782f7318b054c3dd0d5a8b38367303103e3270e5d4b8695",
   spa: "8e347b605c62122e18bb95d053e436478e8420a5449182f11515e249ec5d8c76",
   "spa with shadcn": "18dc443eb909cbe6d2d57ce2fee998409031d0fa51f1e0a38545ba052d47fa64",
+  pocketbase: "35cf6d6c0390e0efd1002ec3cb168d01e9a14dbebabd11db119d7e3dd6e12cbe",
+  "pocketbase with shadcn": "35cf6d6c0390e0efd1002ec3cb168d01e9a14dbebabd11db119d7e3dd6e12cbe",
+  e2e: "4d162c2b33e425837288ff96e8932899139254c1d907c0a8f60c383ccbc14129",
+  "e2e with shadcn": "4d162c2b33e425837288ff96e8932899139254c1d907c0a8f60c383ccbc14129",
   "electron with aliases": "83a5a7d828cea75a99d1169b8fb1e0a04fec2645616abedfc4eff6613a51ddd8",
 };
 
 const sha = (value: unknown): string => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
-describe("the rule blocks of the layouts that existed before pocketbase", () => {
+describe("the rule blocks of the layouts that existed before the service layout", () => {
   const now: Record<string, string> = {
     ...Object.fromEntries(
       LAYOUTS.flatMap((layout) => [
