@@ -5,6 +5,7 @@ import { analysisOf, type HarnessConfig, type WorkspaceEntry } from "../../confi
 import { managerCommands } from "./bootstrap.ts";
 import { lacksTypescriptApi, TYPESCRIPT_API, typescriptNative, typescriptVersion } from "../../presets/load-tool.ts";
 import { broughtByBase, bringsOwnBase, bringsOwnNext } from "../../tools/eslint-preset.ts";
+import { bin } from "../../tools/tool-set.ts";
 import { isLintOnly } from "./lint-only/lint-only.ts";
 import { runsOwnTests } from "./tool-configs.ts";
 
@@ -120,4 +121,20 @@ export function starterInstall(root: string, workspace: WorkspaceEntry): string 
   const missing = Object.entries(wanted).filter(([name]) => dependencies[name] === undefined && devDependencies[name] === undefined);
   if (missing.length === 0) return undefined;
   return inWorkspace(workspace, `${managerCommands(root).add} ${missing.map(([name, version]) => `${name}@${version}`).join(" ")}`);
+}
+
+/**
+ * A tool's command run from a workspace folder. The manager's exec runs in the nearest folder with a package.json, so a
+ * folder without one gets the binary by its path: the nearest node_modules/.bin that has it, or before the install, the
+ * one beside the nearest package.json above the folder.
+ */
+export function toolCommand(root: string, folder: string, tool: string, args: string): string {
+  const exec = `${managerCommands(root).exec} ${tool} ${args}`;
+  if (folder === "") return exec;
+  const dir = path.join(root, folder);
+  if (fs.existsSync(path.join(dir, "package.json"))) return `(cd ${folder} && ${exec})`;
+  let owner = path.dirname(dir);
+  while (owner !== root && !fs.existsSync(path.join(owner, "package.json"))) owner = path.dirname(owner);
+  const binary = bin(dir, tool, root) ?? bin(owner, tool);
+  return `(cd ${folder} && ${path.relative(dir, binary).split(path.sep).join("/")} ${args})`;
 }
