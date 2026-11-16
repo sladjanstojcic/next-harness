@@ -1,14 +1,12 @@
-import { join } from "node:path";
 import { checkBackendFolder, GENERATED_TYPES } from "../backend-folder.ts";
 import { checkClientModule, TEST_FILE, type ClientModuleText, type ModuleLayout } from "../next-modules.ts";
 import {
+  backendModulesIndex,
   checkSharedFolder,
-  codeIndexBuilder,
   deny,
   onlyGitkeepHidden,
   PLAIN_SHAPE,
   ROUTE_SEGMENT,
-  sortedEntries,
   type PathVerdict,
   type SharedFolderText,
   type Shape,
@@ -116,16 +114,6 @@ function checkPath(path: string): PathVerdict {
   return deny("src-shape", `src/ takes app/, modules/, backend/, shared/ and assets/: ${WHERE}`);
 }
 
-function codeIndex(workspaceDir: string): string[] {
-  const { lines, section, sources } = codeIndexBuilder(workspaceDir);
-  section("src/backend", "src/backend", sources("src/backend"));
-  for (const entry of sortedEntries(join(workspaceDir, "src/modules")).filter((entry) => entry.isDirectory())) {
-    section(entry.name, `src/modules/${entry.name}`, ["index.ts"]);
-  }
-  section("shared/lib", "src/shared/lib", sources("src/shared/lib"));
-  return lines;
-}
-
 /** A single-page React app built with Vite: it runs wholly in the browser, and talks to a hosted backend through src/backend/ or to none. */
 export const viteSpa: Shape = {
   ...PLAIN_SHAPE,
@@ -159,5 +147,5 @@ export const viteSpa: Shape = {
     return inside.length === 0 || (inside.length === 1 && ["index.ts", "types.ts", "schemas.ts"].includes(inside[0] ?? "")) ? undefined : module;
   },
   content: viteContent,
-  codeIndex,
+  codeIndex: backendModulesIndex,
 };

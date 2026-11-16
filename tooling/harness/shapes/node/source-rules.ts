@@ -1,15 +1,12 @@
 import type ts from "typescript";
-import type { SourceFinding } from "../shape.ts";
+import { isImportMeta, type SourceFinding } from "../shape.ts";
 
 export const NODE_LAYOUT = "(Node layout)";
 export const ENV_FILE = "src/shared/lib/env.ts";
 /** app.ts mounts and configures; a routes.ts parses, calls its module and answers. Logic past this belongs in the module. */
-export const MAX_ROUTE_LINES = 80;
+const MAX_ROUTE_LINES = 80;
 const ROUTE_FILE = /^src\/(?:app\/app|modules\/[^/]+\/routes)\.ts$/;
 type Compiler = typeof ts;
-
-const isImportMeta = (ts: Compiler, node: ts.Node): boolean =>
-  ts.isMetaProperty(node) && node.keywordToken === ts.SyntaxKind.ImportKeyword && node.name.text === "meta";
 
 /** The specifier of an import, a re-export, a dynamic import() or require(), when it is a string literal. */
 function specifierOf(ts: Compiler, node: ts.Node): ts.Node | undefined {
