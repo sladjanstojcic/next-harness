@@ -37,13 +37,13 @@ describe("a git-ignored file a tool in a nested workspace reports", () => {
       expect(await prettierFiles(root)).toEqual([]);
       repo.remove(LEGACY);
       await initLegacy(root, resolveHarness(root));
-      expect(JSON.parse(repo.read(LEGACY)).files).not.toContain(GENERATED);
+      expect(repo.read(LEGACY)).not.toContain(GENERATED);
 
       repo.git("add", "-f", GENERATED);
       repo.remove(LEGACY);
       expect(await prettierFiles(root)).toEqual([GENERATED]);
       await initLegacy(root, resolveHarness(root));
-      expect(JSON.parse(repo.read(LEGACY)).files).toContain(GENERATED);
+      expect(repo.read(LEGACY)).toContain(`"${GENERATED}"`);
     },
     LONG,
   );

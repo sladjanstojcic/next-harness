@@ -43,7 +43,8 @@ Every step runs, and all failures are reported.
 
 A finding on a file git ignores never counts, in the gates or in `legacy init`; a tracked file always
 counts. A tool in a nested workspace reads no ignore file above it. So when git ignores something in
-that folder, CI runs its format check and lint as per-file reports and drops the ignored files.
+a nested workspace's folder, CI runs its format check and lint as per-file reports and drops the
+ignored files. The root workspace keeps its usual checks.
 
 Pre-push and GitHub Actions call the same gate directly, as `node tooling/harness/cli.ts check ci`, so
 a changed package script cannot weaken it. Run `pnpm run prepare` after an install to enable
