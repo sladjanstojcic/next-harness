@@ -18,7 +18,7 @@ export default defineHarness({
   workspaces: [{ path: ".", shape: "next-modules", next: true }],
   owned: ["src/modules/billing/"],
   legacy: "tooling/harness-legacy.json",
-  locked: ["supabase/migrations/"],
+  locked: ["vercel.json"],
   root: { entries: ["supabase", "vercel.json"] },
 });
 ```
@@ -82,7 +82,10 @@ The legacy list is a ratchet: old code is tolerated, new and touched code is hel
 
 ## The other fields
 
-- **`locked`** adds paths to the lock, such as a kit's own lint config.
+- **`locked`** adds paths to the lock, such as a kit's own lint config. A locked folder (a path ending
+  in `/`) denies new files as well as edits. Do not list a migrations folder: the `supabase` and
+  `pocketbase` shapes already lock applied migrations, and the entry would deny every new one. The
+  denial then names the entry to remove.
 - **`root.entries`** names what may sit at the repository root besides the defaults;
   **`root.jsExceptions`** names root files that may stay JavaScript. Both are described under
   [the root](gates.md#the-root-and-names).

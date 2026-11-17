@@ -85,7 +85,14 @@ export function lock(root: string): void {
   fs.rmSync(path.join(stateDir(root), "unlock.json"), { force: true });
 }
 
-export function lockReason(file: string): string {
+/** A `locked` entry of the config that names a migrations folder: the shape already locks applied migrations, and the entry denies new ones. */
+const MIGRATIONS_ENTRY = /(?:^|\/)(?:migrations|pb_migrations)\/$/;
+
+export function lockReason(file: string, config?: HarnessConfig): string {
+  const entry = (config?.locked ?? []).find((locked) => MIGRATIONS_ENTRY.test(locked) && file.startsWith(locked));
+  if (entry !== undefined) {
+    return `${file} is denied because \`locked\` in ${CONFIG_FILE} lists ${entry}, which denies new files there as well as edits. Applied migrations are locked without that entry. Ask the user to run \`pnpm harness:unlock\` in their own terminal and remove ${entry} from \`locked\`.`;
+  }
   return `${file} is part of the harness and is locked. Ask the user to run \`pnpm harness:unlock\` in their own terminal (valid ${String(UNLOCK_HOURS)} hours), make the change with them, then \`pnpm harness:lock\`.`;
 }
 
@@ -104,7 +111,7 @@ export function lockFindings(root: string, changed: Iterable<string>, config: Ha
   if (unlocked(root)) return [];
   return [...changed]
     .filter((file) => isLocked(file, config, root) && !matchesCommit(root, file, base))
-    .map((file): Finding => ({ rule: "harness-lock", file, message: lockReason(file) }));
+    .map((file): Finding => ({ rule: "harness-lock", file, message: lockReason(file, config) }));
 }
 
 /** The HEAD and the unique ref tips before a shell command: every commit reachable from them already existed. */
