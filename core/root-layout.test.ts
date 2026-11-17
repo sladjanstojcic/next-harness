@@ -68,6 +68,13 @@ describe("root layout", () => {
     expect(checkPath("harness-legacy.json")).toEqual(expect.objectContaining({ rule: "unknown-root" }));
   });
 
+  it("takes .env.example at the root of a monorepo, where no workspace sits, and no other .env file", () => {
+    const monorepo = resolveHarness(makeRepo({ "harness.config.ts": 'export default { workspaces: [{ path: "apps/web", shape: "next-modules" }] };\n' }).root);
+    expect(checkPath(".env.example", monorepo)).toEqual({ ok: true });
+    expect(checkPath(".env", monorepo)).toEqual(expect.objectContaining({ rule: "unknown-root" }));
+    expect(checkPath(".env.production", monorepo)).toEqual(expect.objectContaining({ rule: "unknown-root" }));
+  });
+
   it("accepts harness.config.ts only when the file exists", () => {
     expect(rootEntries(DEFAULT_CONFIG).entries.has("harness.config.ts")).toBe(false);
     expect(
