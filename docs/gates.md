@@ -48,7 +48,9 @@ ignored files. The root workspace keeps its usual checks.
 
 A format or lint finding on an applied migration never blocks, since the migration lock forbids
 editing it. The Done gate counts a migration as applied when the lock does. CI and `legacy init`
-count only the remote branches, so a migration new in the branch is judged in full. CI lists the
+count the remote branches, so a migration not yet pushed is judged in full. Without a remote
+they count HEAD, as the lock does. With a remote whose branches the checkout lacks, they forgive
+nothing and say so; fetch them with `fetch-depth: 0` in actions/checkout. CI lists the
 forgiven findings under "Pre-existing in applied migrations (not blocking)", and `legacy init`
 leaves those files off the list. A workspace holding applied migrations runs its format check and
 lint in CI as per-file reports.

@@ -89,10 +89,22 @@ export function migrationFindings(root: string, harness: Harness, changed: Itera
     .map((file): Finding => ({ rule: MIGRATION_RULE, file, message: migrationReason(harness, file, applied) }));
 }
 
-/** What CI and the legacy list count as applied: the remote commits alone, so a migration new in the branch is never forgiven. */
+/**
+ * What CI and the legacy list count as applied: the remote commits, so a migration not yet pushed is judged in full.
+ * Without a remote, HEAD, as the lock does. With a remote whose refs this checkout lacks, nothing: HEAD would hold the
+ * branch's own migrations.
+ */
 export function remoteApplied(root: string): Applied {
   const pins = pinAppliedRefs(root);
-  return { trees: pins.commits, label: pins.label };
+  if (pins.commits.length > 0) return { trees: pins.commits, label: pins.label };
+  return (git(root, ["remote"]) ?? "") === "" ? { trees: ["HEAD"], label: "HEAD" } : { trees: [], label: "" };
+}
+
+/** Why a migration workspace's applied migrations are judged in full: the checkout holds no remote branch to tell them by. */
+export function appliedUnknown(harness: Harness, workspacePath: string, resolve: () => Applied): string | undefined {
+  const folder = harness.workspaces.find((entry) => entry.path === workspacePath);
+  if (folder === undefined || MIGRATIONS[folder.shape] === undefined || resolve().trees.length > 0) return undefined;
+  return `${workspacePath}: applied migrations are judged in full, because this checkout holds no remote branch to tell them by. Fetch the remote branches (\`fetch-depth: 0\` in actions/checkout, or \`git fetch origin\`).`;
 }
 
 /** Whether an applied commit holds any file in a workspace's migration folder. */

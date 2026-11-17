@@ -164,8 +164,8 @@ describe.each([PB, "services/pocketbase"])("the CI gate on %s/ with ESLint and P
       const entry = `${folder}/pb_hooks/sessions.pb.ts`;
       const whole = await gateOn(pocketbaseEslintRepo({ [entry]: CAST }, { folder }), folder);
       expect(whole.lines).toContain(`eslint (${folder}): failed`);
-      expect(whole.findings.map(({ rule }) => rule)).toEqual(["eslint-failed"]);
-      expect(whole.findings[0]?.message).toMatch(new RegExp(`/${entry}\\n.*no-restricted-syntax`));
+      // Without a remote the committed migration counts as applied, so the folder's lint runs file by file.
+      expect(whole.findings.map(({ file, rule }) => `${file} ${rule}`)).toEqual([`${entry} no-restricted-syntax`]);
 
       vi.restoreAllMocks();
       const perFile = await gateOn(pocketbaseEslintRepo({ [entry]: CAST }, { folder, legacy: true }), folder);
