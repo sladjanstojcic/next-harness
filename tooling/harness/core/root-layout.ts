@@ -14,6 +14,7 @@ const ROOT_ENTRIES: readonly string[] = [
   ".node-version",
   ".editorconfig",
   ".gitattributes",
+  ".env.example",
   "README.md",
   "AGENTS.md",
   "CLAUDE.md",
