@@ -49,7 +49,7 @@ describe("a create-next-app project after init", () => {
     expect(lockfile.status, "the fixture's lockfile must be one Prettier would rewrite").toBe(1);
   }, 120_000);
 
-  it("passes Vitest before the first test, and Playwright runs only e2e/ tests, the starter smoke test among them", () => {
+  it("passes Vitest before the first test, and Playwright runs only e2e/ tests, the two starter tests", () => {
     const sample = { "tooling/harness/sample.test.ts": 'import { it } from "vitest";\nit("is the harness\'s", () => undefined);\n' };
     const fresh = initialised({ ...APP, ...sample });
     const tests = run(fresh.root, "vitest", ["run"]);
@@ -61,8 +61,9 @@ describe("a create-next-app project after init", () => {
     );
     const browser = run(repo.root, "playwright", ["test", "--list"]);
     expect(browser.status, browser.output).toBe(0);
+    expect(browser.output).toContain("e2e/accessibility.test.ts");
     expect(browser.output).toContain("e2e/smoke.test.ts");
-    expect(browser.output).toContain("Total: 1 test in 1 file");
+    expect(browser.output).toContain("Total: 2 tests in 2 files");
   }, 120_000);
 
   it("collects the project's tests but not the harness's, and knip skips harness exports", () => {
