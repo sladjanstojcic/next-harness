@@ -33,6 +33,7 @@ export async function handleEvent(event: HookEvent, root: string): Promise<Outco
         writeState(root, sessionFile("shell", event.sessionId), {
           tree: snapshotTree(root),
           head: git(root, ["rev-parse", "--verify", "-q", "HEAD^{commit}"]),
+          tips: [...new Set((git(root, ["for-each-ref", "--format=%(objectname)"]) ?? "").split("\n").filter(Boolean))],
           task,
         } satisfies ShellState);
       }
@@ -46,7 +47,7 @@ export async function handleEvent(event: HookEvent, root: string): Promise<Outco
         const harness = resolveHarness(root);
         const { config } = harness;
         const findings: Finding[] = [
-          ...shellLockFindings(root, changed, config, shell.head ?? "HEAD"),
+          ...shellLockFindings(root, changed, config, shell.head === null ? undefined : { head: shell.head, tips: shell.tips }),
           ...migrationFindings(root, harness, changed, () => taskApplied(root, shell.task)),
           ...lintConfigFindings(root, harness),
           ...legacyInvalidFindings(root, config),
