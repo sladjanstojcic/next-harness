@@ -183,9 +183,9 @@ parent: Reference
   after it was pushed stays forgiven in CI, which runs no migration lock; locally the lock stops the
   edit. Without a legacy list a type error in an applied migration still fails CI, since `tsc` is then
   judged by its exit code.
-- A git-ignored file is dropped from the findings only where a tool reports file by file. The root
-  workspace keeps its usual checks: without a legacy list, a file there that git ignores but the root's
-  ESLint config does not still fails CI's lint.
+- A git-ignored file is dropped from the format and lint findings only where a tool reports file by
+  file. The root workspace keeps its usual checks: without a legacy list, a file there that git ignores
+  but the root's ESLint config does not still fails CI's lint.
 - A type test (`<name>.test-d.ts`) may use `@ts-expect-error` only under ESLint. With the `oxc` tools
   oxlint still reports it, and so does the Makerkit shapes' inline-disable audit; the `pocketbase` and
   `e2e` shapes deny the name. Like a unit test, a type test is passed over by folder size and the audit rules that

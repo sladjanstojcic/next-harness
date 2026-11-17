@@ -17,6 +17,8 @@ export interface ToolStep {
   cwd?: string;
   timeoutMs?: number;
   findings(stdout: string, exitCode: number): Finding[];
+  /** Keeps findings on git-ignored files: tsc reports a route's type error in Next's ignored .next/types/. */
+  keepIgnored?: boolean;
   /** One line for a failure the tool's own output explains at length, such as a missing config; undefined keeps that output. */
   explain?(output: string): string | undefined;
 }
@@ -101,8 +103,9 @@ export async function runTool(root: string, step: ToolStep): Promise<Finding[]> 
   if (result.code === null) return failure();
   try {
     const findings = step.findings(result.stdout, result.code);
-    // Judged after the exit code: a step whose only findings are on git-ignored files passes.
-    return findings.length > 0 || result.code === 0 ? judgedFindings(root, findings) : failure();
+    // Judged after the exit code: a format or lint step whose only findings are on git-ignored files passes.
+    if (findings.length === 0 && result.code !== 0) return failure();
+    return step.keepIgnored === true ? findings : judgedFindings(root, findings);
   } catch (error) {
     // A tool that died before it printed its report says why on stderr: that line leads, not the parser's.
     const lines = result.code === 0 ? [] : result.stderr.split(/\r?\n/).filter((line) => line.trim() !== "");
