@@ -212,7 +212,8 @@ export function toolConfigSteps(root: string, workspace: WorkspaceEntry, force: 
     ...(app ? [gitignoreStep(root, workspace.path, ignored)] : []),
     ...(workspace.path === "" || !app ? [] : [ignoreEntriesStep(root, label(workspace, ".prettierignore"), prettierIgnored(workspace))]),
     ...(starter && workspace.shape === "next-modules" ? starterSteps(root, "next-modules", label(workspace, `${sourceRootOf(workspace)}shared/lib`)) : []),
-    ...(starter && browser ? starterSteps(root, "e2e", label(workspace, "e2e")) : []),
+    // The starter browser tests expect create-next-app's home page, with its heading; a monorepo's app writes its own.
+    ...(starter && browser && workspace.path === "" ? starterSteps(root, "e2e", label(workspace, "e2e")) : []),
     ...(starter && withoutStarter
       ? [
           {

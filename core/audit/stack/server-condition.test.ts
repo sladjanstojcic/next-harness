@@ -2,6 +2,9 @@ import fs from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { harnessVitest } from "../../../presets/vitest.ts";
 import { makeRepo } from "../../../testing/temp-repo.ts";
+import { ALWAYS_BLOCKS } from "../../classes.ts";
+import { nodeTodo } from "../../init/node/node-steps.ts";
+import { resolveHarness } from "../../path-check.ts";
 import { auditServerCondition } from "./server-condition.ts";
 
 afterEach(() => vi.restoreAllMocks());
@@ -46,6 +49,10 @@ describe("server-condition", () => {
       "apps/worker/package.json:1 server-condition",
       "apps/worker/Dockerfile:3 server-condition",
     ]);
+    expect(findings.every(ALWAYS_BLOCKS)).toBe(true);
+    expect(nodeTodo(repo, resolveHarness(repo).workspaces)[0]).toBe(
+      'Start Node with --conditions=react-server wherever apps/worker/package.json and apps/worker/Dockerfile:3 runs src/ (init does not edit them), because @acme/db imports "server-only" in src/server.ts and plain Node throws on it',
+    );
     expect(findings[0]?.message).toBe(
       'The "start" script starts Node without --conditions=react-server, and this service depends on @acme/db, whose src/server.ts imports "server-only": plain Node throws on that import. Put --conditions=react-server after node (Node layout)',
     );
@@ -57,6 +64,7 @@ describe("server-condition", () => {
       { "apps/worker/Dockerfile": 'CMD ["node", "--conditions=react-server", "src/main.ts"]\n' },
     );
     expect(auditServerCondition(repo)).toEqual([]);
+    expect(nodeTodo(repo, resolveHarness(repo).workspaces).join("\n")).not.toContain("--conditions");
   });
 
   it("gives the service's tests the empty server-only entry only while its starts pass the condition, as the runtime would", () => {

@@ -12,7 +12,7 @@ export interface ToolSet {
     /** `vendored` is the shape's pattern for workspace-relative files the step leaves alone; with no file left it is skipped. */
     check(dir: string, vendored?: RegExp): ToolStep | SkippedStep;
     /** The whole-workspace check with one finding per file, where `check` judges by exit code only. */
-    report?(dir: string): ToolStep;
+    report?(dir: string, vendored?: RegExp): ToolStep;
   };
   lint: {
     files(dir: string, files: string[], fast: boolean): ToolStep;
