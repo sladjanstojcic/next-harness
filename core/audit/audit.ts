@@ -9,6 +9,7 @@ import type { Finding } from "./finding.ts";
 import { listFiles, trackedDependencyFolders } from "./list-files.ts";
 import { auditPaths } from "./path-rules.ts";
 import { auditPreloadBundles } from "./preload-bundle.ts";
+import { auditServerCondition } from "./stack/server-condition.ts";
 import { auditUiStack } from "./stack/ui-stack.ts";
 import { auditTsconfigs } from "./tsconfig/tsconfig-rules.ts";
 
@@ -43,6 +44,7 @@ export function audit(root: string): Finding[] {
     ...auditPreloadBundles(root),
     ...auditAgentsBlock(root),
     ...auditUiStack(root),
+    ...auditServerCondition(root),
   ];
 }
 
