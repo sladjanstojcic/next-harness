@@ -77,6 +77,7 @@ describe("tool runner", () => {
     expect((await runTool(repo.root, step)).map(({ file }) => file)).toEqual(["out/tracked.js", "src/a.ts", ""]);
     const ignoredOnly = { ...step, findings: () => [{ rule: "probe", file: "out/build.js", message: "x" }] };
     expect(await runTool(repo.root, ignoredOnly)).toEqual([]);
+    expect(await runTool(repo.root, { ...ignoredOnly, keepIgnored: true })).toEqual([{ rule: "probe", file: "out/build.js", message: "x" }]);
   });
 
   it("passes only the allowlisted environment with CI forced to 1", async () => {
