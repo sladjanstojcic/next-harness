@@ -111,6 +111,14 @@ parent: Reference
   250-line limit is not, because that limit is a lint rule. The Playwright tests themselves run in the
   gates only when the workspace names a `test` script, and they need whatever the tests need: a
   running app or database.
+- A Next app in a monorepo is built and its `e2e/` tests run in the full check, as run on a fresh
+  create-turbo project with a `node-service` and a `package` added. A failed browser step's finding names
+  no file, and init calls the browser install "the smoke test's" though it writes such an app no test.
+- `server-condition` reads package scripts and the `CMD` and `ENTRYPOINT` lines of a `Dockerfile` that
+  start `node` on `src/`. A start through another runner, a compose file or a process manager is not
+  seen, and no image was built with the flag.
+- A package's generated types are left out of the gate's format check, not out of Prettier itself: a
+  package has no `.prettierignore`, so `prettier --write .` there reformats them.
 - Accessibility checks are guidance, not a rule: nothing reports a hand-written contrast or landmark
   check. `init --starter` writes `e2e/accessibility.test.ts` only for a Next workspace at the root; an
   `e2e` folder such as `apps/e2e` gets the guide line alone and installs `@axe-core/playwright` itself.
