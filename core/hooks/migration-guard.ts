@@ -88,3 +88,18 @@ export function migrationFindings(root: string, harness: Harness, changed: Itera
     })
     .map((file): Finding => ({ rule: MIGRATION_RULE, file, message: migrationReason(harness, file, applied) }));
 }
+
+/** What CI and the legacy list count as applied: the remote commits alone, so a migration new in the branch is never forgiven. */
+export function remoteApplied(root: string): Applied {
+  const pins = pinAppliedRefs(root);
+  return { trees: pins.commits, label: pins.label };
+}
+
+/** Whether an applied commit holds any file in a workspace's migration folder. */
+export function holdsAppliedMigrations(root: string, harness: Harness, workspacePath: string, resolve: () => Applied): boolean {
+  const folder = harness.workspaces.find((entry) => entry.path === workspacePath);
+  const migrations = folder === undefined ? undefined : MIGRATIONS[folder.shape];
+  if (migrations === undefined) return false;
+  const at = path.posix.join(workspacePath, migrations.folder);
+  return resolve().trees.some((tree) => (git(root, ["ls-tree", "-r", "--name-only", tree, "--", at]) ?? "") !== "");
+}
