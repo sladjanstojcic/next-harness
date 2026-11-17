@@ -46,6 +46,10 @@ export interface WorkspaceEntry {
   sourceRoot?: SourceRoot;
 }
 
+/** A Next app the gates build and run browser tests for: the one at the git root, or a next-modules workspace. A kit's app keeps its own build. */
+export const buildsNext = (workspace: Pick<WorkspaceEntry, "path" | "shape" | "next">): boolean =>
+  workspace.next && (workspace.path === "" || workspace.shape === "next-modules");
+
 export const CONFIG_FILE = "harness.config.ts";
 
 export const DEFAULT_CONFIG: HarnessConfig = {

@@ -12,7 +12,7 @@ import { ALL_TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { bin } from "../../tools/tool-set.ts";
 import { gitignoreStep, rootIgnored, rootIgnoreSteps } from "./ignore-files.ts";
 import { TYPESCRIPT_API_REASON, TYPESCRIPT_NATIVE_REASON } from "../../presets/load-tool.ts";
-import { nativeTypescript, needsTypescriptApi, peerInstall, starterInstall, toolCommand } from "./peers.ts";
+import { browserCommand, nativeTypescript, needsTypescriptApi, peerInstall, starterInstall, toolCommand } from "./peers.ts";
 import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
 import { shadcnTodo } from "./shadcn/shadcn-steps.ts";
 import { e2eTodo, isLintOnly, lintOnlySteps } from "./lint-only/lint-only.ts";
@@ -131,13 +131,10 @@ function ownTestsItem(harness: Harness, workspace: WorkspaceEntry): string {
   return `${lead}, by creating ${CONFIG_FILE} with: export default defineHarness({ workspaces: [{ path: ".", shape: "next-modules", next: true, test: "test" }] })`;
 }
 
-/** The browser smoke test runs only for a Next workspace at the root. */
-const runsSmoke = (workspaces: readonly WorkspaceEntry[]): boolean => workspaces.some((workspace) => workspace.path === "" && workspace.next);
-
 /** One numbered list of what the user runs after init, in the order that works: tools before the files that need them. */
 function nextSteps(root: string, harness: Harness, workspaces: readonly WorkspaceEntry[], steps: readonly Step[], starter: boolean): string[] {
   const todo = steps.filter((step) => step.todo === true).map((step) => step.target);
-  const { exec, run } = managerCommands(root);
+  const { run } = managerCommands(root);
   const prettier = (workspace: WorkspaceEntry, args: string): string => toolCommand(root, workspace.path, "prettier", args);
   const format = workspaces.filter((workspace) => usesPrettierPreset(root, workspace)).map((workspace) => prettier(workspace, "--write ."));
   // A workspace with its own style is not reformatted; only the kept files the user has just edited are.
@@ -180,7 +177,7 @@ function nextSteps(root: string, harness: Harness, workspaces: readonly Workspac
     ...(preparesHooks(root) ? [] : [`Add to the root package.json "prepare" script, so a fresh clone gets the pre-push hook: ${PREPARE}`]),
     ...(format.length === 0 ? [] : [`Format the app's own files once in the preset's style: ${format.join("; ")}`]),
     ...(edited.length === 0 ? [] : [`Format the kept files you edited, in the project's own style: ${edited.join("; ")}`]),
-    ...(runsSmoke(workspaces) ? [`Install the smoke test's browser: ${exec} playwright install chromium`] : []),
+    ...[browserCommand(root, workspaces, "install chromium") ?? []].flat().map((command) => `Install the smoke test's browser: ${command}`),
     ...(legacy === undefined || fs.existsSync(path.join(root, legacy))
       ? []
       : [`List the files with findings today, which the gates then tolerate until someone touches them: node ${HARNESS_PACKAGE}/cli.ts legacy init`]),
@@ -242,7 +239,7 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
       ...lines,
       ...formatted,
       ...agentsSizeNote(root),
-      ciSteps(harness.config.legacy !== undefined, runsSmoke(workspaces)),
+      ciSteps(harness.config.legacy !== undefined, browserCommand(root, workspaces, "install --with-deps chromium")),
       ...nextSteps(root, harness, workspaces, steps, starter),
     ].join("\n"),
     ok: true,

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { analysisOf, type HarnessConfig, type WorkspaceEntry } from "../../config.ts";
+import { analysisOf, buildsNext, type HarnessConfig, type WorkspaceEntry } from "../../config.ts";
 import { managerCommands } from "./bootstrap.ts";
 import { lacksTypescriptApi, TYPESCRIPT_API, typescriptNative, typescriptVersion } from "../../presets/load-tool.ts";
 import { broughtByBase, bringsOwnBase, bringsOwnNext } from "../../tools/eslint-preset.ts";
@@ -61,7 +61,7 @@ export function atLeast(version: string, minimum: string): boolean {
   return true;
 }
 
-/** The starter test that runs axe on the home page; while a root Next workspace has it, init asks for @axe-core/playwright. */
+/** The starter test that runs axe on the home page; while a Next app the gates build has it, init asks for @axe-core/playwright. */
 const ACCESSIBILITY_TEST = "e2e/accessibility.test.ts";
 
 /** What the workspace uses of the harness's tools: a tool tied to a part the workspace does not use is not asked for. */
@@ -73,7 +73,7 @@ function needs(root: string, config: HarnessConfig, workspace: WorkspaceEntry): 
     if (workspace.next && !bringsOwnNext(dir)) needed.add("eslint-config-next");
   }
   if (!isLintOnly(workspace) && runsOwnTests(root, workspace) === undefined) needed.add("vitest");
-  if (workspace.path === "" && workspace.next) {
+  if (buildsNext(workspace)) {
     needed.add("browser");
     if (fs.existsSync(path.join(dir, ACCESSIBILITY_TEST))) needed.add("accessibility");
   }
@@ -144,3 +144,7 @@ export function toolCommand(root: string, folder: string, tool: string, args: st
   const binary = bin(dir, tool, root) ?? bin(owner, tool);
   return `(cd ${folder} && ${path.relative(dir, binary).split(path.sep).join("/")} ${args})`;
 }
+
+/** Playwright's command in the first Next app the gates build, whose browser install serves the others; undefined without one. */
+export const browserCommand = (root: string, workspaces: readonly WorkspaceEntry[], args: string): string | undefined =>
+  workspaces.filter(buildsNext).map((workspace) => toolCommand(root, workspace.path, "playwright", args))[0];

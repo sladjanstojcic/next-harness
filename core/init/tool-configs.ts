@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { sourcePaths, sourceRootOf, type WorkspaceEntry } from "../../config.ts";
+import { buildsNext, sourcePaths, sourceRootOf, type WorkspaceEntry } from "../../config.ts";
 import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { jscpdOutput } from "../../tools/analysis.ts";
 import { eslintPresetLines, exportedName, exportsCall, presetCall, presetImport } from "../../tools/eslint-preset.ts";
@@ -130,9 +130,9 @@ export function toolConfigStep(root: string, workspace: WorkspaceEntry, tool: To
 /** An app has build output and vendored UI to ignore; a package has neither. */
 const isApp = (workspace: WorkspaceEntry): boolean => workspace.shape !== "package";
 
-/** The tools whose config a workspace gets: Vitest only where the gates run it, Playwright only for a Next workspace at the git root. */
+/** The tools whose config a workspace gets: Vitest only where the gates run it, Playwright only for a Next app the gates build. */
 function toolsOf(root: string, workspace: WorkspaceEntry): ToolConfig[] {
-  const browser = workspace.path === "" && workspace.next;
+  const browser = buildsNext(workspace);
   const vitest = runsOwnTests(root, workspace) === undefined ? [VITEST] : [];
   return [ESLINT, PRETTIER, ...vitest, KNIP, ...(browser ? [PLAYWRIGHT] : [])];
 }
@@ -200,7 +200,7 @@ export function toolScripts(workspace: WorkspaceEntry, dir = "", starter = false
 
 /** Tool config, ignore and starter steps of every eslint-prettier workspace; package scripts are the caller's, since the root file also takes the wiring scripts. */
 export function toolConfigSteps(root: string, workspace: WorkspaceEntry, force: boolean, starter: boolean): Step[] {
-  const browser = workspace.path === "" && workspace.next;
+  const browser = buildsNext(workspace);
   const app = isApp(workspace);
   const withoutStarter = ["electron-vite", "vite-spa", "node-service"].includes(workspace.shape);
   const ignored = [...(BUNDLE_IGNORED[workspace.shape] ?? IGNORED), ...(workspace.path === "" ? rootIgnored(root) : [])];
