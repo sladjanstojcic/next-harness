@@ -111,6 +111,11 @@ parent: Reference
   250-line limit is not, because that limit is a lint rule. The Playwright tests themselves run in the
   gates only when the workspace names a `test` script, and they need whatever the tests need: a
   running app or database.
+- Accessibility checks are guidance, not a rule: nothing reports a hand-written contrast or landmark
+  check. `init --starter` writes `e2e/accessibility.test.ts` only for a Next workspace at the root; an
+  `e2e` folder such as `apps/e2e` gets the guide line alone and installs `@axe-core/playwright` itself.
+  The starter test ran on a fresh create-next-app 16.4.5 with `--src-dir`, after the install lines init
+  printed: `next build`, then both browser tests passed. The layout without `src/` was not rerun.
 - The `e2e` shape on ESLint and Prettier was not run on a real project or in an agent session. It ran
   in a scratch monorepo: a copy of the harness and an `apps/e2e` folder with a Playwright scaffold's
   config and spec, then the real `init` and `check ci`.

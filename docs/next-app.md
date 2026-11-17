@@ -84,7 +84,7 @@ node tooling/harness/cli.ts init --starter
 This run writes the wiring and prints what it did, one line per file: the hooks for Claude Code and
 Codex, the pre-push hook, the package scripts, and a config for Prettier, Vitest, knip, Playwright and
 dependency-cruiser. `--starter` also copies the `shared/lib/` helpers that the content rules point at,
-under `src/` or beside `app/`, and `e2e/smoke.test.ts`.
+under `src/` or beside `app/`, and two browser tests: `e2e/smoke.test.ts` and `e2e/accessibility.test.ts`.
 
 It also sets git's `core.hooksPath`, writes `.prettierignore`, adds two entries to `.gitignore`, and
 adds `allowImportingTsExtensions` and an `exclude` list to `tsconfig.json`.
@@ -105,7 +105,7 @@ Last, it prints eleven numbered steps. They are steps 5 to 12 here; step 8 holds
 ## 5. Install the harness's tools
 
 Run the `pnpm add -D` line init printed. It names exact versions, so copy it from your terminal, not
-from this page. Init installs nothing itself.
+from this page. Init installs nothing itself. The line names `@axe-core/playwright` for the accessibility test.
 
 pnpm may warn that `eslint@9` is deprecated, and it runs the new `prepare` script. Both are expected.
 

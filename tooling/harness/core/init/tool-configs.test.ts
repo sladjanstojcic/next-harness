@@ -7,7 +7,7 @@ import { initHarness } from "./init.ts";
 
 const template = path.resolve(import.meta.dirname, "../../../..");
 const STARTER = path.resolve(import.meta.dirname, "../../presets/starter/next-modules");
-const SMOKE = path.resolve(import.meta.dirname, "../../presets/starter/e2e/smoke.test.ts.txt");
+const BROWSER_STARTER = path.resolve(import.meta.dirname, "../../presets/starter/e2e");
 const OFF = { force: false, starter: false };
 const DASHBOARD_CONFIG = `export default {
   workspaces: [{ path: "apps/dashboard", shape: "next-modules", next: true }, { path: "supabase", shape: "supabase" }],
@@ -221,7 +221,12 @@ describe("init tool configs", () => {
       expect(fs.readFileSync(path.join(template, "src/shared/lib", name), "utf8"), name).toBe(starter);
       if (name !== "log.ts") expect(repo.read(`src/shared/lib/${name}`), name).toBe(starter);
     }
-    expect(fs.readFileSync(SMOKE, "utf8")).toBe(fs.readFileSync(path.join(template, "e2e/smoke.test.ts"), "utf8"));
-    expect(repo.read("e2e/smoke.test.ts")).toBe(fs.readFileSync(SMOKE, "utf8"));
+    for (const name of ["accessibility.test.ts", "smoke.test.ts"]) {
+      const starter = fs.readFileSync(path.join(BROWSER_STARTER, `${name}.txt`), "utf8");
+      expect(fs.readFileSync(path.join(template, "e2e", name), "utf8"), name).toBe(starter);
+      expect(repo.read(`e2e/${name}`), name).toBe(starter);
+    }
+    expect(fs.readdirSync(BROWSER_STARTER).sort()).toEqual(["accessibility.test.ts.txt", "smoke.test.ts.txt"]);
+    expect(nextSteps(result.report)[0]).toContain("pnpm add -D @axe-core/playwright@4.14.0 @eslint/js@");
   });
 });
