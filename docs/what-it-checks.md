@@ -44,7 +44,7 @@ The checks below run after the write, so their findings name the file and line f
 ## Limits
 
 A file has at most 250 lines, counting blanks and comments. A page has at most 60. A folder has at
-most 10 source files; tests beside their source do not count.
+most 10 source files; tests beside their source do not count, type tests (`<name>.test-d.ts`) included.
 
 The numbers matter less than having them. A limit forces the split at the moment a file grows past
 it, when the agent still knows what the two halves are.
@@ -91,6 +91,8 @@ harness says   src/modules/billing/server/load-invoices.ts:1 backend-package —
 
 The same function body may not exist under two names. Unused exports and files are reported. So are
 pasted blocks. `any`, `as never`, `@ts-ignore` and comments that switch off a lint rule are errors.
+A type test, named `<name>.test-d.ts` as Vitest's type tests are, may use `@ts-expect-error`, since an
+expected type error is what it checks. `@ts-ignore` and `@ts-nocheck` stay errors there too.
 
 Copies are how a project ends up with one price formatter in three modules. The copy check runs when
 the agent says it is done. Workarounds are how

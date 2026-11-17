@@ -33,7 +33,9 @@ parent: Reference
   on macOS arm64 with ESLint and Prettier, failed one: the folder's ESLint judged the gitignored
   `dist/` and `pb_data/`. Each was fixed before the next pass. Not run: tests with a `test` script,
   `shared/`, an agent session, PocketBase on Windows, ESLint and Prettier on Linux, and the `oxc`
-  tool set again since the default changed.
+  tool set again since the default changed. The folder's format step now names
+  `../node_modules/.bin/prettier`, since pnpm 10 runs `pnpm exec` in the root for a folder without
+  `package.json`; that line was tested on fixtures, not rerun there.
 - Init's printed shadcn steps were run as printed on create-next-app with and without `src/`, the
   electron-vite scaffold, create-vite, and a create-vite app at `apps/web` of a pnpm workspace. The
   Tailwind steps for a Next.js app without Tailwind were run as printed on create-next-app made with
@@ -173,9 +175,22 @@ parent: Reference
   check. The Done gate compares with HEAD, so it does not report the edit again. A checkout, merge,
   pull, reset or rebase onto commits that already existed passes. Undoing a caught edit with
   `git revert` is reported too, because the revert is a new commit that changes the file; undo it with
-  `git reset --hard` instead. A command that also forges a remote-tracking ref (`git update-ref
-  refs/remotes/...`) hides its own commit from the check, a deliberate bypass like the forged prompt
-  event above.
+  `git reset --hard` instead. A command that also forges a remote-tracking ref
+  (`git update-ref refs/remotes/...`) hides its own commit from the check, a deliberate bypass like the
+  forged prompt event above. The check passes every ref tip to one git call; with so many that the call
+  fails, each changed locked file is reported.
+- An applied migration's format and lint findings are forgiven by its path. One edited in the branch
+  after it was pushed stays forgiven in CI, which runs no migration lock; locally the lock stops the
+  edit. Without a legacy list a type error in an applied migration still fails CI, since `tsc` is then
+  judged by its exit code.
+- A git-ignored file is dropped from the findings only where a tool reports file by file. The root
+  workspace keeps its usual checks: without a legacy list, a file there that git ignores but the root's
+  ESLint config does not still fails CI's lint.
+- A type test (`<name>.test-d.ts`) may use `@ts-expect-error` only under ESLint. With the `oxc` tools
+  oxlint still reports it, and so does the Makerkit shapes' inline-disable audit; the `pocketbase` and
+  `e2e` shapes deny the name. Like a unit test, a type test is passed over by folder size and the audit rules that
+  skip tests, such as `server-only` and `duplicate-export`. The Vitest preset does not run it; `tsc`
+  checks it like any other file its tsconfig includes.
 - Without `src/`, the `depcruise` and `jscpd` package scripts init writes name the source paths that
   exist at that moment, and `shared` with `--starter`, because both tools fail on a missing path. Add
   `modules` to them once it exists; the gates work out the paths themselves on every run. A new app
