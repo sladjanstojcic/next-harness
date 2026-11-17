@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseEnv } from "node:util";
 import type { Finding } from "../audit/finding.ts";
+import { judgedFindings } from "./judged-findings.ts";
 
 /** A step a gate names in its report without running it. */
 export interface SkippedStep {
@@ -100,7 +101,8 @@ export async function runTool(root: string, step: ToolStep): Promise<Finding[]> 
   if (result.code === null) return failure();
   try {
     const findings = step.findings(result.stdout, result.code);
-    return findings.length > 0 || result.code === 0 ? findings : failure();
+    // Judged after the exit code: a step whose only findings are on git-ignored files passes.
+    return findings.length > 0 || result.code === 0 ? judgedFindings(root, findings) : failure();
   } catch (error) {
     // A tool that died before it printed its report says why on stderr: that line leads, not the parser's.
     const lines = result.code === 0 ? [] : result.stderr.split(/\r?\n/).filter((line) => line.trim() !== "");

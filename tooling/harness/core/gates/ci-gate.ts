@@ -9,6 +9,7 @@ import { listFiles } from "../audit/list-files.ts";
 import { lintConfigFindings } from "../hooks/lint-config-guard.ts";
 import { resolveHarness, type Harness } from "../path-check.ts";
 import { E2E_TESTS } from "../../presets/e2e.ts";
+import { holdsIgnored } from "../state/git-ignore.ts";
 import { stateDir } from "../state/state-file.ts";
 import { build, electronBuild, playwright, viteBuild } from "../../tools/analysis.ts";
 import { toolWorkspaces, workspaceTools } from "../../tools/index.ts";
@@ -93,7 +94,9 @@ async function runCiGate(directory: string, harness: Harness, ratchet: boolean, 
   for (const group of groups) {
     const { workspace, tools, dir } = group;
     const owned = harnessLinted(harness, legacy, workspace.path, sources.find((found) => found.workspace === workspace)?.files ?? []);
-    const { format, lint, types } = checkSteps(group, ratchet);
+    // A tool in a nested folder reads no ignore file above it; with git-ignored files in the folder it is judged file by file.
+    const { format, lint } = checkSteps(group, ratchet || holdsIgnored(directory, workspace.path));
+    const { types } = checkSteps(group, ratchet);
     await run(workspace.path, [
       format,
       lint,
