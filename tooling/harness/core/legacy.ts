@@ -8,6 +8,8 @@ import type { Finding } from "./audit/finding.ts";
 import { HARNESS_RULES, legacyList, readLegacy } from "./classes.ts";
 import { analysisSteps, checkSteps } from "./gates/ci-steps.ts";
 import { runInWorkspace } from "./gates/fast-gate.ts";
+import { onAppliedMigration } from "./gates/judged-findings.ts";
+import { remoteApplied } from "./hooks/migration-guard.ts";
 import type { Harness } from "./path-check.ts";
 import { git, remoteDefault } from "./state/applied-refs.ts";
 import { stateDir } from "./state/state-file.ts";
@@ -80,9 +82,12 @@ async function filesWithFindings(gitRoot: string, harness: Harness): Promise<{ f
   } finally {
     fs.rmSync(output, { recursive: true, force: true });
   }
+  // An applied migration's tool finding never blocks, so listing its file would keep the list from ever emptying.
+  const migration = onAppliedMigration(gitRoot, harness, () => remoteApplied(gitRoot));
+  const listed = found.filter((finding) => !migration(finding));
   return {
-    files: [...new Set(found.map((finding) => finding.file).filter((file) => file !== ""))].sort(),
-    failed: found.filter((finding) => finding.file === "").map((finding) => `${finding.rule}: ${finding.message.split("\n")[0] ?? ""}`),
+    files: [...new Set(listed.map((finding) => finding.file).filter((file) => file !== ""))].sort(),
+    failed: listed.filter((finding) => finding.file === "").map((finding) => `${finding.rule}: ${finding.message.split("\n")[0] ?? ""}`),
   };
 }
 

@@ -46,6 +46,13 @@ counts. A tool in a nested workspace reads no ignore file above it. So when git 
 a nested workspace's folder, CI runs its format check and lint as per-file reports and drops the
 ignored files. The root workspace keeps its usual checks.
 
+A format or lint finding on an applied migration never blocks, since the migration lock forbids
+editing it. The Done gate counts a migration as applied when the lock does. CI and `legacy init`
+count only the remote branches, so a migration new in the branch is judged in full. CI lists the
+forgiven findings under "Pre-existing in applied migrations (not blocking)", and `legacy init`
+leaves those files off the list. A workspace holding applied migrations runs its format check and
+lint in CI as per-file reports.
+
 Pre-push and GitHub Actions call the same gate directly, as `node tooling/harness/cli.ts check ci`, so
 a changed package script cannot weaken it. Run `pnpm run prepare` after an install to enable
 `.githooks/`; do not rely on an install rerun invoking lifecycle scripts.
