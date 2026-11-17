@@ -100,13 +100,14 @@ export function incrementalTypecheck(dir: string, next: boolean, projects: reado
     name: "tsc",
     command: tscCommand(dir, ["--incremental", "--pretty", "false"], projects),
     findings: (stdout) => typeFindings(dir, stdout),
+    keepIgnored: true,
   };
   return next ? [{ name: "next", command: [bin(dir, "next"), "typegen"], findings: () => [] }, tsc] : [tsc];
 }
 
 /** CI: the same order with plain tsc; a failure is reported by exit code. */
 export function fullTypecheck(dir: string, next: boolean, projects: readonly string[] = []): ToolStep[] {
-  const tsc: ToolStep = { name: "tsc", command: tscCommand(dir, [], projects), timeoutMs: CHECK_TIMEOUT_MS, findings: () => [] };
+  const tsc: ToolStep = { name: "tsc", command: tscCommand(dir, [], projects), timeoutMs: CHECK_TIMEOUT_MS, findings: () => [], keepIgnored: true };
   return next ? [{ name: "typegen", command: [bin(dir, "next"), "typegen"], timeoutMs: CHECK_TIMEOUT_MS, findings: () => [] }, tsc] : [tsc];
 }
 
@@ -126,6 +127,7 @@ export function projectTypecheck(dir: string, next: boolean, projects: readonly 
     command: tscCommand(dir, ["--pretty", "false"], projects),
     timeoutMs: CHECK_TIMEOUT_MS,
     findings: (stdout) => typeFindings(dir, stdout),
+    keepIgnored: true,
   };
   return next ? [{ name: "next", command: [bin(dir, "next"), "typegen"], timeoutMs: CHECK_TIMEOUT_MS, findings: () => [] }, tsc] : [tsc];
 }

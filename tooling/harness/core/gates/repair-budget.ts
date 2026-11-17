@@ -12,8 +12,16 @@ export const taskState = z.object({
 });
 export type TaskState = z.infer<typeof taskState>;
 
-/** The tree before a shell command, and a copy of the task, so a command that destroys the task file is judged anyway. */
-export const shellState = z.object({ tree: z.string().min(1), task: taskState.nullable() });
+/**
+ * The tree, the HEAD commit and the unique ref tips before a shell command, and a copy of the task, so a command that
+ * destroys the task file is judged anyway. `head` is null in a repository without commits.
+ */
+export const shellState = z.object({
+  tree: z.string().min(1),
+  head: z.string().nullable().default(null),
+  tips: z.array(z.string()).default([]),
+  task: taskState.nullable(),
+});
 export type ShellState = z.infer<typeof shellState>;
 
 export function startTask(root: string, sessionId: string): void {

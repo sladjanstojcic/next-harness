@@ -17,6 +17,8 @@ The rules above are enforced; a denial or a finding says where the code goes ins
 - `vitest run <path>`, through the project's package manager, runs one test file; run it in its workspace's folder.
 - Tests sit beside their source as `<name>.test.ts(x)`. Keep unit tests deterministic: no real clock, randomness or
   network.
+- A compile-time type test is `<name>.test-d.ts(x)` beside its source, the one file where `@ts-expect-error` is
+  allowed; not with the `oxc` tools, and not in a `pocketbase` or `e2e` folder, whose names deny it.
 - On a fresh clone the hooks deny every call until `pnpm install --frozen-lockfile` has run.
 - The harness is locked: `tooling/harness/`, the hook settings, `.githooks/`, `.github/`, the tool configs,
   `harness.config.ts`, its legacy list and the paths in its `locked` list.

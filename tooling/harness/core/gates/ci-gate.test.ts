@@ -61,6 +61,19 @@ describe("CI gate", () => {
     expect(result.report.match(/: passed/g)).toHaveLength(12);
   });
 
+  it("keeps a root workspace holding git-ignored .next/ on the exit-code format check and lint, reporting the tool's own text", async () => {
+    const repo = makeRepo({ ...SMOKE, ".gitignore": "node_modules/\n.next/\n", ".next/server/page.js": "x" }, { agents: true });
+    const commands: string[] = [];
+    vi.spyOn(runner, "runTool").mockImplementation(async (_root, step) => {
+      commands.push([path.basename(step.command[0] ?? ""), ...step.command.slice(1)].join(" "));
+      return step.name === "eslint" ? [{ rule: "eslint-failed", file: "", message: "src/app/page.tsx\n  1:1  error  no-console" }] : [];
+    });
+    const result = await ciGate(repo.root);
+    expect(commands.slice(0, 2)).toEqual(["prettier --check .", "eslint . --max-warnings 0"]);
+    expect(result.findings).toEqual([{ rule: "eslint-failed", file: "", message: "src/app/page.tsx\n  1:1  error  no-console" }]);
+    expect(result.report).toContain("eslint: failed\n");
+  });
+
   it("reports an audit exception and still reaches the browser step", async () => {
     vi.spyOn(auditor, "audit").mockImplementation(() => {
       throw new Error("Cannot read source");

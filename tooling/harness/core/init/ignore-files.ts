@@ -38,14 +38,33 @@ export function prettierIgnored(workspace: WorkspaceEntry): string[] {
  */
 const HARNESS_IGNORED = ["tooling/harness", "harness.config.ts"];
 
-/** Appends the entries an ignore file lacks, keeping its lines; `isMissing` decides with the file as it stands. */
-function ignoreFileStep(root: string, target: string, entries: readonly string[], isMissing: (entry: string, current: string) => boolean): Step {
+/**
+ * Appends the entries an ignore file lacks, keeping its lines; `isMissing` decides with the file as it stands. `replacing`
+ * names the entry that takes the place of a line an older init wrote, which is rewritten where it stands.
+ */
+function ignoreFileStep(
+  root: string,
+  target: string,
+  entries: readonly string[],
+  isMissing: (entry: string, current: string) => boolean,
+  replacing: (line: string, before: string) => string | undefined = () => undefined,
+): Step {
   const file = path.join(root, target);
-  const current = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+  const before = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+  const replaced: string[] = [];
+  const current = before
+    .split("\n")
+    .map((line) => {
+      const entry = replacing(line.trim(), before);
+      if (entry === undefined) return line;
+      replaced.push(`${line.trim()} → ${entry}`);
+      return `${entry}${line.endsWith("\r") ? "\r" : ""}`;
+    })
+    .join("\n");
   const missing = entries.filter((entry) => isMissing(entry, current));
-  if (missing.length === 0) return { target, status: "unchanged", detail: entries.join(", ") };
-  const text = `${current}${current === "" || current.endsWith("\n") ? "" : "\n"}${missing.join("\n")}\n`;
-  return { target, status: current === "" ? "created" : "updated", detail: missing.join(", "), apply: writer(file, text) };
+  if (missing.length === 0 && replaced.length === 0) return { target, status: "unchanged", detail: entries.join(", ") };
+  const appended = missing.length === 0 ? "" : `${current === "" || current.endsWith("\n") ? "" : "\n"}${missing.join("\n")}\n`;
+  return { target, status: before === "" ? "created" : "updated", detail: [...replaced, ...missing].join(", "), apply: writer(file, `${current}${appended}`) };
 }
 
 /** Appends to a folder's .gitignore the entries no ignore rule of the repository covers yet; entries are relative to that folder. */
@@ -59,10 +78,26 @@ export function gitignoreStep(root: string, folder: string, entries: readonly st
   );
 }
 
-/** Appends the entries a gitignore-style file lacks; a listed entry counts with or without its leading or trailing slash. */
+/**
+ * Appends the entries a gitignore-style file lacks; a listed entry counts with or without its leading or trailing slash.
+ * An entry anchored at the root, `/name`, replaces the line `name` an older init wrote, which in gitignore syntax matches a
+ * folder of the name at any depth; beside a listed `/name` that line is the user's and stays.
+ */
 export function ignoreEntriesStep(root: string, target: string, entries: readonly string[]): Step {
-  const listed = (current: string): Set<string> => new Set(current.split(/\r?\n/).map((line) => line.trim().replace(/^\/|\/$/g, "")));
-  return ignoreFileStep(root, target, entries, (entry, current) => !listed(current).has(entry));
+  const bare = (line: string): string => line.trim().replace(/^\/|\/$/g, "");
+  const listed = (current: string): Set<string> => new Set(current.split(/\r?\n/).map(bare));
+  const unanchored = new Map(entries.filter((entry) => /^\/[^/]+$/.test(entry)).map((entry) => [entry.slice(1), entry]));
+  const anchoredIn = (entry: string, before: string): boolean => before.split(/\r?\n/).some((line) => line.trim().replace(/\/$/, "") === entry);
+  return ignoreFileStep(
+    root,
+    target,
+    entries,
+    (entry, current) => !listed(current).has(bare(entry)),
+    (line, before) => {
+      const entry = unanchored.get(line);
+      return entry === undefined || anchoredIn(entry, before) ? undefined : entry;
+    },
+  );
 }
 
 /** The repository that develops the harness formats and lints it as its own code; its root ESLint config says so. */
@@ -80,7 +115,7 @@ export function developsHarness(root: string): boolean {
 export function rootIgnoreSteps(root: string, workspaces: readonly WorkspaceEntry[]): Step[] {
   const harness = developsHarness(root) ? [] : HARNESS_IGNORED;
   const atRoot = workspaces.find((workspace) => workspace.path === "" && workspace.tools === "eslint-prettier");
-  const formatted = atRoot === undefined ? [] : [...prettierIgnored(atRoot), ...pocketbaseFolders(workspaces)];
+  const formatted = atRoot === undefined ? [] : [...prettierIgnored(atRoot), ...pocketbaseFolders(workspaces).map((folder) => `/${folder}`)];
   const prettier = [...formatted, ...harness];
   const oxlint = workspaces.some((workspace) => workspace.tools === "oxc") ? harness : [];
   return [

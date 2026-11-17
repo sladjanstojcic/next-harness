@@ -65,6 +65,21 @@ describe("tool runner", () => {
     expect(slow?.message).toBe("Tool timed out after 300 ms. Its last lines:\nrunning");
   });
 
+  it("drops a finding on a git-ignored file, keeps a tracked one an ignore pattern matches, and passes when only ignored ones failed", async () => {
+    const repo = makeRepo({ ".gitignore": "out/\n", "kept/.gitignore": "*.gen.js\n", "out/tracked.js": "" });
+    repo.git("add", "-f", "out/tracked.js");
+    const files = ["out/build.js", "kept/a.gen.js", "out/tracked.js", "src/a.ts", ""];
+    const step = {
+      name: "probe",
+      command: [process.execPath, "-e", "process.exit(1)"],
+      findings: () => files.map((file) => ({ rule: "probe", file, message: "x" })),
+    };
+    expect((await runTool(repo.root, step)).map(({ file }) => file)).toEqual(["out/tracked.js", "src/a.ts", ""]);
+    const ignoredOnly = { ...step, findings: () => [{ rule: "probe", file: "out/build.js", message: "x" }] };
+    expect(await runTool(repo.root, ignoredOnly)).toEqual([]);
+    expect(await runTool(repo.root, { ...ignoredOnly, keepIgnored: true })).toEqual([{ rule: "probe", file: "out/build.js", message: "x" }]);
+  });
+
   it("passes only the allowlisted environment with CI forced to 1", async () => {
     const repo = makeRepo();
     vi.stubEnv("HARNESS_TEST_SECRET", "fixture-only");

@@ -23,7 +23,9 @@ ignores only `/node_modules`; the audit reports any committed `node_modules` fil
 `tracked-node-modules`. Beside a `turbo.json` it also gets `.turbo/`, Turborepo's cache and logs.
 The root `.prettierignore`, which Prettier and oxfmt read, gets `tooling/harness`
 and `harness.config.ts`, and so does `.eslintignore`, which oxlint reads, when a workspace uses oxc. A
-project's `prettier --write .`, `oxfmt` or `oxlint --fix` then leaves the locked harness alone.
+project's `prettier --write .`, `oxfmt` or `oxlint --fix` then leaves the locked harness alone. A
+`pocketbase` folder goes in as `/pocketbase`, anchored at the root, so a folder of that name deeper in
+the app is still formatted. Init run again rewrites a bare `pocketbase` line, which an older init wrote.
 
 **Tool configs, in each eslint-prettier workspace.** Thin `eslint.config.ts`, `prettier.config.ts`,
 `vitest.config.ts`, `knip.config.ts` and `.dependency-cruiser.json` files over `tooling/harness/presets/`,

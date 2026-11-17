@@ -8,6 +8,8 @@ import type { Finding } from "./audit/finding.ts";
 import { HARNESS_RULES, legacyList, readLegacy } from "./classes.ts";
 import { analysisSteps, checkSteps } from "./gates/ci-steps.ts";
 import { runInWorkspace } from "./gates/fast-gate.ts";
+import { onAppliedMigration } from "./gates/judged-findings.ts";
+import { type Applied, appliedUnknown, remoteApplied } from "./hooks/migration-guard.ts";
 import type { Harness } from "./path-check.ts";
 import { git, remoteDefault } from "./state/applied-refs.ts";
 import { stateDir } from "./state/state-file.ts";
@@ -67,11 +69,16 @@ export function untouchedLegacy(gitRoot: string, legacy: ReadonlySet<string>): {
  * The files with a harness finding or a tool finding (format, lint, types, depcruise, knip, jscpd) now, from the same
  * per-file reports CI judges with, and the steps that could not run, whose findings are therefore unknown.
  */
-async function filesWithFindings(gitRoot: string, harness: Harness): Promise<{ files: string[]; failed: string[] }> {
+async function filesWithFindings(gitRoot: string, harness: Harness): Promise<{ files: string[]; failed: string[]; notes: string[] }> {
   const found = audit(gitRoot).filter((finding) => HARNESS_RULES.has(finding.rule));
+  let pinned: Applied | undefined;
+  const applied = (): Applied => (pinned ??= remoteApplied(gitRoot));
+  const notes: string[] = [];
   const output = fs.mkdtempSync(path.join(stateDir(gitRoot), "jscpd-"));
   try {
     for (const group of toolWorkspaces(gitRoot, harness.workspaces)) {
+      const note = appliedUnknown(harness, group.workspace.path, applied);
+      if (note !== undefined) notes.push(note);
       const { format, lint, types } = checkSteps(group, true);
       for (const step of [format, lint, ...types, ...analysisSteps(gitRoot, harness, group, true, output)]) {
         if (!("skipped" in step)) found.push(...(await runInWorkspace(gitRoot, group.workspace.path, step)));
@@ -80,9 +87,13 @@ async function filesWithFindings(gitRoot: string, harness: Harness): Promise<{ f
   } finally {
     fs.rmSync(output, { recursive: true, force: true });
   }
+  // An applied migration's tool finding never blocks, so listing its file would keep the list from ever emptying.
+  const migration = onAppliedMigration(gitRoot, harness, applied);
+  const listed = found.filter((finding) => !migration(finding));
   return {
-    files: [...new Set(found.map((finding) => finding.file).filter((file) => file !== ""))].sort(),
-    failed: found.filter((finding) => finding.file === "").map((finding) => `${finding.rule}: ${finding.message.split("\n")[0] ?? ""}`),
+    files: [...new Set(listed.map((finding) => finding.file).filter((file) => file !== ""))].sort(),
+    failed: listed.filter((finding) => finding.file === "").map((finding) => `${finding.rule}: ${finding.message.split("\n")[0] ?? ""}`),
+    notes,
   };
 }
 
@@ -94,12 +105,13 @@ export async function initLegacy(gitRoot: string, harness: Harness): Promise<str
   if (legacy === undefined) throw new Error(`${CONFIG_FILE} sets no legacy path; add \`legacy: "<path>.json"\` first.`);
   const target = path.join(gitRoot, legacy);
   if (fs.existsSync(target)) throw new Error(`${legacy} already exists; shorten it with \`legacy prune\` as files are fixed.`);
-  const { files, failed } = await filesWithFindings(gitRoot, harness);
+  const { files, failed, notes } = await filesWithFindings(gitRoot, harness);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   write(target, files);
   return [
     `Wrote ${legacy} with ${String(files.length)} files. Commit it; until then legacy-append is inert.`,
     ...(failed.length === 0 ? [] : [`These steps did not run to the end, so their findings are not on the list and will fail CI:`, ...failed]),
+    ...notes,
   ].join("\n");
 }
 

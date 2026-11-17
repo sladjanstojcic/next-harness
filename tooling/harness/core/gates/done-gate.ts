@@ -22,6 +22,7 @@ import { typecheckProjects } from "../../tools/typescript.ts";
 import { knipStep, lacksSources, skippedLine, skippedTest, summarizePreExisting } from "./ci-steps.ts";
 import { runInWorkspace, selectedPaths } from "./fast-gate.ts";
 import type { GateResult } from "./gate-result.ts";
+import { onAppliedMigration } from "./judged-findings.ts";
 import type { ToolStep } from "./run-tool.ts";
 
 // Tool failure output (notably Vitest) can contain timings; they must not reset identical-failure detection.
@@ -63,6 +64,8 @@ async function runDoneGate(directory: string, changed: string[], applied: Applie
   const sourceGroups = workspaceTools(directory, harness.workspaces, sources);
   const affected = new Set(changedPaths);
   const all: Finding[] = [];
+  const taskMigrations = (): Applied => applied ?? taskApplied(directory, null);
+  const migration = onAppliedMigration(directory, harness, taskMigrations);
   const run = async (workspacePath: string, step: ToolStep, optional = false): Promise<void> => {
     all.push(...(await runInWorkspace(directory, workspacePath, step, optional)));
   };
@@ -79,7 +82,7 @@ async function runDoneGate(directory: string, changed: string[], applied: Applie
   all.push(
     ...audit(directory),
     ...lockFindings(directory, changedPaths, harness.config),
-    ...migrationFindings(directory, harness, changedPaths, () => applied ?? taskApplied(directory, null)),
+    ...migrationFindings(directory, harness, changedPaths, taskMigrations),
     ...lintConfigFindings(directory, harness),
     ...legacyAppendFindings(directory, harness.config),
     ...legacyInvalidFindings(directory, harness.config),
@@ -118,7 +121,7 @@ async function runDoneGate(directory: string, changed: string[], applied: Applie
   const isHarnessRule = (finding: Finding): boolean => HARNESS_RULES.has(finding.rule);
   const classOf = (finding: Finding): PathClass => classify(finding.file, harness, legacy);
   const blocks = (finding: Finding): boolean =>
-    ALWAYS_BLOCKS(finding) || (blockingPaths.has(finding.file) && (!isHarnessRule(finding) || classOf(finding) === "owned"));
+    ALWAYS_BLOCKS(finding) || (blockingPaths.has(finding.file) && !migration(finding) && (!isHarnessRule(finding) || classOf(finding) === "owned"));
   const findings = all.filter(blocks);
   // Upstream tool findings outside this turn's files are the kit's, not the agent's: dropped rather than reported.
   const preExisting = all.filter((finding) => !blocks(finding) && (isHarnessRule(finding) || classOf(finding) !== "upstream"));

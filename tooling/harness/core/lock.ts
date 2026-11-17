@@ -89,27 +89,51 @@ export function lockReason(file: string): string {
   return `${file} is part of the harness and is locked. Ask the user to run \`pnpm harness:unlock\` in their own terminal (valid ${String(UNLOCK_HOURS)} hours), make the change with them, then \`pnpm harness:lock\`.`;
 }
 
-/** A tracked file whose working copy equals its committed version: a revert restored it rather than changed it. */
-function matchesHead(root: string, file: string): boolean {
+/** A file whose working copy equals its version in `base`. */
+function matchesCommit(root: string, file: string, base: string): boolean {
   const options = { cwd: root, stdio: "ignore" } as const;
-  const tracked = spawnSync("git", ["cat-file", "-e", `HEAD:${file}`], options).status === 0;
-  return tracked && spawnSync("git", ["diff", "--quiet", "HEAD", "--", file], options).status === 0;
+  const tracked = spawnSync("git", ["cat-file", "-e", `${base}:${file}`], options).status === 0;
+  return tracked && spawnSync("git", ["diff", "--quiet", base, "--", file], options).status === 0;
 }
 
-export function lockFindings(root: string, changed: Iterable<string>, config: HarnessConfig = loadConfig(root)): Finding[] {
+/**
+ * `base` is the commit a changed locked file may equal: HEAD for the Done gate, where a file equal to HEAD was restored
+ * rather than changed.
+ */
+export function lockFindings(root: string, changed: Iterable<string>, config: HarnessConfig = loadConfig(root), base = "HEAD"): Finding[] {
   if (unlocked(root)) return [];
   return [...changed]
-    .filter((file) => isLocked(file, config, root) && !matchesHead(root, file))
+    .filter((file) => isLocked(file, config, root) && !matchesCommit(root, file, base))
     .map((file): Finding => ({ rule: "harness-lock", file, message: lockReason(file) }));
+}
+
+/** The HEAD and the unique ref tips before a shell command: every commit reachable from them already existed. */
+export interface ShellBefore {
+  head: string;
+  tips: readonly string[];
+}
+
+/** A commit that is new in the command, neither reachable before it nor fetched into a remote-tracking ref, changes `file`. */
+function newCommitChanges(root: string, file: string, before: ShellBefore): boolean {
+  const args = ["rev-list", "-1", "HEAD", "--not", before.head, ...before.tips, "--remotes", "--", file];
+  const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  return result.status !== 0 || result.stdout.trim() !== "";
 }
 
 const HARNESS_FOLDER = "tooling/harness";
 
-/** After one shell command, more than three locked files mean a formatter or codemod ran over them: restore, not unlock. */
-export function shellLockFindings(root: string, changed: Iterable<string>, config: HarnessConfig = loadConfig(root)): Finding[] {
-  const findings = lockFindings(root, changed, config);
-  if (findings.length <= 3) return findings;
-  const paths = [...new Set(findings.map((finding) => (finding.file.startsWith(`${HARNESS_FOLDER}/`) ? HARNESS_FOLDER : finding.file)))];
-  const message = `${String(findings.length)} harness files changed in one command: a formatter or codemod touched them, nobody meant to edit the harness. Restore them with \`git checkout -- ${paths.join(" ")}\` and keep that tool off the harness.`;
-  return paths.map((file): Finding => ({ rule: "harness-lock", file, message }));
+/**
+ * After one shell command, a locked file that differs from the HEAD before the command is a finding when it differs from
+ * the new HEAD (an uncommitted edit) or a commit made in the command changes it. A checkout, merge, pull, reset or
+ * rebase onto commits that already existed passes. More than three uncommitted locked files mean a formatter or codemod
+ * ran over them: restore, not unlock.
+ */
+export function shellLockFindings(root: string, changed: Iterable<string>, config: HarnessConfig = loadConfig(root), before?: ShellBefore): Finding[] {
+  const candidates = lockFindings(root, changed, config, before?.head ?? "HEAD");
+  const uncommitted = candidates.filter((finding) => before === undefined || !matchesCommit(root, finding.file, "HEAD"));
+  const committed = before === undefined ? [] : candidates.filter((finding) => !uncommitted.includes(finding) && newCommitChanges(root, finding.file, before));
+  if (uncommitted.length <= 3) return [...uncommitted, ...committed];
+  const paths = [...new Set(uncommitted.map((finding) => (finding.file.startsWith(`${HARNESS_FOLDER}/`) ? HARNESS_FOLDER : finding.file)))];
+  const message = `${String(uncommitted.length)} harness files changed in one command: a formatter or codemod touched them, nobody meant to edit the harness. Restore them with \`git checkout -- ${paths.join(" ")}\` and keep that tool off the harness.`;
+  return [...paths.map((file): Finding => ({ rule: "harness-lock", file, message })), ...committed];
 }

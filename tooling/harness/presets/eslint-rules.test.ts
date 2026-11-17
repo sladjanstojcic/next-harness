@@ -5,23 +5,27 @@ import { harnessRuleBlocks } from "./eslint-rules.ts";
 const LAYOUTS = ["app", "app-root", "package", "electron", "spa", "pocketbase", "e2e"] as const;
 const ALIASES = { renderer: ["@/", "@renderer/"], contract: ["@shared/", "@contract/"], paths: {} };
 
-/** The sha256 of each layout's JSON-encoded rule blocks: the first five from the code at 5602b2b, before the pocketbase layout; pocketbase and e2e from 5db9446, before the service layout. */
+/**
+ * The sha256 of each layout's JSON-encoded rule blocks: the first five from the code at 5602b2b, before the pocketbase
+ * layout; pocketbase and e2e from 5db9446, before the service layout. Each was re-hashed when the type-test
+ * (`*.test-d.ts`) block was added, the only change to any of them.
+ */
 const BEFORE: Record<string, string> = {
-  app: "090203077e29437684c7168107426c830417987d60889ca61ae5101d66d9d3ad",
-  "app with shadcn": "77e31d301ee1f255549c7a78419df80941f2105adde840b763fc589bd1fc38db",
-  "app-root": "cd66b323ebf06ba900912fb497d1fa797d1f35212035d841d56673a7e68979f2",
-  "app-root with shadcn": "f3c9f0bd253e765a26f9ed30581f575d234a87678efd980f3a9a86c19603833e",
-  package: "a14c8af1a7b4c5e93787029c59cbb85ec7e8ec1ea9b4409299fcbc50bfab042d",
-  "package with shadcn": "a14c8af1a7b4c5e93787029c59cbb85ec7e8ec1ea9b4409299fcbc50bfab042d",
-  electron: "503aa67a20bd9ca21c3425dc794f940993cabf9baf0db72785232f74088e92cf",
-  "electron with shadcn": "b1421ccf117506127782f7318b054c3dd0d5a8b38367303103e3270e5d4b8695",
-  spa: "8e347b605c62122e18bb95d053e436478e8420a5449182f11515e249ec5d8c76",
-  "spa with shadcn": "18dc443eb909cbe6d2d57ce2fee998409031d0fa51f1e0a38545ba052d47fa64",
-  pocketbase: "35cf6d6c0390e0efd1002ec3cb168d01e9a14dbebabd11db119d7e3dd6e12cbe",
-  "pocketbase with shadcn": "35cf6d6c0390e0efd1002ec3cb168d01e9a14dbebabd11db119d7e3dd6e12cbe",
-  e2e: "4d162c2b33e425837288ff96e8932899139254c1d907c0a8f60c383ccbc14129",
-  "e2e with shadcn": "4d162c2b33e425837288ff96e8932899139254c1d907c0a8f60c383ccbc14129",
-  "electron with aliases": "83a5a7d828cea75a99d1169b8fb1e0a04fec2645616abedfc4eff6613a51ddd8",
+  app: "3436a0694f8cc9a4f12a9eee81909eebbfcd6c1968562e96df5a994ec4195028",
+  "app with shadcn": "32382a5bbcf8efcfb3d793bd08d9fe9a08fb3c27d1cb129c8a5577ead7277940",
+  "app-root": "adfc08ef65776fc7912b95ac2be04590784127e04ba25a4e0bffbb612bdaaea9",
+  "app-root with shadcn": "32ac86c1b7e380cb9143d55881adb05a1d4b6e623fabd492e329708d43d5b9f6",
+  package: "4fe05b6845313f16d581884c6f98f91c8537155e0939b6df820ab6d1df446ec0",
+  "package with shadcn": "4fe05b6845313f16d581884c6f98f91c8537155e0939b6df820ab6d1df446ec0",
+  electron: "21f60942364ebe384fc59a1176a91c068678cc6fd7c1eb51d7822968d5819cef",
+  "electron with shadcn": "49b07f0c3695b5812327bc2e78ec1a3807ef926640afaf9bc81671cf338cb7bf",
+  spa: "aca51da7dfb2c5d6f90844d0ddf51a5c38f41800efbf11d81a0db9b6161292be",
+  "spa with shadcn": "b8e83edfbaa49e20c8074965a1c32b9c68847bb807ea27cfd30ca331999e123f",
+  pocketbase: "ab956490e4411937d81c83bd56b432b90d482805f98e9683c65729f598e721bf",
+  "pocketbase with shadcn": "ab956490e4411937d81c83bd56b432b90d482805f98e9683c65729f598e721bf",
+  e2e: "e3e5dc7c74fc47ec116f52feecb149b54abb7d6e95bdcdf822f9c24de7e919f2",
+  "e2e with shadcn": "e3e5dc7c74fc47ec116f52feecb149b54abb7d6e95bdcdf822f9c24de7e919f2",
+  "electron with aliases": "ff8c578a859dbd8991ea9f7133d9d0392351edca825e16e290eb010cbdea2f0d",
 };
 
 const sha = (value: unknown): string => createHash("sha256").update(JSON.stringify(value)).digest("hex");

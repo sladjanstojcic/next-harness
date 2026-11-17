@@ -99,6 +99,12 @@ const PACKAGE_DOMAIN: RuleBlock = {
 
 const BAN_TS_COMMENT = { "ts-check": true, "ts-ignore": true, "ts-expect-error": true, "ts-nocheck": true };
 
+/** A type test (Vitest's `<name>.test-d.ts`) asserts a compile error with @ts-expect-error; the other directives stay banned there. */
+const TYPE_TESTS: RuleBlock = {
+  files: ["**/*.test-d.{ts,tsx}"],
+  rules: { "@typescript-eslint/ban-ts-comment": ["error", { ...BAN_TS_COMMENT, "ts-expect-error": false }] },
+};
+
 type Setting = "error" | "off" | ["error", ...unknown[]];
 
 export interface RuleBlock {
@@ -200,6 +206,7 @@ export function harnessRuleBlocks(layout: PresetLayout = "app", aliases?: Electr
         "no-restricted-syntax": ["error", namedExports, neverCast, ...requireBanIn(layout), doubleCast, ...controls],
       },
     },
+    TYPE_TESTS,
     ...(layout === "package" ? [PACKAGE_DOMAIN] : []),
     ...consoleExemptionIn(layout),
     ...hooksIn(layout),

@@ -16,6 +16,7 @@ The steps below were run on macOS on Apple silicon, on a fresh create-next-app 1
 `src/` whose twelve steps of [An existing Next.js project](next-app.md) had passed, with the
 PocketBase 0.40.5 binary for darwin arm64. The full check then passed sixteen steps and skipped the
 PocketBase test step. An earlier run, on Linux, checked the folder with oxlint and oxfmt.
+[Known limitations](limitations.md) lists what was not run.
 
 ## The layout
 
@@ -27,7 +28,7 @@ pocketbase/
   pb_migrations/<digits>_<name>.ts   flat; they run in file-name order
   shared/<name>.ts        pure values and types the hooks and the app both read; flat
   types/                  the vendored pocketbase-<version>.d.ts and your own declarations; flat
-  tests/<suite>/<name>.test.ts   tests against a running PocketBase
+  tests/<suite>/<name>.test.ts   tests against a running PocketBase; no type tests (*.test-d.ts)
   tsconfig.json, package.json, README.md, .gitignore
 ```
 
@@ -80,7 +81,8 @@ node tooling/harness/cli.ts init
 ```
 
 It writes the folder's `eslint.config.ts`, `prettier.config.ts` and `.prettierignore`, and names the
-folder in the root's `.prettierignore`. Its first four numbered steps are the folder's, sections 3 to 5 here; 5 holds two:
+folder in the root's `.prettierignore` as `/pocketbase`, so a `src/lib/pocketbase` is still formatted.
+Its first four numbered steps are the folder's, sections 3 to 5 here; 5 holds two:
 
 ```text
   1. Install the harness's tools (init does not install): (cd pocketbase && pnpm add -D @eslint/js@9.39.5 jiti@2.7.0)
@@ -185,9 +187,10 @@ The 403 shows the migration ran: a collection that does not exist answers 404. S
 
 ## 8. Format the folder's sources
 
-Run the line init printed: `(cd pocketbase && pnpm exec prettier --write .)`. It skips the vendored
-declarations, which the folder's `.prettierignore` names, and the gitignored `dist/` and `pb_data/`;
-in the run it changed nothing. The root's Prettier leaves the folder alone.
+Run the line init printed: `(cd pocketbase && ../node_modules/.bin/prettier --write .)`. pnpm 10 runs
+`pnpm exec` in the root when the folder has no `package.json`, so init names the binary by its path. It
+skips the vendored declarations, which the folder's `.prettierignore` names, and the gitignored `dist/`
+and `pb_data/`. The run, with an older `pnpm exec` line, changed nothing. The root's Prettier leaves the folder alone.
 
 ## 9. Leave the folder out of the app's type check
 
@@ -237,14 +240,11 @@ Built and served anyway, the server starts, and the route answers 400 with
 ## The lock, denied commands and tests
 
 - A migration the branch's upstream or the remote default branch held when the prompt arrived is
-  applied: it cannot be edited, deleted or moved, by tool or by shell. Add a new one instead. The
-  rules are those of [the Supabase lock](configuration.md#shapes-without-a-page-of-their-own).
+  applied: it cannot be edited, deleted or moved, by tool or by shell, and its format and lint findings
+  never block. Add a new one instead. The rules are those of [the Supabase lock](configuration.md#shapes-without-a-page-of-their-own).
 - Rewriting the migration history is your step: `pocketbase migrate down` and
   `pocketbase migrate history-sync` are denied in every project. `migrate up`, `migrate create`,
   `migrate collections`, `serve` and `superuser` stay allowed.
 - Tests against a running PocketBase go in `tests/<suite>/<name>.test.ts`. They run in the gates only
   when the workspace entry names a package script, such as `test: "test:pocketbase"`; without it the
   step is skipped. The test step has a twenty-minute limit.
-
-Not run: tests with a `test` script, `shared/`, an agent session in the project, PocketBase on
-Windows, and this tool set on Linux; [Known limitations](limitations.md) has the details.

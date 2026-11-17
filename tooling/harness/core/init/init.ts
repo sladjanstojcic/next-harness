@@ -12,7 +12,7 @@ import { ALL_TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { bin } from "../../tools/tool-set.ts";
 import { gitignoreStep, rootIgnored, rootIgnoreSteps } from "./ignore-files.ts";
 import { TYPESCRIPT_API_REASON, TYPESCRIPT_NATIVE_REASON } from "../../presets/load-tool.ts";
-import { nativeTypescript, needsTypescriptApi, peerInstall, starterInstall } from "./peers.ts";
+import { nativeTypescript, needsTypescriptApi, peerInstall, starterInstall, toolCommand } from "./peers.ts";
 import { runsOwnTests, toolConfigSteps, toolScripts, usesPrettierPreset } from "./tool-configs.ts";
 import { shadcnTodo } from "./shadcn/shadcn-steps.ts";
 import { e2eTodo, isLintOnly, lintOnlySteps } from "./lint-only/lint-only.ts";
@@ -138,15 +138,15 @@ const runsSmoke = (workspaces: readonly WorkspaceEntry[]): boolean => workspaces
 function nextSteps(root: string, harness: Harness, workspaces: readonly WorkspaceEntry[], steps: readonly Step[], starter: boolean): string[] {
   const todo = steps.filter((step) => step.todo === true).map((step) => step.target);
   const { exec, run } = managerCommands(root);
-  const inFolder = (workspace: WorkspaceEntry, command: string): string => (workspace.path === "" ? command : `(cd ${workspace.path} && ${command})`);
-  const format = workspaces.filter((workspace) => usesPrettierPreset(root, workspace)).map((workspace) => inFolder(workspace, `${exec} prettier --write .`));
+  const prettier = (workspace: WorkspaceEntry, args: string): string => toolCommand(root, workspace.path, "prettier", args);
+  const format = workspaces.filter((workspace) => usesPrettierPreset(root, workspace)).map((workspace) => prettier(workspace, "--write ."));
   // A workspace with its own style is not reformatted; only the kept files the user has just edited are.
   const edited = workspaces
     .filter((workspace) => !usesPrettierPreset(root, workspace))
     .flatMap((workspace) => {
       const prefix = workspace.path === "" ? "" : `${workspace.path}/`;
       const own = todo.filter((file) => file.startsWith(prefix) && !file.slice(prefix.length).includes("/")).map((file) => file.slice(prefix.length));
-      return own.length === 0 ? [] : [inFolder(workspace, `${exec} prettier --write ${own.join(" ")}`)];
+      return own.length === 0 ? [] : [prettier(workspace, `--write ${own.join(" ")}`)];
     });
   const { legacy } = harness.config;
   const ownTests = workspaces.filter((workspace) => !isLintOnly(workspace) && workspace.test === undefined && runsOwnTests(root, workspace) !== undefined);

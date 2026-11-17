@@ -70,6 +70,10 @@ The legacy list is a ratchet: old code is tolerated, new and touched code is hel
 - `node tooling/harness/cli.ts legacy init` writes the list once, from the files that have a harness
   finding or a tool finding today. It runs the tools, so install them first. Commit it; from then on
   it may only shrink.
+- Two kinds of file never go on the list. A format or lint finding on a file git ignores, such as
+  build output a nested workspace's tool read, is dropped. A format or lint finding on an applied
+  migration is reported as pre-existing and never blocks, since the migration lock forbids fixing it.
+  A migration not yet pushed is judged in full. [Guards and gates](gates.md#before-a-push-and-in-ci) has the rules.
 - `node tooling/harness/cli.ts legacy prune` shortens it to the files that still have a finding. It
   writes nothing while a tool cannot run. Both commands are the user's.
 - The list may sit at the root or under an approved folder such as `tooling/`.

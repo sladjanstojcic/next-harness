@@ -225,6 +225,14 @@ An existing project that imports one elsewhere gets these findings in step 12; t
 them as for any other rule. [The reference](reference.md#shapes-and-backend-packages) has the list of
 packages and how to extend it.
 
+## A worker beside the app
+
+A worker or script that Node runs on its own may import a module's server code through `server.ts`,
+which imports `server-only`. That package throws unless React's server condition is set, so run it as
+`node --conditions=react-server scripts/<name>.ts`: `server-only@0.0.1` then resolves to its empty
+module. Rules the worker needs without I/O belong in the module's `domain/`. Never set the condition
+in a global `NODE_OPTIONS`; `next build` would then resolve React's server build everywhere.
+
 ## A project with code in it
 
 A real project has code that does not fit the shape yet. It shows up in step 12. Move it, or give the
@@ -238,6 +246,5 @@ and new ones are held to the rules.
 - **Without `src/`.** The `depcruise` and `jscpd` package scripts list only the folders that exist
   today (`app shared`). Add `modules` to both when you create it, as in `depcruise app modules shared ...`.
   `pnpm run check` finds the folders itself on every run, and it covers files you have not committed
-  yet. For what goes inside a module, see
-  [What this one checks](what-it-checks.md).
+  yet. For what goes inside a module, see [What this one checks](what-it-checks.md).
 - **Let the agent in.** See [Adopt it](adopt.md#let-the-agent-in).
