@@ -169,6 +169,13 @@ parent: Reference
 - A migration edited and committed in the same shell command is caught by the migration check, which
   compares with the applied version (upstream, remote default branch, else the task's start). CI does
   not check migrations, and `cli.ts check done` run by hand compares with HEAD.
+- A locked file edited and committed in the same shell command is reported by that command's lock
+  check. The Done gate compares with HEAD, so it does not report the edit again. A checkout, merge,
+  pull, reset or rebase onto commits that already existed passes. Undoing a caught edit with
+  `git revert` is reported too, because the revert is a new commit that changes the file; undo it with
+  `git reset --hard` instead. A command that also forges a remote-tracking ref (`git update-ref
+  refs/remotes/...`) hides its own commit from the check, a deliberate bypass like the forged prompt
+  event above.
 - Without `src/`, the `depcruise` and `jscpd` package scripts init writes name the source paths that
   exist at that moment, and `shared` with `--starter`, because both tools fail on a missing path. Add
   `modules` to them once it exists; the gates work out the paths themselves on every run. A new app
