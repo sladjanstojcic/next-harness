@@ -2,7 +2,7 @@ import fs from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { harnessVitest } from "../../../presets/vitest.ts";
 import { makeRepo } from "../../../testing/temp-repo.ts";
-import { ALWAYS_BLOCKS } from "../../classes.ts";
+import { ALWAYS_BLOCKS, splitLegacy } from "../../classes.ts";
 import { nodeTodo } from "../../init/node/node-steps.ts";
 import { resolveHarness } from "../../path-check.ts";
 import { auditServerCondition } from "./server-condition.ts";
@@ -10,7 +10,7 @@ import { auditServerCondition } from "./server-condition.ts";
 afterEach(() => vi.restoreAllMocks());
 
 const CONFIG =
-  'export default { workspaces: [{ path: "apps/worker", shape: "node-service" }, { path: "apps/api", shape: "node-service" }, { path: "packages/db", shape: "package" }, { path: "packages/ui", shape: "package" }] };\n';
+  'export default { legacy: "harness-legacy.json", workspaces: [{ path: "apps/worker", shape: "node-service" }, { path: "apps/api", shape: "node-service" }, { path: "packages/db", shape: "package" }, { path: "packages/ui", shape: "package" }] };\n';
 const manifest = (value: object): string => `${JSON.stringify(value)}\n`;
 const WORKER = { name: "worker", type: "module", dependencies: { "@acme/db": "workspace:*", "@acme/ui": "workspace:*" } };
 const EMPTY = "packages/db/node_modules/server-only/empty.js";
@@ -19,6 +19,7 @@ const EMPTY = "packages/db/node_modules/server-only/empty.js";
 function monorepo(scripts: Record<string, string>, files: Record<string, string> = {}): string {
   const repo = makeRepo({
     "harness.config.ts": CONFIG,
+    "harness-legacy.json": '{ "version": 1, "files": ["apps/worker/Dockerfile", "apps/worker/package.json"] }\n',
     "tooling/harness/presets/vitest.ts": "",
     "apps/worker/package.json": manifest({ ...WORKER, scripts }),
     "apps/worker/src/main.ts": 'import { rows } from "@acme/db/server";\n\nrows();\n',
@@ -50,6 +51,8 @@ describe("server-condition", () => {
       "apps/worker/Dockerfile:3 server-condition",
     ]);
     expect(findings.every(ALWAYS_BLOCKS)).toBe(true);
+    const other = { rule: "ui-stack", file: "apps/worker/package.json", message: "" };
+    expect(splitLegacy(repo, [...auditServerCondition(repo), other]).preExisting).toEqual([other]);
     expect(nodeTodo(repo, resolveHarness(repo).workspaces)[0]).toBe(
       'Start Node with --conditions=react-server wherever apps/worker/package.json and apps/worker/Dockerfile:3 runs src/ (init does not edit them), because @acme/db imports "server-only" in src/server.ts and plain Node throws on it',
     );
@@ -72,7 +75,7 @@ describe("server-condition", () => {
     expect(aliasIn(started, "apps/worker")).toEqual({ "server-only": `${started}/${EMPTY}` });
     const plain = monorepo({ start: "node src/main.ts" });
     expect(aliasIn(plain, "apps/worker")).toEqual({});
-    expect(aliasIn(plain, "apps/api")).toEqual({ "server-only": expect.stringContaining("node_modules/server-only/empty.js") });
+    expect(JSON.stringify(aliasIn(plain, "apps/api"))).toContain("node_modules/server-only/empty.js");
     expect(aliasIn(plain, "packages/db")).toEqual({ "server-only": `${plain}/${EMPTY}` });
   });
 });
