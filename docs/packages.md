@@ -42,6 +42,9 @@ packages/<name>/
 - A backend package such as `pg` or `@supabase/supabase-js` is imported in `src/server/` only; elsewhere
   the audit reports it as `backend-package`, unless the import is `import type`. See
   [the reference](reference.md#shapes-and-backend-packages).
+- The types a backend's CLI generates sit directly in `src/server/` as `<name>.types.ts` or
+  `<name>-types.ts`, such as Supabase's `database.types.ts`. They are vendored as in an app's
+  `src/backend/`: exempt from the size limit, lint, knip and jscpd, and denied to direct edits.
 - depcruise, knip and jscpd run in each package with `src/`, as in an app. jscpd writes its report
   to `node_modules/.cache/jscpd`, since a package has no `.next/`. dependency-cruiser uses a
   package preset: no cycles, a pure `src/domain/`, `src/server/` internals reached only through

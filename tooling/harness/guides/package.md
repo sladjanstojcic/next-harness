@@ -36,5 +36,5 @@ src/
 - Need a pure rule → put it in `src/domain/` as `.ts`, with `<name>.test.ts` beside it.
 - Need an error → throw a typed error and let the app turn it into user-facing text.
 - Need logging → `console` is a lint error in a package; throw or return the failure and let the app log it.
-- Need a route → it belongs in the app's `src/app/`, which calls this package.
-- Need more depth → split a second package.
+- Need a backend's generated types → its CLI writes `src/server/<name>.types.ts`; never edit that file by hand.
+- Need a route → it belongs in the app's `src/app/`. Need more depth → split a second package.

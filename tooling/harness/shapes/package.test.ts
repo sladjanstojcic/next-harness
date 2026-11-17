@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { audit } from "../core/audit/audit.ts";
 import { classify, readLegacy, splitLegacy } from "../core/classes.ts";
 import { codeIndex } from "../core/code-index.ts";
-import { checkPath, resolveHarness } from "../core/path-check.ts";
+import { checkPath, isGeneratedIn, resolveHarness } from "../core/path-check.ts";
 import { doubleCast, harnessRuleBlocks, workarounds } from "../presets/eslint-rules.ts";
 import { TURBO_LEGACY_FILES, turboRepo } from "../testing/turbo-repo.ts";
 import { eslintPreset, eslintPresetLines, expectedRules } from "../tools/eslint-preset.ts";
@@ -103,6 +103,16 @@ describe("package paths", () => {
     expect(old.map(({ file, rule }) => `${file} ${rule}`)).toEqual(
       ["base.js", "next.js", "react-internal.js"].map((file) => `packages/eslint-config/${file} unknown-root`),
     );
+  });
+
+  it("vendors the generated backend types directly in src/server/ only", () => {
+    const harness = resolveHarness(turboRepo().root);
+    expect(checkPath(`${PKG}/src/server/database.types.ts`, harness)).toEqual({ ok: true });
+    expect(isGeneratedIn(harness, `${PKG}/src/server/database.types.ts`)).toBe(true);
+    expect(isGeneratedIn(harness, `${PKG}/src/server/pocketbase-types.ts`)).toBe(true);
+    expect(isGeneratedIn(harness, `${PKG}/src/server/client.ts`)).toBe(false);
+    expect(isGeneratedIn(harness, `${PKG}/src/types.ts`)).toBe(false);
+    expect(isGeneratedIn(harness, `${PKG}/src/domain/price.types.ts`)).toBe(false);
   });
 
   it("sends Server Actions to the app's module", () => {

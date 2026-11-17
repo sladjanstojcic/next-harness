@@ -9,13 +9,13 @@ import { call, defaultOf, isRecord, list, member, toolLoader } from "./load-tool
 
 /** The generated shadcn files under the folder that holds shared/. */
 const shadcnIn = (root: string): string[] => [`${root}shared/ui/**`, `${root}shared/lib/utils.ts`];
-/** The generated database types in a backend/ folder. */
+/** The generated database types in a backend/ folder, or in a package's server/. */
 const generatedIn = (folder: string): string[] => GENERATED_TYPE_GLOBS.map((glob) => `${folder}${glob}`);
 /** The files each layout does not write by hand: shadcn's, the database types of the Next and Vite layouts, PocketBase's declarations. */
 const VENDORED: Record<PresetLayout, string[]> = {
   app: [...shadcnIn("src/"), ...generatedIn("src/backend/")],
   "app-root": [...shadcnIn(""), ...generatedIn("backend/")],
-  package: shadcnIn("src/"),
+  package: [...shadcnIn("src/"), ...generatedIn("src/server/")],
   electron: shadcnIn("src/renderer/src/"),
   spa: [...shadcnIn("src/"), ...generatedIn("src/backend/")],
   pocketbase: ["types/pocketbase*.d.ts"],
