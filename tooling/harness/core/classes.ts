@@ -51,7 +51,6 @@ export const HARNESS_RULES: ReadonlySet<string> = new Set([
   "ipc-channel",
   "preload-bundle",
   "ui-stack",
-  "server-condition",
   "pb-entry-module",
   "pb-require-scope",
   "pb-shared-pure",
