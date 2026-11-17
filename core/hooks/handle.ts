@@ -4,6 +4,7 @@ import type { GateResult } from "../gates/gate-result.ts";
 import { decideStop, shellState, startTask, taskState, type ShellState } from "../gates/repair-budget.ts";
 import { shellLockFindings } from "../lock.ts";
 import { resolveHarness } from "../path-check.ts";
+import { git } from "../state/applied-refs.ts";
 import { changedSince, snapshotTree } from "../state/snapshot.ts";
 import { readState, sessionFile, writeState } from "../state/state-file.ts";
 import type { HookEvent } from "./event.ts";
@@ -29,7 +30,11 @@ export async function handleEvent(event: HookEvent, root: string): Promise<Outco
       if (denial) return { kind: "deny", reason: denial.reason, guard: denial.guard };
       if (event.toolName === "Bash") {
         const task = readState(root, sessionFile("task", event.sessionId), taskState);
-        writeState(root, sessionFile("shell", event.sessionId), { tree: snapshotTree(root), task } satisfies ShellState);
+        writeState(root, sessionFile("shell", event.sessionId), {
+          tree: snapshotTree(root),
+          head: git(root, ["rev-parse", "--verify", "-q", "HEAD^{commit}"]),
+          task,
+        } satisfies ShellState);
       }
       return { kind: "allow" };
     }
@@ -41,7 +46,7 @@ export async function handleEvent(event: HookEvent, root: string): Promise<Outco
         const harness = resolveHarness(root);
         const { config } = harness;
         const findings: Finding[] = [
-          ...shellLockFindings(root, changed, config),
+          ...shellLockFindings(root, changed, config, shell.head ?? "HEAD"),
           ...migrationFindings(root, harness, changed, () => taskApplied(root, shell.task)),
           ...lintConfigFindings(root, harness),
           ...legacyInvalidFindings(root, config),
