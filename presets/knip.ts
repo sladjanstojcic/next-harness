@@ -79,6 +79,9 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
+/** Type tests (`<name>.test-d.ts`), which the Vitest preset's include leaves out, so knip's Vitest plugin would call them unused files. */
+const typeTests = (dir: string): string[] => (sourceFiles(dir).some((file) => /\.test-d\.tsx?$/.test(file)) ? ["**/*.test-d.{ts,tsx}"] : []);
+
 /**
  * React and its types where every use is JSX: the automatic runtime needs them and no file imports them, so knip would
  * call them unused. A workspace that imports React anywhere needs no entry, and knip would call one stale.
@@ -142,7 +145,7 @@ export function harnessKnipWorkspace({ harness = "ignore" }: HarnessKnipOptions 
   const { configs, lists } = fromManifest(dir, pocketbase.length > 0 ? ["oxfmt", "oxlint"] : []);
   return {
     next: true,
-    entry: ENTRY.filter(exists),
+    entry: [...ENTRY.filter(exists), ...typeTests(dir)],
     ignore: [
       ...IGNORE.filter(exists),
       ...configs,
@@ -180,7 +183,11 @@ function appKnip(dir: string, entries: readonly string[], vendored: readonly str
   const exists = (pattern: string) => fs.existsSync(path.join(dir, pattern.replace(/\/[^/]*\*[^/]*$/, "")));
   const { configs, lists } = fromManifest(dir);
   // harness.config.ts sits at this workspace's top, where such a project has no other workspace, and no file imports it.
-  const workspace = { entry: entries.filter(exists), ignore: [...[...vendored, "harness.config.ts"].filter(exists), ...configs], ...lists };
+  const workspace = {
+    entry: [...entries.filter(exists), ...typeTests(dir)],
+    ignore: [...[...vendored, "harness.config.ts"].filter(exists), ...configs],
+    ...lists,
+  };
   if (harnessIsWorkspace(dir)) return { ignoreWorkspaces: [HARNESS_PACKAGE], workspaces: { ".": workspace } };
   return { ...workspace, ignore: [...workspace.ignore, `${HARNESS_PACKAGE}/**`] };
 }
@@ -234,7 +241,7 @@ export function harnessKnipPackage(dir = process.cwd()): KnipPackage {
   const exported = typeof manifest === "object" && manifest !== null && "exports" in manifest ? exportTargets(manifest.exports) : [];
   const { configs, lists } = fromManifest(dir);
   return {
-    entry: [...new Set(exported)].filter((target) => target.includes("*") || fs.existsSync(path.join(dir, target))),
+    entry: [...[...new Set(exported)].filter((target) => target.includes("*") || fs.existsSync(path.join(dir, target))), ...typeTests(dir)],
     includeEntryExports: true,
     ignore: configs,
     ...lists,

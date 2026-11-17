@@ -44,8 +44,8 @@ export interface Shape {
   ciAdvice?: string;
 }
 
-/** A colocated test, which sits beside the file it tests and counts towards no folder's size. */
-export const TEST_FILE = /\.test\.tsx?$/;
+/** A colocated test or type test (Vitest's `<name>.test-d.ts`), which sits beside the file it tests and counts towards no folder's size. */
+export const TEST_FILE = /\.test(?:-d)?\.tsx?$/;
 export const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 export const ROUTE_SEGMENT = /^(?:\[(?:\.\.\.)?[^.[\]]+\]|\[\[\.\.\.[^.[\]]+\]\]|\([^)]+\)|@[a-zA-Z0-9_-]+)$/;
 export const INTERCEPTING_SEGMENT = /^(?:\(\.{1,3}\))+[a-z0-9]+(?:-[a-z0-9]+)*$/;
