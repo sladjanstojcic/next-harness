@@ -7,7 +7,7 @@ import { ALWAYS_BLOCKS, harnessLinted, PRE_EXISTING_HEADING, readLegacy, splitLe
 import { untouchedLegacy } from "../legacy.ts";
 import { listFiles } from "../audit/list-files.ts";
 import { lintConfigFindings } from "../hooks/lint-config-guard.ts";
-import { type Applied, holdsAppliedMigrations, remoteApplied } from "../hooks/migration-guard.ts";
+import { type Applied, appliedUnknown, holdsAppliedMigrations, remoteApplied } from "../hooks/migration-guard.ts";
 import { resolveHarness, type Harness } from "../path-check.ts";
 import { E2E_TESTS } from "../../presets/e2e.ts";
 import { holdsIgnored } from "../state/git-ignore.ts";
@@ -113,6 +113,8 @@ async function runCiGate(directory: string, harness: Harness, ratchet: boolean, 
     const perFile = ratchet || nestedIgnored || holdsAppliedMigrations(directory, harness, workspace.path, applied);
     const { format, lint } = checkSteps(group, perFile);
     const { types } = checkSteps(group, ratchet);
+    const unknown = appliedUnknown(harness, workspace.path, applied);
+    if (unknown !== undefined) reports.push(unknown);
     await run(workspace.path, [
       format,
       lint,
