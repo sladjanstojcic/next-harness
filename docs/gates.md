@@ -83,7 +83,7 @@ continuations do not emit UserPromptSubmit, the prompt event, and keep the curre
 `tooling/harness/core/root-layout.ts` defines what may sit at the repository root.
 
 - Root config may include `.mcp.json`, `.npmrc`, `.nvmrc`, `.node-version`, `.editorconfig`,
-  `.gitattributes`, `LICENSE` and `CHANGELOG.md`.
+  `.gitattributes`, `.env.example`, `LICENSE` and `CHANGELOG.md`.
 - Deployment files such as `vercel.json`, `Dockerfile` and `.vscode/` need a deliberate addition to
   `core/root-layout.ts`, or to `root.entries` in `harness.config.ts`, before use.
 - TypeScript is used everywhere. A tool unable to read a TypeScript config needs an entry in

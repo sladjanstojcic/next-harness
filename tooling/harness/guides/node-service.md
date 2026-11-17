@@ -49,6 +49,8 @@ src/
 - Need a database, backend or model client → put it in `src/backend/`, created with values from `env`. An import of a
   backend package such as `@supabase/supabase-js` anywhere else is `backend-package`, unless it is `import type`.
 - Need code from another workspace → import it by its package name, never by a relative path (`package-boundary`).
+- Need a package's `server.ts` (`@scope/name/server`) → start Node with `--conditions=react-server` in every script
+  and Dockerfile `CMD` that runs `src/`, since that entry imports `server-only` (`server-condition`).
 - Need an import inside the service → write `#/<path>.ts` or a relative path, always with `.ts`: Node runs the source
   and resolves the path as written (`node-import`). `@/` is reported: Node applies no tsconfig paths.
 - Need environment values → read `process.env` only in `src/shared/lib/env.ts`, validate it with Zod there, and import

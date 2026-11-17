@@ -1,4 +1,4 @@
-import { backendProfile } from "./backend-folder.ts";
+import { backendProfile, GENERATED_TYPES } from "./backend-folder.ts";
 import { checkModuleFiles, MODULE_ENTRIES, type ModuleLayout } from "./next-modules.ts";
 import { deny, exportLine, KEBAB, onlyGitkeepHidden, PLAIN_SHAPE, type ContentProfile, type PathVerdict, type Shape } from "./shape.ts";
 import { ALL_TOOL_CONFIG_NAMES, JS_TOOL_CONFIG_NAMES } from "./tool-config-names.ts";
@@ -107,6 +107,8 @@ export const packageShape: Shape = {
   jsExceptions: JS_TOOL_CONFIG_NAMES,
   checkHidden: onlyGitkeepHidden(["src"], () => `Keep visible source files in src/; only .gitkeep may be hidden ${LAYOUT}`),
   checkPath,
+  vendoredPattern: new RegExp(`^src/server/[^/]+${GENERATED_TYPES.source}`),
+  vendoredAdvice: `regenerate <file> with the backend's CLI; keep your own types in src/types.ts ${LAYOUT}`,
   folderGuidance: () => `Use one area subfolder in src/components/, server/ or domain/, or split a second package; keep src/hooks/ and src/lib/ flat ${LAYOUT}`,
   content,
   codeIndex(workspaceDir) {

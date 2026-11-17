@@ -21,6 +21,8 @@ const TOOLS = {
   "typescript-eslint": "8.72.1",
   vitest: "5.1.0",
 };
+/** What the same line adds for a Next app, whose playwright.config.ts loads it through the preset. */
+const BROWSER = { "@playwright/test": "1.64.1" };
 /** Init's printed Tailwind step for a Next app: the import in globals.css, the Turbopack loader and its two packages. */
 const TAILWIND = { "@tailwindcss/turbopack": "4.3.4", tailwindcss: "4.3.4" };
 const TURBOPACK = 'turbopack: { rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } } }';
@@ -48,7 +50,7 @@ export function adoptedTurbo() {
     const manifest = packageJson.parse(JSON.parse(repo.read(`${workspace}/package.json`)));
     const app = !PACKAGES.includes(workspace);
     const runtime = app ? { zod: "4.6.7", "server-only": "0.0.1" } : {};
-    const tools = app ? { ...TOOLS, ...TAILWIND } : TOOLS;
+    const tools = app ? { ...TOOLS, ...BROWSER, ...TAILWIND } : TOOLS;
     const next = { ...manifest, dependencies: { ...manifest.dependencies, ...runtime }, devDependencies: { ...manifest.devDependencies, ...tools } };
     repo.write(`${workspace}/package.json`, `${JSON.stringify(next, null, 2)}\n`);
     if (!app) continue;

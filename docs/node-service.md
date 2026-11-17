@@ -236,6 +236,10 @@ install script fetches a native binary, such as `canvas`, then needs `pnpm rebui
 install. In a Turborepo, `turbo prune <app> --docker` gives the same layout with less to copy; it was
 not run here.
 
+A service that depends on a package with a `src/server.ts` starts Node with `--conditions=react-server`,
+in its scripts and in `CMD`: that entry imports `server-only`, which throws under plain Node. The audit
+reports a start without it as `server-condition`, and the service's tests then load the real `server-only`.
+
 ## Limits
 
 - There is no boot check. An import that tsc resolves and Node does not, beyond a missing `.ts`

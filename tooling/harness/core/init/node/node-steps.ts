@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { WorkspaceEntry } from "../../../config.ts";
+import { SERVER_CONDITION, serverPackages, withoutServerCondition } from "../../../shapes/node/server-condition.ts";
 import { compilerOptionsInForce } from "../../../tools/typescript.ts";
 import { nodeTsconfigFindings } from "../../audit/tsconfig/tsconfig-node.ts";
 import { isObject, readJson } from "../files.ts";
@@ -12,7 +13,7 @@ const IMPORTS = { "#/*": "./src/*" };
  * tsconfig.json has the options Node runs TypeScript with. Init's own tsconfig step sets allowImportingTsExtensions,
  * in the eslint-prettier workspaces it writes configs for.
  */
-function workspaceTodo(root: string, workspace: WorkspaceEntry): string[] {
+function workspaceTodo(root: string, workspace: WorkspaceEntry, workspaces: readonly WorkspaceEntry[]): string[] {
   const dir = path.join(root, workspace.path);
   const label = (file: string): string => path.posix.join(workspace.path, file);
   const manifest = readJson(path.join(dir, "package.json"), label("package.json")) ?? {};
@@ -26,7 +27,14 @@ function workspaceTodo(root: string, workspace: WorkspaceEntry): string[] {
     .filter(({ message }) => !hasPaths(message))
     .map(({ message }) => /set (.*?), since/.exec(message)?.[1] ?? "")
     .filter((setting) => setting !== "" && (initSets === undefined || !setting.includes(initSets)));
+  const packages = serverPackages(root, workspaces, dir).map(({ name }) => name);
+  const plain = packages.length === 0 ? [] : withoutServerCondition(dir).map(({ file, line }) => label(file) + (line === undefined ? "" : `:${String(line)}`));
   return [
+    ...(plain.length === 0
+      ? []
+      : [
+          `Start Node with ${SERVER_CONDITION} wherever ${plain.join(" and ")} runs src/ (init does not edit them), because ${packages.join(", ")} imports "server-only" in src/server.ts and plain Node throws on it`,
+        ]),
     ...(esModules
       ? []
       : [
@@ -45,5 +53,5 @@ function workspaceTodo(root: string, workspace: WorkspaceEntry): string[] {
 
 /** The hand steps of every node-service workspace, for init's numbered list. */
 export function nodeTodo(root: string, workspaces: readonly WorkspaceEntry[]): string[] {
-  return workspaces.filter((workspace) => workspace.shape === "node-service").flatMap((workspace) => workspaceTodo(root, workspace));
+  return workspaces.filter((workspace) => workspace.shape === "node-service").flatMap((workspace) => workspaceTodo(root, workspace, workspaces));
 }

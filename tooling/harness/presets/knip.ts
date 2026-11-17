@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { CONFIG_FILE, expandWorkspaces, loadConfig } from "../config.ts";
 import { HARNESS_PACKAGE, harnessIsWorkspace } from "../core/init/bootstrap.ts";
-import { GENERATED_TYPE_GLOBS } from "../shapes/backend-folder.ts";
+import { GENERATED_TYPE_GLOBS, generatedTypesIn } from "../shapes/backend-folder.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
 
 /** Under src/, or at the top of a workspace without it; only the paths that exist are listed. */
@@ -243,7 +243,7 @@ export function harnessKnipPackage(dir = process.cwd()): KnipPackage {
   return {
     entry: [...[...new Set(exported)].filter((target) => target.includes("*") || fs.existsSync(path.join(dir, target))), ...typeTests(dir)],
     includeEntryExports: true,
-    ignore: configs,
+    ignore: [...configs, ...generatedTypesIn(dir, "src/server")],
     ...lists,
   };
 }

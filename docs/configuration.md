@@ -18,7 +18,7 @@ export default defineHarness({
   workspaces: [{ path: ".", shape: "next-modules", next: true }],
   owned: ["src/modules/billing/"],
   legacy: "tooling/harness-legacy.json",
-  locked: ["supabase/migrations/"],
+  locked: ["vercel.json"],
   root: { entries: ["supabase", "vercel.json"] },
 });
 ```
@@ -82,7 +82,10 @@ The legacy list is a ratchet: old code is tolerated, new and touched code is hel
 
 ## The other fields
 
-- **`locked`** adds paths to the lock, such as a kit's own lint config.
+- **`locked`** adds paths to the lock, such as a kit's own lint config. A locked folder (a path ending
+  in `/`) denies new files as well as edits. Do not list a migrations folder: the `supabase` and
+  `pocketbase` shapes already lock applied migrations, and the entry would deny every new one. The
+  denial then names the entry to remove.
 - **`root.entries`** names what may sit at the repository root besides the defaults;
   **`root.jsExceptions`** names root files that may stay JavaScript. Both are described under
   [the root](gates.md#the-root-and-names).
@@ -100,7 +103,8 @@ The legacy list is a ratchet: old code is tolerated, new and touched code is hel
 - **`test: "<package script>"`** runs that script through the project's package manager instead of
   Vitest, in CI and in Done. Done runs the whole script, not only related tests. A pocketbase
   workspace without it runs no tests: the step is skipped, not run with Vitest.
-- **`next: true`** adds Next type generation, and at the root `next build` and the browser smoke test.
+- **`next: true`** adds Next type generation, and `next build` and the browser tests where the
+  workspace is at the root or has the `next-modules` shape.
 
 ## How a workspace's tools run
 
@@ -108,7 +112,8 @@ The legacy list is a ratchet: old code is tolerated, new and touched code is hel
 - A binary is looked up from the workspace folder up to the root. A missing type checker, linter or
   formatter is `<tool>-failed` on the workspace's `package.json`, with the install to run. A missing
   `vitest` skips the test step.
-- `next build` and the browser smoke test run only for a Next workspace at the root.
+- `next build` and the browser tests in `e2e/` run for a Next workspace at the root and for every
+  `next-modules` workspace with `next: true`, each in its own folder. A Makerkit app keeps its own build.
 - A failing `test` script is `test-failed` with the end of its output. A failing Vitest run is
   `vitest-failed`, also with the end of its output, where the failed tests are named. A run cut off by
   the time limit starts with "Tool timed out".

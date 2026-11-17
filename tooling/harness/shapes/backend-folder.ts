@@ -1,9 +1,16 @@
+import fs from "node:fs";
 import { deny, KEBAB, type ContentProfile, type PathVerdict } from "./shape.ts";
 
 /** The database types a backend's CLI writes, such as Supabase's database.types.ts and pocketbase-typegen's pocketbase-types.ts. */
 export const GENERATED_TYPES = /(?:\.|-)types\.ts$/;
 /** GENERATED_TYPES as the globs ESLint, Prettier and knip read. */
 export const GENERATED_TYPE_GLOBS: readonly string[] = ["*.types.ts", "*-types.ts"];
+/** The generated type files directly in a folder of a workspace, as paths from the workspace: for a tool that hints at an ignore matching nothing. */
+export const generatedTypesIn = (dir: string, folder: string): string[] =>
+  fs.globSync(
+    GENERATED_TYPE_GLOBS.map((glob) => `${folder}/${glob}`),
+    { cwd: dir },
+  );
 
 const ok: PathVerdict = { ok: true };
 

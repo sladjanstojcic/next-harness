@@ -152,7 +152,7 @@ describe("per-workspace Done", () => {
 });
 
 describe("per-workspace CI and fast gates", () => {
-  it("runs every workspace's checks once and no build outside a root Next workspace", async () => {
+  it("runs every workspace's checks once, then the build of a nested Next app, whose browser step is skipped without tests", async () => {
     const repo = workspacesRepo([...ALL_TOOLS, "playwright"]);
     const calls = recordSteps(repo.real);
     const result = await ciGate(repo.real);
@@ -174,8 +174,10 @@ describe("per-workspace CI and fast gates", () => {
       "packages/a jscpd",
       "apps/web vitest",
       "packages/a vitest",
+      "apps/web build",
     ]);
     expect(result.report).toContain("eslint (packages/a): passed");
+    expect(result.report).toContain("build (apps/web): passed\nplaywright (apps/web): skipped");
   });
 
   it("gives CI's jscpd only the folders a workspace below the root has", async () => {
