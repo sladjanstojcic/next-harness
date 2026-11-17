@@ -133,7 +133,7 @@ guides/             the AGENTS.md block: one guide per shape and common.md, each
 presets/            the rule sets the tool configs import: ESLint, with one layout each for app,
                     app-root, package, electron, spa, pocketbase and e2e; Prettier, Vitest, Knip,
                     Playwright, depcruise, jscpd; starter/ holds the src/shared/lib/ helpers and the
-                    e2e smoke test as text for `init --starter`
+                    two e2e tests, smoke and accessibility, as text for `init --starter`
 tools/
   tool-set.ts       the contract every tool set implements, and binary lookup per workspace
   eslint-prettier.ts the eslint-prettier tool set: format, lint, type check and test steps
@@ -169,7 +169,7 @@ Every file obeys the same rules as application code.
 Next 16.4.5 · React 19.3.1 · TypeScript 6.0.3 (`strict`, `noUncheckedIndexedAccess`,
 `exactOptionalPropertyTypes`, `noImplicitOverride`, `verbatimModuleSyntax`, `erasableSyntaxOnly`) ·
 Tailwind 4.3.4 · shadcn 4.23.0 · ESLint 9.39.5 with typescript-eslint 8.72.1 and eslint-plugin-react-hooks 7.1.1 · Prettier 3.9.10 ·
-Vitest 5.1.0 · Playwright 1.64.1 · knip 6.44.1 · dependency-cruiser 18.7.2 · jscpd 5.4.2 · zod 4.6.7.
+Vitest 5.1.0 · Playwright 1.64.1 with @axe-core/playwright 4.14.0 · knip 6.44.1 · dependency-cruiser 18.7.2 · jscpd 5.4.2 · zod 4.6.7.
 Exact versions, no ranges; every config file is TypeScript.
 
 ## Branches

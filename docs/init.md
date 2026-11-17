@@ -36,7 +36,9 @@ whose tsconfig, with the files it extends, maps no `@/*` gets `"@/*": ["./src/*"
 without `src/`), since the starter files and the content rules use that alias. Where a `baseUrl`
 other than the tsconfig's folder is in force, or a file it extends sets other `paths`, init prints the
 alias to add by hand instead. A root Next workspace also gets `playwright.config.ts`, which runs only
-`e2e/**/*.test.ts`; the CI browser step reports `playwright: skipped` until such a file exists. A `test`
+`e2e/**/*.test.ts`; the CI browser step reports `playwright: skipped` until such a file exists. With
+`--starter` it gets `e2e/smoke.test.ts` and `e2e/accessibility.test.ts`, which runs axe on the home page
+and expects no violations; while that file exists, the tools line names `@axe-core/playwright`. A `test`
 script that does not run Vitest gets no `vitest.config.ts`; init prints the `test: "test"` line for
 `harness.config.ts` instead. In a workspace without `src/`, the ESLint config passes
 `layout: "app-root"`, the ignore entry is `shared/ui`, and depcruise and jscpd read `app/`, `modules/`

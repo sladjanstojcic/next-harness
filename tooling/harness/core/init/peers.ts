@@ -11,7 +11,7 @@ import { runsOwnTests } from "./tool-configs.ts";
 
 const HARNESS = path.resolve(import.meta.dirname, "../..");
 
-const NEEDS = ["eslint-config", "eslint-config-next", "vitest", "browser", "depcruise", "knip", "jscpd"] as const;
+const NEEDS = ["eslint-config", "eslint-config-next", "vitest", "browser", "accessibility", "depcruise", "knip", "jscpd"] as const;
 type Need = (typeof NEEDS)[number];
 
 /**
@@ -61,6 +61,9 @@ export function atLeast(version: string, minimum: string): boolean {
   return true;
 }
 
+/** The starter test that runs axe on the home page; while a root Next workspace has it, init asks for @axe-core/playwright. */
+const ACCESSIBILITY_TEST = "e2e/accessibility.test.ts";
+
 /** What the workspace uses of the harness's tools: a tool tied to a part the workspace does not use is not asked for. */
 function needs(root: string, config: HarnessConfig, workspace: WorkspaceEntry): ReadonlySet<Need> {
   const needed = new Set<Need>(analysisOf(config, workspace));
@@ -70,7 +73,10 @@ function needs(root: string, config: HarnessConfig, workspace: WorkspaceEntry): 
     if (workspace.next && !bringsOwnNext(dir)) needed.add("eslint-config-next");
   }
   if (!isLintOnly(workspace) && runsOwnTests(root, workspace) === undefined) needed.add("vitest");
-  if (workspace.path === "" && workspace.next) needed.add("browser");
+  if (workspace.path === "" && workspace.next) {
+    needed.add("browser");
+    if (fs.existsSync(path.join(dir, ACCESSIBILITY_TEST))) needed.add("accessibility");
+  }
   return needed;
 }
 

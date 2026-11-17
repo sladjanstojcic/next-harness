@@ -30,4 +30,6 @@ tests/
 - Need a test → put it in `tests/<suite>/<name>.spec.ts`; a suite-wide setup goes in `<name>.setup.ts`.
 - Need a page object or helper → put it in the suite folder, or in an area folder inside it, never directly in
   `tests/`.
+- Need an accessibility check (contrast, button names, landmarks) → run `AxeBuilder` from `@axe-core/playwright` in
+  the spec and expect no violations; do not hand-write the check.
 - Need a test of application code → it belongs beside that code as `<name>.test.ts`, not here and not in `tooling/`.
