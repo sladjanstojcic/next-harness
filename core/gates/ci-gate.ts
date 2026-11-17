@@ -94,8 +94,9 @@ async function runCiGate(directory: string, harness: Harness, ratchet: boolean, 
   for (const group of groups) {
     const { workspace, tools, dir } = group;
     const owned = harnessLinted(harness, legacy, workspace.path, sources.find((found) => found.workspace === workspace)?.files ?? []);
-    // A tool in a nested folder reads no ignore file above it; with git-ignored files in the folder it is judged file by file.
-    const { format, lint } = checkSteps(group, ratchet || holdsIgnored(directory, workspace.path));
+    // A tool in a nested folder reads no ignore file above it; with git-ignored files there it is judged file by file.
+    const nestedIgnored = workspace.path !== "" && holdsIgnored(directory, workspace.path);
+    const { format, lint } = checkSteps(group, ratchet || nestedIgnored);
     const { types } = checkSteps(group, ratchet);
     await run(workspace.path, [
       format,
