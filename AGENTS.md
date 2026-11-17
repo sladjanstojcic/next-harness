@@ -90,7 +90,7 @@ public/                 static files
 - Need a shadcn component that is missing → add it with `pnpm dlx shadcn add <name>`.
 - With `components.json`, lint reports a raw `button`, `input`, `select`, `textarea`, `label`, `table` or `dialog`
   outside `src/shared/ui/`.
-- Need a browser test → put it in `e2e/`. Need automation → put it in `scripts/`.
+- Need a browser test → put it in `e2e/` as `<name>.test.ts`. Need automation → put it in `scripts/`.
 - Need an accessibility check (contrast, button names, landmarks) → run `AxeBuilder` from `@axe-core/playwright` in
   the browser test and expect no violations; do not hand-write the check.
 

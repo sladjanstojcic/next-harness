@@ -186,12 +186,16 @@ describe("init tool configs", () => {
       '  6. Point shadcn at apps/dashboard/src/shared/, by setting "aliases" in apps/dashboard/components.json to: { "components": "@/shared/components", "utils": "@/shared/lib/utils", "ui": "@/shared/ui", "lib": "@/shared/lib", "hooks": "@/shared/hooks" }',
       "  7. Add the first component and the cn helper there: (cd apps/dashboard && pnpm dlx shadcn@latest add button utils)",
       "  8. Format the app's own files once in the preset's style: (cd apps/dashboard && pnpm exec prettier --write .)",
-      '  9. Commit the result: git add -A && git commit -m "Add the harness"',
-      "  10. Run the full gate: pnpm run check",
+      "  9. Install the smoke test's browser: (cd apps/dashboard && pnpm exec playwright install chromium)",
+      '  10. Commit the result: git add -A && git commit -m "Add the harness"',
+      "  11. Run the full gate: pnpm run check",
     ]);
+    expect(repo.read("apps/dashboard/playwright.config.ts")).toBe(
+      'import { harnessPlaywright } from "../../tooling/harness/presets/playwright.ts";\n\nexport default harnessPlaywright();\n',
+    );
+    expect(initHarness(repo.root, { force: false, starter: false }).report).toContain("unchanged apps/dashboard/playwright.config.ts: uses the harness preset");
     expect(nextSteps(result.report)[0]).toContain("cd apps/dashboard && pnpm add -D ");
     expect(exists(repo.root, "supabase/eslint.config.ts")).toBe(false);
-    expect(exists(repo.root, "apps/dashboard/playwright.config.ts")).toBe(false);
     expect(exists(repo.root, "eslint.config.ts")).toBe(false);
   });
 

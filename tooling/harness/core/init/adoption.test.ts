@@ -103,12 +103,12 @@ describe("init in an existing app", () => {
     const own = { "apps/dashboard/eslint.config.mjs": OWN_ESLINT, "apps/dashboard/.prettierrc": "{}\n" };
     const newer = dashboard(own, { eslint: "10.14.0", "eslint-config-next": "16.3.4", prettier: "3.9.6" });
     expect(installLine(initHarness(newer.root, OFF).report)).toBe(
-      "  1. Install the harness's tools (init does not install): (cd apps/dashboard && pnpm add -D dependency-cruiser@18.7.2 eslint-config-prettier@10.1.8 eslint-plugin-react-hooks@7.1.1 jscpd@5.4.2 knip@6.44.1 typescript-eslint@8.72.1)",
+      "  1. Install the harness's tools (init does not install): (cd apps/dashboard && pnpm add -D @playwright/test@1.64.1 dependency-cruiser@18.7.2 eslint-config-prettier@10.1.8 eslint-plugin-react-hooks@7.1.1 jscpd@5.4.2 knip@6.44.1 typescript-eslint@8.72.1)",
     );
     const old = dashboard(own, { eslint: "9.21.0", "eslint-config-prettier": "10.1.8", "typescript-eslint": "8.72.1", prettier: "3.9.6" });
     const line = installLine(initHarness(old.root, OFF).report);
     expect(line).toContain(" eslint@9.39.5");
-    expect(line).not.toMatch(/eslint-config-prettier@|typescript-eslint@|prettier@|@eslint\/js@|jiti@|@playwright\/test@/);
+    expect(line).not.toMatch(/eslint-config-prettier@|typescript-eslint@|prettier@|@eslint\/js@|jiti@|@axe-core\/playwright@/);
     const thin = dashboard({}, { eslint: "10.14.0" });
     expect(installLine(initHarness(thin.root, OFF).report)).toMatch(/@eslint\/js@9\.39\.5 .*eslint-config-next@16\.4\.5 .*jiti@2\.7\.0/);
   });
@@ -117,12 +117,12 @@ describe("init in an existing app", () => {
     const repo = dashboard({ "apps/dashboard/eslint.config.mjs": OWN_ESLINT, "apps/dashboard/.prettierrc": "{}\n" });
     const { report } = initHarness(repo.root, OFF);
     expect(report).toContain(
-      'updated apps/dashboard/tsconfig.json: compilerOptions.allowImportingTsExtensions: true, compilerOptions.paths "@/*": ["./src/*"], exclude eslint.config.mjs, knip.config.ts',
+      'updated apps/dashboard/tsconfig.json: compilerOptions.allowImportingTsExtensions: true, compilerOptions.paths "@/*": ["./src/*"], exclude eslint.config.mjs, knip.config.ts, playwright.config.ts',
     );
     expect(JSON.parse(repo.read("apps/dashboard/tsconfig.json"))).toEqual({
       compilerOptions: { allowJs: true, allowImportingTsExtensions: true, paths: { "@/*": ["./src/*"] } },
       include: ["**/*.ts", "**/*.tsx"],
-      exclude: ["node_modules", "eslint.config.mjs", "knip.config.ts"],
+      exclude: ["node_modules", "eslint.config.mjs", "knip.config.ts", "playwright.config.ts"],
     });
     expect(initHarness(repo.root, OFF).report).toContain("unchanged apps/dashboard/tsconfig.json: ");
   });

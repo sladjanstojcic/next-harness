@@ -134,6 +134,39 @@ describe("CI gate", () => {
     expect(steps.filter((step) => /^(typegen|next|playwright)\b/.test(step))).toEqual([]);
   });
 
+  it("builds every next-modules Next app in its folder and runs its browser tests where it has some, and leaves a kit's app to its own build", async () => {
+    const bins = ["prettier", "eslint", "tsc", "depcruise", "knip", "jscpd", "vitest", "next", "playwright", "oxlint", "oxfmt"];
+    const workspaces = [
+      '{ path: "apps/web", shape: "next-modules", next: true }',
+      '{ path: "apps/docs", shape: "next-modules", next: true }',
+      '{ path: "apps/kit", shape: "makerkit-app", next: true }',
+    ];
+    const repo = makeRepo({
+      "harness.config.ts": `export default { workspaces: [${workspaces.join(", ")}] };\n`,
+      "apps/web/src/app/page.tsx": "",
+      "apps/web/e2e/smoke.test.ts": "",
+      "apps/docs/src/app/page.tsx": "",
+      "apps/kit/app/page.tsx": "",
+      ...Object.fromEntries(bins.map((tool) => [`node_modules/.bin/${tool}`, ""])),
+    });
+    const steps: string[] = [];
+    vi.spyOn(runner, "runTool").mockImplementation(async (_root, step) => {
+      steps.push(
+        `${step.name}: ${path.basename(step.command[0] ?? "")} ${step.command.slice(1).join(" ")} in ${path.relative(repo.root, step.cwd ?? repo.root)}`,
+      );
+      return step.name === "playwright" ? [{ rule: "playwright-failed", file: "", message: "1 failed" }] : [];
+    });
+    const result = await ciGate(repo.root);
+    expect(steps.filter((step) => /^(build|playwright)\b/.test(step))).toEqual([
+      "build: next build in apps/web",
+      "playwright: playwright test in apps/web",
+      "build: next build in apps/docs",
+    ]);
+    expect(result.passed).toBe(false);
+    expect(result.report).toContain("build (apps/web): passed\nplaywright (apps/web): failed");
+    expect(result.report).toContain("build (apps/docs): passed\nplaywright (apps/docs): skipped");
+  });
+
   it("skips the test step of a pocketbase workspace without a test script", async () => {
     const run = vi.spyOn(runner, "runTool").mockResolvedValue([]);
     const repo = pocketbaseRepo({ "node_modules/.bin/vitest": "" });

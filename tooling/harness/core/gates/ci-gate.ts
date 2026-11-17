@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { workspaceOf } from "../../config.ts";
+import { buildsNext, workspaceOf } from "../../config.ts";
 import { audit } from "../audit/audit.ts";
 import { formatFindings, type Finding } from "../audit/finding.ts";
 import { ALWAYS_BLOCKS, harnessLinted, PRE_EXISTING_HEADING, readLegacy, splitLegacy } from "../classes.ts";
@@ -130,10 +130,10 @@ async function runCiGate(directory: string, harness: Harness, ratchet: boolean, 
   });
   for (const group of groups) await run(group.workspace.path, analysisSteps(directory, harness, group, ratchet, output));
   for (const group of groups) await run(group.workspace.path, [testStep(directory, group)], true);
-  if (groups.some(({ workspace }) => workspace.path === "" && workspace.next)) {
-    await run("", [build(directory)]);
-    if (fs.globSync(E2E_TESTS, { cwd: directory }).length > 0) await run("", [playwright(directory)]);
-    else reports.push("playwright: skipped");
+  for (const { workspace, dir } of groups.filter((group) => buildsNext(group.workspace))) {
+    await run(workspace.path, [build(dir)]);
+    if (fs.globSync(E2E_TESTS, { cwd: dir }).length > 0) await run(workspace.path, [playwright(dir)]);
+    else reports.push(`${workspace.path === "" ? "playwright" : `playwright (${workspace.path})`}: skipped`);
   }
   for (const { workspace, dir } of groups) {
     if (workspace.shape === "electron-vite") await run(workspace.path, [electronBuild(dir)]);
