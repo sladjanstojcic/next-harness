@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../config.ts";
-import { isLocked, lock, lockFindings, shellLockFindings, unlock, unlocked } from "./lock.ts";
+import { isLocked, lock, lockFindings, lockReason, shellLockFindings, unlock, unlocked } from "./lock.ts";
 import { makeRepo } from "../testing/temp-repo.ts";
 
 const hour = 3_600_000;
@@ -85,6 +85,17 @@ describe("harness lock", () => {
       { rule: "harness-lock", file: "harness.config.ts", message },
     ]);
     expect(shellLockFindings(repo.root, files.slice(0, 3))).toEqual(lockFindings(repo.root, files.slice(0, 3)));
+  });
+});
+
+describe("a migrations folder in the config's locked list", () => {
+  it("says the entry denies new migrations and that applied ones are locked without it", () => {
+    const config = { ...loadConfig(makeRepo({}).root), locked: ["supabase/migrations/", "vercel.json"] };
+    const reason = lockReason("supabase/migrations/20260101000000_first.sql", config);
+    expect(reason).toContain("`locked` in harness.config.ts lists supabase/migrations/, which denies new files there as well as edits");
+    expect(reason).toContain("remove supabase/migrations/ from `locked`");
+    expect(lockReason("vercel.json", config)).toContain("vercel.json is part of the harness and is locked");
+    expect(lockReason("apps/api/pb_migrations/1_a.ts", { ...config, locked: ["apps/api/pb_migrations/"] })).toContain("lists apps/api/pb_migrations/");
   });
 });
 
