@@ -166,10 +166,9 @@ parent: Reference
   check. A Stop whose task file is gone uses the copy the last shell command took; with no copy either,
   it judges every path that differs from HEAD plus the commits since the upstream. A clean tree with
   no such commits passes, and the next task starts fresh.
-- After a shell command, the lock check reports a locked file only while it differs from HEAD. A
-  locked file edited and committed in the same command therefore passes. The migration check compares
-  with the applied version (upstream, remote default branch, else the task's start) and catches that case, but CI does not check migrations, and
-  `cli.ts check done` run by hand compares with HEAD.
+- A migration edited and committed in the same shell command is caught by the migration check, which
+  compares with the applied version (upstream, remote default branch, else the task's start). CI does
+  not check migrations, and `cli.ts check done` run by hand compares with HEAD.
 - Without `src/`, the `depcruise` and `jscpd` package scripts init writes name the source paths that
   exist at that moment, and `shared` with `--starter`, because both tools fail on a missing path. Add
   `modules` to them once it exists; the gates work out the paths themselves on every run. A new app

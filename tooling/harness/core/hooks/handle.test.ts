@@ -56,6 +56,37 @@ describe("handleEvent", () => {
     expect(await handleEvent({ ...bash, event: "post-tool" }, repo.root)).toEqual({ kind: "allow" });
   });
 
+  it("blocks a locked file edited and committed in one Bash command, compared with the HEAD before the command", async () => {
+    const repo = makeRepo({ "eslint.config.ts": "export default [];\n" });
+    const bash = event(repo.root, "pre-tool-bash", "claude", { tool_input: { command: "sed -i '' s/]/1]/ eslint.config.ts && git commit -am x" } });
+    let edits = 0;
+    const run = async (): Promise<Awaited<ReturnType<typeof handleEvent>>> => {
+      await handleEvent(bash, repo.root);
+      repo.write("eslint.config.ts", `export default [${String(++edits)}];\n`);
+      repo.git("commit", "-qam", "Edit the lint config");
+      return handleEvent({ ...bash, event: "post-tool" }, repo.root);
+    };
+    const locked = await run();
+    expect(locked.kind).toBe("block");
+    expect(locked.reason).toContain("eslint.config.ts:1 harness-lock");
+    unlock(repo.root);
+    expect(await run()).toEqual({ kind: "allow" });
+  });
+
+  it("allows a Bash command that restores an edited locked file to its committed version, locked or not", async () => {
+    const repo = makeRepo({ "eslint.config.ts": "export default [];\n" });
+    const bash = event(repo.root, "pre-tool-bash", "claude", { tool_input: { command: "git checkout -- eslint.config.ts" } });
+    const restore = async (): Promise<Awaited<ReturnType<typeof handleEvent>>> => {
+      repo.write("eslint.config.ts", "export default [1];\n");
+      await handleEvent(bash, repo.root);
+      repo.git("checkout", "--", "eslint.config.ts");
+      return handleEvent({ ...bash, event: "post-tool" }, repo.root);
+    };
+    expect(await restore()).toEqual({ kind: "allow" });
+    unlock(repo.root);
+    expect(await restore()).toEqual({ kind: "allow" });
+  });
+
   it("keeps shell snapshots per session, so a parallel agent's command does not hide this agent's changes", async () => {
     const repo = makeRepo();
     const mine = event(repo.root, "pre-tool-bash", "claude", { tool_input: { command: "echo > src/helpers/mine.ts" } });
