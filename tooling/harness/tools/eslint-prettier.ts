@@ -1,6 +1,7 @@
 import path from "node:path";
 import { z } from "zod";
 import type { Finding } from "../core/audit/finding.ts";
+import { listFiles } from "../core/audit/list-files.ts";
 import { eslintPreset } from "./eslint-preset.ts";
 import { bin, CHECK_TIMEOUT_MS, relativePath, type ToolSet } from "./tool-set.ts";
 import { aliasesOf, fullTypecheck, incrementalTypecheck, reportTypecheck } from "./typescript.ts";
@@ -48,14 +49,27 @@ function prettierFindings(dir: string, stdout: string, exitCode: number): Findin
   return exitCode > 1 && unformatted.length > 0 ? [...unformatted, failed] : unformatted;
 }
 
+/** A negated pattern per listed file the shape vendors, such as generated database types: a package has no .prettierignore to name them. */
+const withoutVendored = (dir: string, vendored: RegExp | undefined): string[] =>
+  vendored === undefined
+    ? []
+    : listFiles(dir)
+        .filter((file) => vendored.test(file))
+        .map((file) => `!${file}`);
+
 export const eslintPrettier: ToolSet = {
   name: "eslint-prettier",
   format: {
     write: (dir, files) => ({ name: "prettier", command: [bin(dir, "prettier"), "--write", "--ignore-unknown", "--", ...files], findings: () => [] }),
-    check: (dir) => ({ name: "prettier", command: [bin(dir, "prettier"), "--check", "."], timeoutMs: CHECK_TIMEOUT_MS, findings: () => [] }),
-    report: (dir) => ({
+    check: (dir, vendored) => ({
       name: "prettier",
-      command: [bin(dir, "prettier"), "--list-different", "."],
+      command: [bin(dir, "prettier"), "--check", ".", ...withoutVendored(dir, vendored)],
+      timeoutMs: CHECK_TIMEOUT_MS,
+      findings: () => [],
+    }),
+    report: (dir, vendored) => ({
+      name: "prettier",
+      command: [bin(dir, "prettier"), "--list-different", ".", ...withoutVendored(dir, vendored)],
       timeoutMs: CHECK_TIMEOUT_MS,
       findings: (stdout, exitCode) => prettierFindings(dir, stdout, exitCode),
     }),

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { backendProfile, checkBackendFolder, GENERATED_TYPES } from "./backend-folder.ts";
+import { makeRepo } from "../testing/temp-repo.ts";
+import { backendProfile, checkBackendFolder, GENERATED_TYPES, generatedTypesIn } from "./backend-folder.ts";
 import { packageShape } from "./package.ts";
 
 const LAYOUT = "(Test layout)";
@@ -54,5 +55,17 @@ describe("the package shape's backend profile", () => {
     expect(backend?.scope.test("src/components/x.tsx")).toBe(true);
     expect(backend?.allowed.test("src/components/x.tsx")).toBe(false);
     expect(backend?.message.endsWith("(package layout)")).toBe(true);
+  });
+});
+
+describe("a package's generated backend types", () => {
+  it("are vendored directly in src/server/ only, and found there by path for a tool's ignore list", () => {
+    const pattern = packageShape.vendoredPattern;
+    expect(packageShape.checkPath("src/server/database.types.ts")).toEqual({ ok: true });
+    expect(["src/server/database.types.ts", "src/server/pocketbase-types.ts"].map((file) => pattern?.test(file))).toEqual([true, true]);
+    expect(["src/server/client.ts", "src/types.ts", "src/domain/price.types.ts", "src/server/db/x.types.ts"].some((file) => pattern?.test(file))).toBe(false);
+    const repo = makeRepo({ "packages/db/src/server/database.types.ts": "", "packages/db/src/server/rows.ts": "", "packages/db/src/types.ts": "" });
+    expect(generatedTypesIn(`${repo.root}/packages/db`, "src/server")).toEqual(["src/server/database.types.ts"]);
+    expect(generatedTypesIn(`${repo.root}/packages/ui`, "src/server")).toEqual([]);
   });
 });

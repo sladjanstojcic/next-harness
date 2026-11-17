@@ -46,7 +46,8 @@ packages/<name>/
   `src/server.ts` imports `server-only`; see [A Node service](node-service.md#a-container-image).
 - The types a backend's CLI generates sit directly in `src/server/` as `<name>.types.ts` or
   `<name>-types.ts`, such as Supabase's `database.types.ts`. They are vendored as in an app's
-  `src/backend/`: exempt from the size limit, lint, knip and jscpd, and denied to direct edits.
+  `src/backend/`: exempt from the size limit, lint, knip, jscpd and the gate's format check, and denied
+  to direct edits.
 - depcruise, knip and jscpd run in each package with `src/`, as in an app. jscpd writes its report
   to `node_modules/.cache/jscpd`, since a package has no `.next/`. dependency-cruiser uses a
   package preset: no cycles, a pure `src/domain/`, `src/server/` internals reached only through

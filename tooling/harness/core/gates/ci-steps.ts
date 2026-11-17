@@ -30,7 +30,7 @@ export function checkSteps({ tools, dir, workspace }: WorkspaceTools, perFile: b
   if (!perFile)
     return { format: tools.format.check(dir, vendored), lint: tools.lint.all(dir, vendored), types: tools.typecheck.all(dir, workspace.next, projects) };
   return {
-    format: tools.format.report?.(dir) ?? tools.format.check(dir, vendored),
+    format: tools.format.report?.(dir, vendored) ?? tools.format.check(dir, vendored),
     lint: tools.lint.report?.(dir) ?? tools.lint.all(dir, vendored),
     types: tools.typecheck.report?.(dir, workspace.next, projects) ?? tools.typecheck.all(dir, workspace.next, projects),
   };

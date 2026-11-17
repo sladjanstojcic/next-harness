@@ -21,8 +21,8 @@ const TOOLS = {
   "typescript-eslint": "8.72.1",
   vitest: "5.1.0",
 };
-/** What the same line adds for a Next app, whose starter browser tests import both. */
-const BROWSER = { "@axe-core/playwright": "4.14.0", "@playwright/test": "1.64.1" };
+/** What the same line adds for a Next app, whose playwright.config.ts loads it through the preset. */
+const BROWSER = { "@playwright/test": "1.64.1" };
 /** Init's printed Tailwind step for a Next app: the import in globals.css, the Turbopack loader and its two packages. */
 const TAILWIND = { "@tailwindcss/turbopack": "4.3.4", tailwindcss: "4.3.4" };
 const TURBOPACK = 'turbopack: { rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } } }';

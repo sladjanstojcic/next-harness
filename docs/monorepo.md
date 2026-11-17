@@ -12,7 +12,7 @@ Node HTTP service beside the apps is a `node-service` workspace; [A Node service
 shows one in a pnpm monorepo.
 
 The steps below were run on a fresh create-turbo project: two Next.js apps and three packages. It
-reached a passing check in the twelve steps below, which run the 21 steps init printed, with
+reached a passing check in the twelve steps below, which run the 22 steps init printed, with
 Tailwind and shadcn set up in both apps.
 
 ## Before you start
@@ -92,7 +92,7 @@ node tooling/harness/cli.ts init --starter   # writes the wiring, prints the nex
 
 The first run prints `node tooling/harness/cli.ts init` as its own next step. Add `--starter` to it, as
 shown here, if you want the `shared/lib/` helpers in each app. With it init
-prints 21 steps for a create-turbo project. Without it init leaves out the two install steps
+prints 22 steps for a create-turbo project. Without it init leaves out the two install steps
 for the starter files and the `turbo.json` step, and writes no starter files; running it again with
 `--starter` later is safe.
 
@@ -190,7 +190,8 @@ The run built `apps/web` with `pnpm build` afterwards, and its CSS held Tailwind
 ```
 
 Prettier prints a `MODULE_TYPELESS_PACKAGE_JSON` warning for `packages/ui`. It is harmless; do not
-add `"type": "module"` for it.
+add `"type": "module"` for it. The next printed line installs the browser for the apps' browser tests:
+`(cd apps/docs && pnpm exec playwright install chromium)`. One install serves both apps.
 
 ## 10. Write the legacy list
 
@@ -214,8 +215,9 @@ git add -A && git commit -m "Add the harness"
 pnpm run check
 ```
 
-Every tool runs once per workspace, so the output has 27 lines for this project, each ending in
-`passed`. Below them, under "Pre-existing in legacy
+Every tool runs once per workspace, and each app is built, so the output has 31 lines for this project.
+29 end in `passed`; `playwright (apps/docs)` and `playwright (apps/web)` end in `skipped` until the app
+has a test in `e2e/`. Below them, under "Pre-existing in legacy
 files (not blocking)", the old findings are printed as a count per tool, followed by the first few in
 full.
 
