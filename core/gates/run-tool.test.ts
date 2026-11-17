@@ -69,7 +69,11 @@ describe("tool runner", () => {
     const repo = makeRepo({ ".gitignore": "out/\n", "kept/.gitignore": "*.gen.js\n", "out/tracked.js": "" });
     repo.git("add", "-f", "out/tracked.js");
     const files = ["out/build.js", "kept/a.gen.js", "out/tracked.js", "src/a.ts", ""];
-    const step = { name: "probe", command: [process.execPath, "-e", "process.exit(1)"], findings: () => files.map((file) => ({ rule: "probe", file, message: "x" })) };
+    const step = {
+      name: "probe",
+      command: [process.execPath, "-e", "process.exit(1)"],
+      findings: () => files.map((file) => ({ rule: "probe", file, message: "x" })),
+    };
     expect((await runTool(repo.root, step)).map(({ file }) => file)).toEqual(["out/tracked.js", "src/a.ts", ""]);
     const ignoredOnly = { ...step, findings: () => [{ rule: "probe", file: "out/build.js", message: "x" }] };
     expect(await runTool(repo.root, ignoredOnly)).toEqual([]);
