@@ -18,8 +18,8 @@ export interface E2eDatabase {
   stop(): Promise<void>;
 }
 
-/** Postgres always runs; Kong and PostgREST serve the REST API an app reads. Everything else stays off. */
-const EXCLUDED = ["gotrue", "realtime", "storage-api", "imgproxy", "mailpit", "postgres-meta", "studio", "edge-runtime", "logflare", "vector", "supavisor"];
+/** Postgres always runs; Kong and PostgREST serve the REST API an app reads, and without Auth `supabase status` gives no keys. */
+const EXCLUDED = ["realtime", "storage-api", "imgproxy", "mailpit", "postgres-meta", "studio", "edge-runtime", "logflare", "vector", "supavisor"];
 const PORT_LINE = /^([ \t]*(?:port|shadow_port|smtp_port|pop3_port|inspector_port)[ \t]*=[ \t]*)\d+/gm;
 const CLI_ENV = ["PATH", "HOME", "USER", "LANG", "TMPDIR", "XDG_RUNTIME_DIR", "DOCKER_HOST", "DOCKER_CONFIG", "DOCKER_CONTEXT"];
 const IGNORED = new Set([".temp", ".branches"]);
