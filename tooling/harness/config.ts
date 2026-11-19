@@ -28,6 +28,8 @@ export interface HarnessConfig {
   analysis?: AnalysisName[];
   /** Packages, or scopes ending in "/", that open a backend connection; added to the harness's own list. */
   backendPackages?: string[];
+  /** A fresh Supabase stack for the browser tests: the supabase workspace, and each app env name with its `supabase status` key. */
+  e2eDatabase?: { supabase: string; env: Record<string, string> };
 }
 
 /** Where a next-modules workspace keeps app/, modules/ and shared/: under src/, or at its own top. */
@@ -128,6 +130,15 @@ const schema = z.strictObject({
   env: z.enum(["all", "local"]).exactOptional(),
   analysis: z.array(z.enum(ANALYSIS_NAMES)).exactOptional(),
   backendPackages: z.array(z.string().min(1)).exactOptional(),
+  e2eDatabase: z
+    .strictObject({ supabase: workspacePath, env: z.record(z.string().regex(/^[A-Za-z_]\w*$/), z.string().regex(/^[A-Z][A-Z0-9_]*$/)) })
+    .exactOptional(),
+});
+const e2eDatabaseNamed = (config: z.infer<typeof schema>): boolean =>
+  config.workspaces.some((entry) => entry.shape === "supabase" && normalise(entry.path) === normalise(config.e2eDatabase?.supabase ?? ""));
+const checkedSchema = schema.refine((config) => config.e2eDatabase === undefined || e2eDatabaseNamed(config), {
+  path: ["e2eDatabase", "supabase"],
+  message: "must name a workspace with the supabase shape",
 });
 
 export function loadConfig(gitRoot: string): HarnessConfig {
@@ -141,7 +152,7 @@ export function loadConfig(gitRoot: string): HarnessConfig {
   }
   if (typeof exported === "object" && exported !== null && "default" in exported) exported = exported.default;
   else if (Object.prototype.toString.call(exported) === "[object Module]") throw new Error(`${CONFIG_FILE}: default export is missing`);
-  const result = schema.safeParse(exported);
+  const result = checkedSchema.safeParse(exported);
   if (result.success) return result.data;
   const issue = result.error.issues[0];
   throw new Error(`${CONFIG_FILE}: ${issue?.path.map(String).join(".") || "default export"} ${issue?.message ?? "is invalid"}`);

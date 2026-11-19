@@ -105,6 +105,17 @@ The legacy list is a ratchet: old code is tolerated, new and touched code is hel
   workspace without it runs no tests: the step is skipped, not run with Vitest.
 - **`next: true`** adds Next type generation, and `next build` and the browser tests where the
   workspace is at the root or has the `next-modules` shape.
+- **`e2eDatabase`** gives the browser tests a fresh Supabase stack of their own, for a project whose
+  development database holds data the tests cannot predict. `supabase` names the workspace with the
+  `supabase` shape, and `env` maps each name the app reads to a key of `supabase status --output json`.
+  Without the field the build and the browser tests read the app's own `.env` files, as before.
+
+  ```ts
+  e2eDatabase: {
+    supabase: "supabase",
+    env: { SUPABASE_URL: "API_URL", SUPABASE_ANON_KEY: "ANON_KEY", DATABASE_URL: "DB_URL" },
+  },
+  ```
 
 ## How a workspace's tools run
 
