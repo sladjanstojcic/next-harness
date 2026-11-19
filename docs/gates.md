@@ -44,9 +44,10 @@ Every step runs, and all failures are reported.
 With `e2eDatabase` in the config, CI starts a Supabase stack for each Next app with browser tests,
 before its build. The stack is a copy of the supabase folder with its migrations and seed, its own
 project id ending in `-e2e`, ports from the system's free range and no external URL. Only Postgres,
-Kong and PostgREST run. The build and the browser tests get its values under the names the field
-maps, and the stack is removed with its data when they end. A stack that does not start is the
-finding `e2e-database-failed`, and the app's build and browser tests do not run.
+Kong, PostgREST and Auth run, since without Auth `supabase status` gives no keys. The build and the
+browser tests get its values under the names the field maps, and the stack is removed with its data
+when they end. A stack that does not start is the finding `e2e-database-failed`, and the app's build
+and browser tests do not run.
 
 A format or lint finding on a file git ignores never counts, in the gates or in `legacy init`; a
 tracked file always counts. A type error always counts, since Next reports a route's in the ignored
