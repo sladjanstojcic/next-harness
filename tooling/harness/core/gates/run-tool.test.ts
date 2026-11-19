@@ -107,6 +107,19 @@ describe("tool runner", () => {
     expect(Object.keys(environment).every((key) => ["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "TZ", "USER", "CI", "SMOKE_PORT"].includes(key))).toBe(true);
   });
 
+  it("sets a step's own env over the allowlist, as the browser test database does", async () => {
+    const repo = makeRepo();
+    vi.stubEnv("SUPABASE_URL", "http://127.0.0.1:54321");
+    const findings = await runTool(repo.root, {
+      name: "env",
+      command: ["/usr/bin/env"],
+      env: { SUPABASE_URL: "http://127.0.0.1:40001" },
+      findings: (stdout) => [{ rule: "env", file: "", message: stdout }],
+    });
+    const lines = (findings[0]?.message ?? "").trim().split("\n");
+    expect(lines.filter((line) => line.startsWith("SUPABASE_URL="))).toEqual(["SUPABASE_URL=http://127.0.0.1:40001"]);
+  });
+
   it("passes declared and public environment keys without loading example values", async () => {
     const repo = makeRepo({ ".env.example": 'APP_TOKEN=example\nexport APP_MODE="default"\nUNSET_VALUE=example\nCI=0\n' });
     vi.stubEnv("APP_TOKEN", "fixture-token");

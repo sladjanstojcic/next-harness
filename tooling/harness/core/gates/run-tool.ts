@@ -15,6 +15,8 @@ export interface ToolStep {
   name: string;
   command: string[];
   cwd?: string;
+  /** Values set over the allowlisted environment, such as the browser test database's URL and keys. */
+  env?: Record<string, string>;
   timeoutMs?: number;
   findings(stdout: string, exitCode: number): Finding[];
   /** Keeps findings on git-ignored files: tsc reports a route's type error in Next's ignored .next/types/. */
@@ -65,7 +67,12 @@ function execute(root: string, step: ToolStep): Promise<Execution> {
     let stderr = "";
     let timedOut = false;
     let settled = false;
-    const child = spawn(file, args, { cwd: step.cwd ?? root, env: childEnvironment(root), detached: true, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(file, args, {
+      cwd: step.cwd ?? root,
+      env: { ...childEnvironment(root), ...step.env },
+      detached: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     const timer = setTimeout(() => {
       timedOut = true;
       if (child.pid !== undefined) {

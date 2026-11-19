@@ -80,6 +80,15 @@ describe("loadConfig", () => {
     expect(loadConfig(repo.root)).toMatchObject({ env: "local", analysis: ["knip"] });
   });
 
+  it("parses e2eDatabase and refuses one that names no supabase workspace", () => {
+    const workspaces = '[{ path: "web", shape: "next-modules", next: true }, { path: "supabase", shape: "supabase" }]';
+    const field = 'e2eDatabase: { supabase: "supabase", env: { SUPABASE_URL: "API_URL" } }';
+    const valid = makeRepo({ "harness.config.ts": `export default { workspaces: ${workspaces}, ${field} };\n` });
+    expect(loadConfig(valid.root)).toMatchObject({ e2eDatabase: { supabase: "supabase", env: { SUPABASE_URL: "API_URL" } } });
+    const wrong = makeRepo({ "harness.config.ts": `export default { workspaces: [{ path: "web", shape: "next-modules" }], ${field} };\n` });
+    expect(() => loadConfig(wrong.root)).toThrow("harness.config.ts: e2eDatabase.supabase must name a workspace with the supabase shape");
+  });
+
   it("parses backendPackages", () => {
     const repo = makeRepo({ "harness.config.ts": 'export default { workspaces: [{ path: "a", shape: "next-modules" }], backendPackages: ["my-sdk"] };\n' });
     expect(loadConfig(repo.root)).toMatchObject({ backendPackages: ["my-sdk"] });

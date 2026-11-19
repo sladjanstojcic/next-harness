@@ -15,6 +15,7 @@ import { stateDir } from "../state/state-file.ts";
 import { build, electronBuild, playwright, viteBuild } from "../../tools/analysis.ts";
 import { toolWorkspaces, workspaceTools } from "../../tools/index.ts";
 import { placeStep } from "../../tools/tool-set.ts";
+import { startE2eDatabase, type E2eDatabase } from "./e2e-database.ts";
 import { analysisSteps, checkSteps, skippedLine, summarizePreExisting, testStep } from "./ci-steps.ts";
 import type { GateResult } from "./gate-result.ts";
 import { onAppliedMigration } from "./judged-findings.ts";
@@ -131,9 +132,27 @@ async function runCiGate(directory: string, harness: Harness, ratchet: boolean, 
   for (const group of groups) await run(group.workspace.path, analysisSteps(directory, harness, group, ratchet, output));
   for (const group of groups) await run(group.workspace.path, [testStep(directory, group)], true);
   for (const { workspace, dir } of groups.filter((group) => buildsNext(group.workspace))) {
-    await run(workspace.path, [build(dir)]);
-    if (fs.globSync(E2E_TESTS, { cwd: dir }).length > 0) await run(workspace.path, [playwright(dir)]);
-    else reports.push(`${workspace.path === "" ? "playwright" : `playwright (${workspace.path})`}: skipped`);
+    const tested = fs.globSync(E2E_TESTS, { cwd: dir }).length > 0;
+    const config = harness.config.e2eDatabase;
+    let database: E2eDatabase | undefined;
+    if (tested && config !== undefined) {
+      try {
+        database = await startE2eDatabase(directory, config);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await record(workspace.path === "" ? "e2e-database" : `e2e-database (${workspace.path})`, () => [{ rule: "e2e-database-failed", file: "", message }]);
+        continue;
+      }
+    }
+    // The build reads the same database as the browser tests, since a prerendered page holds its data.
+    const env = database === undefined ? {} : { env: database.env };
+    try {
+      await run(workspace.path, [{ ...build(dir), ...env }]);
+      if (tested) await run(workspace.path, [{ ...playwright(dir), ...env }]);
+      else reports.push(`${workspace.path === "" ? "playwright" : `playwright (${workspace.path})`}: skipped`);
+    } finally {
+      await database?.stop();
+    }
   }
   for (const { workspace, dir } of groups) {
     if (workspace.shape === "electron-vite") await run(workspace.path, [electronBuild(dir)]);
