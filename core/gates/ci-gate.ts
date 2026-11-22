@@ -114,14 +114,17 @@ async function runCiGate(directory: string, harness: Harness, ratchet: boolean, 
     const perFile = ratchet || nestedIgnored || holdsAppliedMigrations(directory, harness, workspace.path, applied);
     const { format, lint } = checkSteps(group, perFile);
     const { types } = checkSteps(group, ratchet);
+    // Typed lint reads Next's generated route types (PageProps, RouteContext), which a fresh clone lacks until typegen runs.
+    const generated = types.filter((step) => step.name !== "tsc");
     const unknown = appliedUnknown(harness, workspace.path, applied);
     if (unknown !== undefined) reports.push(unknown);
     await run(workspace.path, [
       format,
+      ...generated,
       lint,
       ...(tools.lint.owned === undefined || owned.length === 0 ? [] : [tools.lint.owned(dir, owned)]),
       ...(tools.lint.preset === undefined ? [] : [tools.lint.preset(dir, workspace)]),
-      ...types,
+      ...types.filter((step) => !generated.includes(step)),
     ]);
   }
   await record("audit", () => {

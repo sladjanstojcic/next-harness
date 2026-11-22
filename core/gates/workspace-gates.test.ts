@@ -158,9 +158,9 @@ describe("per-workspace CI and fast gates", () => {
     const result = await ciGate(repo.real);
     expect(calls.map(({ name, cwd }) => `${cwd} ${name}`)).toEqual([
       "apps/web prettier",
+      "apps/web typegen",
       "apps/web eslint",
       "apps/web eslint-preset",
-      "apps/web typegen",
       "apps/web tsc",
       "packages/a prettier",
       "packages/a eslint",
