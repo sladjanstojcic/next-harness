@@ -47,7 +47,7 @@ describe("CI with a legacy list: tool findings are judged file by file", () => {
   it("reads per-file reports, tolerates old findings on an untouched legacy file and counts them once per step", async () => {
     const repo = dashboardRepo();
     const { result, commands } = await ciWith(repo, [LEGACY_UTIL]);
-    expect(commands.slice(0, 2)).toEqual(["prettier --list-different .", "eslint . --format json"]);
+    expect(commands.slice(0, 3)).toEqual(["prettier --list-different .", "next typegen", "eslint . --format json"]);
     expect(commands).toContain("tsc --noEmit --pretty false");
     expect(commands).toContain("depcruise src --config .dependency-cruiser.json");
     expect(commands).toContain("knip --reporter json");
