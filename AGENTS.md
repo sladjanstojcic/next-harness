@@ -130,6 +130,9 @@ an unrun check passed.
 
 ## What linters cannot see
 
+- Before reporting a change as done, read back the affected value or observe the behavior where the user sees it.
+  Compare it with the requested result even when the tool reports success. If they differ, report what you observed
+  and keep the task open. If you cannot check the result, say what remains unverified.
 - No comments that narrate code, no speculative options or abstractions, no mock data in production paths.
 - Ask before adding a dependency.
 - Keep the diff within the requested scope, preserve existing work, and explain limitations in the handoff.
