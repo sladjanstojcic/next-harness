@@ -16,6 +16,7 @@ function filesUnder(dir: string): string[] {
 const PRESETS = [
   "tooling/harness/package.json",
   "tooling/harness/config.ts",
+  "tooling/harness/root-config.ts",
   "tooling/harness/shape-names.ts",
   "tooling/harness/shapes/backend-folder.ts",
   "tooling/harness/shapes/limits.ts",
