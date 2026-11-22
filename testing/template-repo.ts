@@ -26,6 +26,7 @@ const PRESETS = [
   "tooling/harness/shapes/node/server-condition.ts",
   "tooling/harness/core/init/bootstrap.ts",
   "tooling/harness/core/init/files.ts",
+  "tooling/harness/core/upstream.ts",
   ...filesUnder("tooling/harness/presets"),
   // The guides' own test imports the shapes, which a fixture does not hold; a related-test run there would fail on it.
   ...filesUnder("tooling/harness/guides").filter((file) => !file.endsWith(".test.ts")),

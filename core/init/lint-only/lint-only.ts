@@ -3,7 +3,7 @@ import path from "node:path";
 import type { WorkspaceEntry } from "../../../config.ts";
 import type { ShapeName } from "../../../shape-names.ts";
 import type { Step } from "../files.ts";
-import { ignoreEntriesStep, prettierIgnored } from "../ignore-files.ts";
+import { formatIgnored, ignoreEntriesStep } from "../ignore-files.ts";
 import { ESLINT, label, PRETTIER, toolConfigStep } from "../tool-configs.ts";
 import { ts } from "../../../tools/typescript.ts";
 
@@ -16,7 +16,7 @@ export const isLintOnly = (workspace: WorkspaceEntry): boolean => LINT_ONLY.incl
 export function lintOnlySteps(root: string, workspace: WorkspaceEntry): Step[] {
   return [
     ...[ESLINT, PRETTIER].map((tool) => toolConfigStep(root, workspace, tool)),
-    ignoreEntriesStep(root, label(workspace, ".prettierignore"), prettierIgnored(workspace)),
+    ignoreEntriesStep(root, label(workspace, ".prettierignore"), formatIgnored(root, workspace)),
   ];
 }
 

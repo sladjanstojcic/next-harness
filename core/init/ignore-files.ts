@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { sourceRootOf, type ShapeName, type WorkspaceEntry } from "../../config.ts";
+import { upstreamIn } from "../upstream.ts";
 import { PLAYWRIGHT_OUTPUT } from "../../presets/e2e.ts";
 import { GENERATED_TYPE_GLOBS } from "../../shapes/backend-folder.ts";
 import { pocketbaseFolders } from "../../shapes/pocketbase/own-tools.ts";
@@ -32,6 +33,15 @@ export function prettierIgnored(workspace: WorkspaceEntry): string[] {
   if (workspace.shape === "node-service") return ["pnpm-lock.yaml", ...generated];
   return ["pnpm-lock.yaml", `${sourceRootOf(workspace)}shared/ui`, ...generated, ".next"];
 }
+/** A workspace file as an ignore line that matches only it: anchored at the folder, its pattern characters escaped. */
+const literalLine = (file: string): string => `/${file.replace(/[*?[\]\\]/g, "\\$&")}`;
+
+/** What a workspace's .prettierignore lists: the shape's entries, then the kit's files on the upstream list, so `prettier --write .` leaves them as the kit ships them. */
+export const formatIgnored = (root: string, workspace: WorkspaceEntry): string[] => [
+  ...prettierIgnored(workspace),
+  ...upstreamIn(root, workspace.path).map(literalLine),
+];
+
 /**
  * The vendored harness and its locked config. A project's `prettier --write .`, `oxfmt` or `oxlint --fix` would rewrite
  * them in the project's style, which the lock then reports; formatting harness.config.ts is the user's, during an unlock.
@@ -115,7 +125,7 @@ export function developsHarness(root: string): boolean {
 export function rootIgnoreSteps(root: string, workspaces: readonly WorkspaceEntry[]): Step[] {
   const harness = developsHarness(root) ? [] : HARNESS_IGNORED;
   const atRoot = workspaces.find((workspace) => workspace.path === "" && workspace.tools === "eslint-prettier");
-  const formatted = atRoot === undefined ? [] : [...prettierIgnored(atRoot), ...pocketbaseFolders(workspaces).map((folder) => `/${folder}`)];
+  const formatted = atRoot === undefined ? [] : [...formatIgnored(root, atRoot), ...pocketbaseFolders(workspaces).map((folder) => `/${folder}`)];
   const prettier = [...formatted, ...harness];
   const oxlint = workspaces.some((workspace) => workspace.tools === "oxc") ? harness : [];
   return [

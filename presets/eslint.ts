@@ -1,4 +1,8 @@
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 import { loadConfig } from "../config.ts";
+import { upstreamIn } from "../core/upstream.ts";
 import { GENERATED_TYPE_GLOBS } from "../shapes/backend-folder.ts";
 import { pocketbaseFolders } from "../shapes/pocketbase/own-tools.ts";
 import { TOOL_CONFIG_NAMES } from "../shapes/tool-config-names.ts";
@@ -22,6 +26,18 @@ const VENDORED: Record<PresetLayout, string[]> = {
   e2e: [],
   service: generatedIn("src/backend/"),
 };
+
+/** A path as a glob that matches only itself, such as a route folder `[locale]`. */
+const literalGlob = (file: string): string => file.replace(/[*?[\](){}!+@\\]/g, "\\$&");
+
+/** The kit's files in the workspace at `root`, on the consumer's upstream list; none outside a git repository. */
+function upstreamGlobs(root: string): string[] {
+  const top = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  if (top.status !== 0) return [];
+  const gitRoot = top.stdout.trim();
+  const workspacePath = path.relative(gitRoot, fs.realpathSync(root)).split(path.sep).join("/");
+  return upstreamIn(gitRoot, workspacePath).map(literalGlob);
+}
 
 /**
  * The TypeScript tool configs at a workspace top, and a Vitest config of the project's own (vitest.int.config.ts); a
@@ -77,7 +93,7 @@ export function harnessEslint(options: HarnessEslintOptions): EslintEntry[] {
   const disableTypeChecked = member(member(tseslint, "configs"), "disableTypeChecked");
   const parserOptions = { projectService: true, tsconfigRootDir: root };
   const ownTools = pocketbaseFolders(loadConfig(root).workspaces).map((folder) => `${folder}/**`);
-  const ignored = [...vendored, ...ownTools, ...(harness === "ignore" ? ["tooling/harness/**"] : [])];
+  const ignored = [...vendored, ...ownTools, ...upstreamGlobs(root), ...(harness === "ignore" ? ["tooling/harness/**"] : [])];
   const recommended = (): unknown[] => [
     member(member(defaultOf(tool("@eslint/js")), "configs"), "recommended"),
     ...(next
