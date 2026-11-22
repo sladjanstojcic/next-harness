@@ -94,6 +94,9 @@ continuations do not emit UserPromptSubmit, the prompt event, and keep the curre
   `.gitattributes`, `.env.example`, `LICENSE` and `CHANGELOG.md`.
 - Deployment files such as `vercel.json`, `Dockerfile` and `.vscode/` need a deliberate addition to
   `core/root-layout.ts`, or to `root.entries` in `harness.config.ts`, before use.
+- One narrow path inside an otherwise unknown folder, such as one package's new locale files, goes
+  in `root.allow` in `harness.config.ts` instead of opening the whole folder; see
+  [the configuration](configuration.md#the-other-fields).
 - TypeScript is used everywhere. A tool unable to read a TypeScript config needs an entry in
   `JS_EXCEPTIONS` in `core/root-layout.ts`, or in `root.jsExceptions` in `harness.config.ts`.
 - File and folder names are kebab-case in `src/`, `tooling/`, `scripts/` and `e2e/`. Next route

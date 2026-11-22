@@ -89,6 +89,15 @@ The legacy list is a ratchet: old code is tolerated, new and touched code is hel
 - **`root.entries`** names what may sit at the repository root besides the defaults;
   **`root.jsExceptions`** names root files that may stay JavaScript. Both are described under
   [the root](gates.md#the-root-and-names).
+- **`root.allow`** lists globs of narrow paths that lie outside every root entry and workspace, such
+  as new locale files in a kit package that is not a workspace:
+  `root: { allow: ["packages/email-templates/src/locales/bs/*.json"] }`. An owned file that a glob
+  matches is no longer refused as `unknown-root`; the content, size and name rules still apply to it,
+  and a sibling path in the same package is still refused. A glob does not reach into a workspace,
+  whose own layout decides. Each glob must start with two literal folders, so `packages`,
+  `packages/**` and `**/locales/*.json` are refused: opening a whole top-level folder is what
+  `root.entries` does, and a wide glob would lift the layout check from every package below it. `.`,
+  `..` and absolute paths are refused too.
 - **`env: "local"`** denies only `.env*.local` and allows the committed `.env`, `.env.development`,
   `.env.production` and `.env.test`. Without it every `.env*` but `.env.example` is denied.
 - **`analysis`** lists which of `depcruise`, `knip` and `jscpd` run in Done and CI, in each

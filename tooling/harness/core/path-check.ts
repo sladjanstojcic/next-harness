@@ -74,15 +74,18 @@ interface Scope {
   folders: ReadonlySet<string>;
   kebabFolders: readonly string[];
   shape?: Shape;
+  /** A file outside every workspace but the root one that a `root.allow` glob names. */
+  allowed: boolean;
 }
 
 function scopeOf(file: string, harness: Harness): Scope {
   const { root } = harness;
   const found = workspaceOf(harness.workspaces, file);
-  if (found === undefined) return { path: file, entries: root.entries, folders: root.folders, kebabFolders: ROOT_KEBAB_FOLDERS };
+  const allowed = (found === undefined || found.entry.path === "") && root.allow.some((glob) => path.posix.matchesGlob(file, glob));
+  if (found === undefined) return { path: file, entries: root.entries, folders: root.folders, kebabFolders: ROOT_KEBAB_FOLDERS, allowed };
   const shape = found.entry.shapeImpl;
   if (found.entry.path !== "") {
-    return { path: found.path, entries: new Set(shape.topEntries), folders: new Set(shape.topFolders), kebabFolders: shape.kebabFolders, shape };
+    return { path: found.path, entries: new Set(shape.topEntries), folders: new Set(shape.topFolders), kebabFolders: shape.kebabFolders, shape, allowed };
   }
   return {
     path: file,
@@ -90,6 +93,7 @@ function scopeOf(file: string, harness: Harness): Scope {
     folders: new Set([...root.folders, ...shape.topFolders]),
     kebabFolders: [...ROOT_KEBAB_FOLDERS, ...shape.kebabFolders],
     shape,
+    allowed,
   };
 }
 
@@ -99,7 +103,8 @@ export function checkPath(file: string, harness: Harness = DEFAULT_HARNESS): Pat
   const top = parts[0] ?? "";
   const name = parts.at(-1) ?? "";
   const patternEntry = parts.length === 1 && scope.shape?.topEntryPattern?.test(top) === true;
-  if ((!scope.entries.has(top) && !patternEntry) || (parts.length > 1 && !scope.folders.has(top))) {
+  const unknown = (!scope.entries.has(top) && !patternEntry) || (parts.length > 1 && !scope.folders.has(top));
+  if (unknown && !scope.allowed) {
     return deny(
       "unknown-root",
       scope.shape?.topAdvice ?? "Use an approved root entry: application code belongs in src/, harness code in tooling/, and automation in scripts/.",

@@ -31,6 +31,7 @@ export interface RootLayout {
   entries: Set<string>;
   folders: Set<string>;
   jsExceptions: Set<string>;
+  allow: readonly string[];
 }
 
 export function rootEntries(config: HarnessConfig, hasConfigFile = false): RootLayout {
@@ -47,5 +48,6 @@ export function rootEntries(config: HarnessConfig, hasConfigFile = false): RootL
     ]),
     folders: new Set([...ROOT_FOLDERS, ...extra]),
     jsExceptions,
+    allow: config.root?.allow ?? [],
   };
 }

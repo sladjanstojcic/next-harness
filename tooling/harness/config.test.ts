@@ -94,6 +94,29 @@ describe("loadConfig", () => {
     expect(loadConfig(repo.root)).toMatchObject({ backendPackages: ["my-sdk"] });
   });
 
+  it("parses root.allow", () => {
+    const allow = ["packages/email-templates/src/locales/bs/*.json"];
+    const repo = makeRepo({
+      "harness.config.ts": `export default { workspaces: [{ path: "a", shape: "next-modules" }], root: { allow: ${JSON.stringify(allow)} } };\n`,
+    });
+    expect(loadConfig(repo.root).root).toEqual({ allow });
+  });
+
+  it.each([
+    ["packages", /root\.allow\.0 must start with two literal folders/],
+    ["packages/", /root\.allow\.0 must start with two literal folders/],
+    ["packages/**", /root\.allow\.0 must start with two literal folders/],
+    ["packages/*/src/x.json", /root\.allow\.0 must start with two literal folders/],
+    ["**/locales/bs/*.json", /root\.allow\.0 must start with two literal folders/],
+    ["packages/email-templates", /root\.allow\.0 must start with two literal folders/],
+    ["packages/../src/x.json", /root\.allow\.0 must be a relative path without \. or \.\./],
+    ["./packages/email-templates/x.json", /root\.allow\.0 must be a relative path without \. or \.\./],
+    ["/packages/email-templates/x.json", /root\.allow\.0 must be a relative path without \. or \.\./],
+  ])("refuses the root.allow entry %s", (glob, message) => {
+    const repo = makeRepo({ "harness.config.ts": `export default { workspaces: [{ path: "a", shape: "next-modules" }], root: { allow: ["${glob}"] } };\n` });
+    expect(() => loadConfig(repo.root)).toThrow(message);
+  });
+
   it.each([
     ['{ workspaces: [{ path: "a", shape: "nope" }] }', /harness\.config\.ts: workspaces\.0\.shape/],
     ['{ workspaces: [{ path: "a", shape: "supabase", tools: "oxc" }] }', /^harness\.config\.ts: workspaces\.0\.tools /],
@@ -129,7 +152,8 @@ describe("loadConfig", () => {
         'import { defineHarness } from "./tooling/harness/config.ts";\nexport default defineHarness({ workspaces: [{ path: "apps/web", shape: "next-modules", next: true }], owned: ["apps/web/src/"] });\n',
     });
     fs.mkdirSync(path.join(repo.root, "tooling/harness"), { recursive: true });
-    for (const file of ["config.ts", "shape-names.ts"]) fs.copyFileSync(path.join(harness, file), path.join(repo.root, "tooling/harness", file));
+    for (const file of ["config.ts", "root-config.ts", "shape-names.ts"])
+      fs.copyFileSync(path.join(harness, file), path.join(repo.root, "tooling/harness", file));
     fs.mkdirSync(path.join(repo.root, "node_modules"));
     fs.symlinkSync(path.resolve(harness, "../../node_modules/zod"), path.join(repo.root, "node_modules/zod"), "dir");
     expect(loadConfig(repo.root)).toEqual({ workspaces: [{ path: "apps/web", shape: "next-modules", next: true }], owned: ["apps/web/src/"] });

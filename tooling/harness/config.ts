@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { z } from "zod";
+import { rootSchema } from "./root-config.ts";
 import { ANALYSIS_NAMES, DEFAULT_TOOLS, SHAPE_NAMES, TOOL_SET_NAMES, type AnalysisName, type ShapeName, type ToolSetName } from "./shape-names.ts";
 
 export type { ShapeName, ToolSetName, AnalysisName } from "./shape-names.ts";
@@ -23,7 +24,7 @@ export interface HarnessConfig {
   legacy?: string;
   /** A list of the kit's files; with it, every file not listed is the project's own. */
   upstream?: string;
-  root?: { entries?: string[]; jsExceptions?: string[] };
+  root?: { entries?: string[]; jsExceptions?: string[]; allow?: string[] };
   env?: "all" | "local";
   analysis?: AnalysisName[];
   /** Packages, or scopes ending in "/", that open a backend connection; added to the harness's own list. */
@@ -76,7 +77,6 @@ const workspacePath = z
   .min(1)
   .refine((value) => !path.posix.isAbsolute(value) && !/^\.\.(?:\/|$)/.test(path.posix.normalize(value)), "must stay inside the repository")
   .refine((value) => !normalise(value).replace(/\/\*$/, "").includes("*"), 'may use "*" only as a final "/*"');
-
 const schema = z.strictObject({
   workspaces: z
     .array(
@@ -126,7 +126,7 @@ const schema = z.strictObject({
   locked: z.array(z.string().min(1)).exactOptional(),
   legacy: z.string().min(1).exactOptional(),
   upstream: z.string().min(1).exactOptional(),
-  root: z.strictObject({ entries: z.array(z.string().min(1)).exactOptional(), jsExceptions: z.array(z.string().min(1)).exactOptional() }).exactOptional(),
+  root: rootSchema,
   env: z.enum(["all", "local"]).exactOptional(),
   analysis: z.array(z.enum(ANALYSIS_NAMES)).exactOptional(),
   backendPackages: z.array(z.string().min(1)).exactOptional(),
