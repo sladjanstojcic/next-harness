@@ -67,7 +67,8 @@ export function isLocked(file: string, config?: HarnessConfig, root?: string): b
     (config?.workspaces ?? []).some((workspace) => is(workspace) && isWorkspaceFolder(workspace, folder === "." ? "" : folder));
   // Locked at the root too, unlike a workspace's tool configs: the root tsconfig.json alone is in LOCKED_PATHS.
   const project = inWorkspace((workspace) => PROJECT_CONFIGS[workspace.shape]?.test(name) === true);
-  const toolConfig = folder !== "." && WORKSPACE_TOOL_CONFIGS.includes(name) && inWorkspace((workspace) => toolsOf(workspace, config?.workspaces ?? []) === "eslint-prettier");
+  const toolConfig =
+    folder !== "." && WORKSPACE_TOOL_CONFIGS.includes(name) && inWorkspace((workspace) => toolsOf(workspace, config?.workspaces ?? []) === "eslint-prettier");
   return (project || toolConfig) && !(root !== undefined && folder !== "." && isNewWorkspace(root, folder));
 }
 

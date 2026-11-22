@@ -76,7 +76,8 @@ describe("e2e shape", () => {
       tools: "oxc",
       next: false,
     });
-    for (const tools of ["eslint-prettier", "none"]) expect(loadConfig(repo(`{ path: "${E2E}", shape: "e2e", tools: "${tools}" }`).root).workspaces).toHaveLength(2);
+    for (const tools of ["eslint-prettier", "none"])
+      expect(loadConfig(repo(`{ path: "${E2E}", shape: "e2e", tools: "${tools}" }`).root).workspaces).toHaveLength(2);
     expect(() => loadConfig(repo(`{ path: "${E2E}", shape: "e2e", next: true }`).root)).toThrow("must not be true for the e2e shape");
   });
 
