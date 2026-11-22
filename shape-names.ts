@@ -29,3 +29,12 @@ export const DEFAULT_TOOLS: Record<ShapeName, ToolSetName> = {
   pocketbase: "eslint-prettier",
   "node-service": "eslint-prettier",
 };
+
+type ToolsInput = { readonly shape: ShapeName; readonly tools?: ToolSetName };
+const ownTools = (workspace: ToolsInput): ToolSetName => workspace.tools ?? DEFAULT_TOOLS[workspace.shape];
+
+/** An e2e workspace without `tools` follows the repository: oxc when another workspace uses oxc, as the Makerkit shapes do. */
+export function toolsOf(workspace: ToolsInput, workspaces: readonly ToolsInput[]): ToolSetName {
+  if (workspace.tools !== undefined || workspace.shape !== "e2e") return ownTools(workspace);
+  return workspaces.some((other) => other.shape !== "e2e" && ownTools(other) === "oxc") ? "oxc" : ownTools(workspace);
+}
