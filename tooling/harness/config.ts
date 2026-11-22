@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { z } from "zod";
 import { rootSchema } from "./root-config.ts";
-import { ANALYSIS_NAMES, DEFAULT_TOOLS, SHAPE_NAMES, TOOL_SET_NAMES, type AnalysisName, type ShapeName, type ToolSetName } from "./shape-names.ts";
+import { ANALYSIS_NAMES, DEFAULT_TOOLS, SHAPE_NAMES, TOOL_SET_NAMES, toolsOf, type AnalysisName, type ShapeName, type ToolSetName } from "./shape-names.ts";
 
 export type { ShapeName, ToolSetName, AnalysisName } from "./shape-names.ts";
 
@@ -197,8 +197,6 @@ export function sourcePaths(dir: string, root: SourceRoot, soon: readonly string
   return (root === "" ? [...SOURCE_AREAS, ...BESIDE_APP] : ["src"]).filter((entry) => soon.includes(entry) || fs.existsSync(path.join(dir, entry)));
 }
 
-export const toolsOf = (workspace: WorkspaceConfig): ToolSetName => workspace.tools ?? DEFAULT_TOOLS[workspace.shape];
-
 /** Whether a git-root-relative folder is one of the workspace's folders, without listing the disk. */
 export function isWorkspaceFolder(workspace: WorkspaceConfig, folder: string): boolean {
   const normalised = normalise(workspace.path);
@@ -222,7 +220,7 @@ export function expandWorkspaces(gitRoot: string, config: HarnessConfig, files: 
     return paths.map((workspacePath) => ({
       path: workspacePath,
       shape: workspace.shape,
-      tools: toolsOf(workspace),
+      tools: toolsOf(workspace, config.workspaces),
       next: workspace.next ?? false,
       ...(workspace.test === undefined ? {} : { test: workspace.test }),
       ...(detectSourceRoot(gitRoot, workspace, workspacePath) === "" ? { sourceRoot: "" as const } : {}),

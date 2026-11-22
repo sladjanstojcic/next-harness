@@ -5,7 +5,7 @@ place, so suites stay findable as they grow. Denials end with "(e2e layout)".
 
 ```text
 package.json, playwright.config.ts, tsconfig.json, README.md
-eslint.config.ts, prettier.config.ts, .prettierignore   this folder's own lint and format configs, by default
+eslint.config.ts, prettier.config.ts, .prettierignore   this folder's own lint and format configs, on ESLint
 tests/
   <name>.spec.ts, <name>.setup.ts   the only files directly in tests/
   <suite>/              one folder per suite (checkout/, access-api/)
@@ -19,8 +19,8 @@ tests/
   denied.
 - `*.spec.ts` and `*.setup.ts` files may use non-null assertions and unchecked casts; page objects and helpers may
   not. Lint-disable and `@ts-` comments are reported: fix the code they would silence.
-- By default the folder runs its own ESLint and Prettier, from the preset's `e2e` layout: no React hook rules, and
-  console is denied in every file. Both leave `playwright-report/`, `test-results/` and `blob-report/` alone.
+- In a repository on oxc the folder uses its oxlint and oxfmt. Otherwise it runs its own ESLint and Prettier, from
+  the preset's `e2e` layout: no React hook rules, and console is denied in every file. Both leave `playwright-report/`, `test-results/` and `blob-report/` alone.
 - ESLint and the type check read this folder's own `tsconfig.json`. Its `include` names `tests` and
   `playwright.config.ts`, never `eslint.config.ts` or `prettier.config.ts`, which import the harness.
 - The tests run in the gates only when the workspace names a `test` package script in `harness.config.ts`.

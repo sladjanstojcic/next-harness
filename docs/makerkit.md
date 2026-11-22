@@ -22,7 +22,7 @@ export default defineHarness({
     { path: "apps/web", shape: "makerkit-app", next: true },
     { path: "packages/features/*", shape: "makerkit-feature" },
     { path: "apps/web/supabase", shape: "supabase" },
-    { path: "apps/e2e", shape: "e2e", tools: "oxc" },
+    { path: "apps/e2e", shape: "e2e" },
   ],
   upstream: "tooling/harness-upstream.json",
   legacy: "tooling/harness-legacy.json",
@@ -40,8 +40,9 @@ export default defineHarness({
 - `owned` is optional here. A prefix in it claims a kit path you have taken over, so the rules apply there.
   Without an `upstream` list, `owned` works the old way: only the listed prefixes are yours.
 - `legacy` is for a project that already holds your own code with findings; see [the legacy list](monorepo.md#the-legacy-list).
-- `tools: "oxc"` keeps `apps/e2e` on the oxlint and oxfmt the kit brings. Without it the e2e shape
-  defaults to ESLint and Prettier, which the kit does not install.
+- `apps/e2e` stays on the oxlint and oxfmt the kit brings: an e2e workspace without `tools` uses oxc when
+  another workspace does, and init writes no ESLint or Prettier config there. The kit's own oxlint and oxfmt
+  read the whole folder, kit files included; the harness's own oxlint rules read only your files.
 - `env: "local"` denies only `.env*.local`. The kit commits `.env`, `.env.development` and
   `.env.production`, and they stay writable.
 - `locked` adds the kit's own configs to the lock, so an agent cannot loosen the kit's lint either.
@@ -58,8 +59,8 @@ What an agent meets in a Makerkit project:
   size limits, no inline disables, package boundaries, and the harness's oxlint rules on top of the kit's.
 - **In kit files:** no harness rule. An edit is allowed; a new file in a kit folder is yours and is judged.
   The kit's files do not count towards that folder's size limit. The kit's own type check, lint and tests still
-  block when the changed file fails them. In a workspace on ESLint and Prettier, such as `apps/e2e` without
-  `tools: "oxc"`, neither tool reads the kit's files; run init after each `upstream sync` to refresh the
+  block when the changed file fails them. In a workspace on ESLint and Prettier, such as `apps/e2e` with
+  `tools: "eslint-prettier"`, neither tool reads the kit's files; run init after each `upstream sync` to refresh the
   folder's `.prettierignore`.
 - **In `apps/e2e`:** the kit's own Playwright tests are on the upstream list and are left alone. Your
   tests go in a suite folder, such as `apps/e2e/tests/access-api/`, with at most two levels of area

@@ -5,11 +5,11 @@ import { makeRepo, type RepoFixture } from "../../../testing/temp-repo.ts";
 import { initHarness } from "../init.ts";
 
 const E2E = "apps/e2e";
-const config = (tools = ""): string =>
-  `export default { workspaces: [{ path: "apps/web", shape: "next-modules", next: true }, { path: "${E2E}", shape: "e2e"${tools} }], root: { entries: ["apps"] } };\n`;
+const config = (tools: string, web: string): string =>
+  `export default { workspaces: [{ path: "apps/web", shape: "${web}", next: true }, { path: "${E2E}", shape: "e2e"${tools} }], root: { entries: ["apps"] } };\n`;
 
-function consumer(tools = "", extra: Readonly<Record<string, string>> = {}): RepoFixture {
-  const files = { "harness.config.ts": config(tools), "package.json": "{}\n", "apps/web/package.json": "{}\n", [`${E2E}/package.json`]: "{}\n", ...extra };
+function consumer(tools = "", extra: Readonly<Record<string, string>> = {}, web = "next-modules"): RepoFixture {
+  const files = { "harness.config.ts": config(tools, web), "package.json": "{}\n", "apps/web/package.json": "{}\n", [`${E2E}/package.json`]: "{}\n", ...extra };
   const repo = makeRepo(files);
   repo.git("config", "--unset", "core.hooksPath");
   return repo;
@@ -43,6 +43,14 @@ describe("init on an e2e workspace with ESLint and Prettier", () => {
     const repo = consumer(', tools: "oxc"');
     init(repo);
     for (const file of ["eslint.config.ts", "prettier.config.ts", ".prettierignore"]) expect(exists(repo, `${E2E}/${file}`), file).toBe(false);
+  });
+
+  it("writes no ESLint or Prettier config and installs neither for a folder without tools beside a Makerkit app", () => {
+    const repo = consumer("", {}, "makerkit-app");
+    const report = init(repo);
+    for (const file of ["eslint.config.ts", "prettier.config.ts", ".prettierignore"]) expect(exists(repo, `${E2E}/${file}`), file).toBe(false);
+    expect(report).not.toContain(`(cd ${E2E} && pnpm add -D`);
+    expect(report).not.toMatch(/eslint@|prettier@/);
   });
 
   it("asks for a tsconfig.json whose include leaves out the written configs, when the folder has none or one without include", () => {
