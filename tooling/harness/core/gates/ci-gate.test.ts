@@ -15,7 +15,7 @@ afterEach(() => vi.restoreAllMocks());
 const SMOKE = { "e2e/smoke.test.ts": "" };
 
 describe("CI gate", () => {
-  it("runs all checks in order with full typed lint even after middle failures", async () => {
+  it("runs all checks in order with full typed lint even after middle failures, generating Next's route types before lint reads them", async () => {
     const repo = makeRepo({ ...SMOKE, "src/utils/date.ts": "export const today = 1;", "tooling/scripts/seed.ts": "" });
     const calls: string[] = [];
     const audit = vi.spyOn(auditor, "audit");
@@ -30,11 +30,11 @@ describe("CI gate", () => {
     const result = await ciGate(repo.root);
     expect(calls).toEqual([
       "prettier --check .",
+      "next typegen",
       "eslint . --max-warnings 0",
       ["node", CONFIG_RUNNER, path.join(repo.root, "node_modules/.bin/eslint"), ...SOURCE_PROBES.map((probe) => probe.replaceAll("{name}", "<probe>"))].join(
         " ",
       ),
-      "next typegen",
       "tsc --noEmit",
       "audit",
       "depcruise src --config .dependency-cruiser.json",
@@ -69,7 +69,7 @@ describe("CI gate", () => {
       return step.name === "eslint" ? [{ rule: "eslint-failed", file: "", message: "src/app/page.tsx\n  1:1  error  no-console" }] : [];
     });
     const result = await ciGate(repo.root);
-    expect(commands.slice(0, 2)).toEqual(["prettier --check .", "eslint . --max-warnings 0"]);
+    expect(commands.slice(0, 3)).toEqual(["prettier --check .", "next typegen", "eslint . --max-warnings 0"]);
     expect(result.findings).toEqual([{ rule: "eslint-failed", file: "", message: "src/app/page.tsx\n  1:1  error  no-console" }]);
     expect(result.report).toContain("eslint: failed\n");
   });
