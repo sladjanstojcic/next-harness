@@ -2,7 +2,8 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { CONFIG_FILE, isWorkspaceFolder, loadConfig, toolsOf, type HarnessConfig, type WorkspaceConfig } from "../config.ts";
+import { CONFIG_FILE, isWorkspaceFolder, loadConfig, type HarnessConfig, type WorkspaceConfig } from "../config.ts";
+import { toolsOf } from "../shape-names.ts";
 import { ELECTRON_CONFIGS } from "../shapes/electron/electron-vite.ts";
 import { NODE_CONFIGS } from "../shapes/node/node-service.ts";
 import { VITE_CONFIGS } from "../shapes/vite/vite-spa.ts";
@@ -66,7 +67,7 @@ export function isLocked(file: string, config?: HarnessConfig, root?: string): b
     (config?.workspaces ?? []).some((workspace) => is(workspace) && isWorkspaceFolder(workspace, folder === "." ? "" : folder));
   // Locked at the root too, unlike a workspace's tool configs: the root tsconfig.json alone is in LOCKED_PATHS.
   const project = inWorkspace((workspace) => PROJECT_CONFIGS[workspace.shape]?.test(name) === true);
-  const toolConfig = folder !== "." && WORKSPACE_TOOL_CONFIGS.includes(name) && inWorkspace((workspace) => toolsOf(workspace) === "eslint-prettier");
+  const toolConfig = folder !== "." && WORKSPACE_TOOL_CONFIGS.includes(name) && inWorkspace((workspace) => toolsOf(workspace, config?.workspaces ?? []) === "eslint-prettier");
   return (project || toolConfig) && !(root !== undefined && folder !== "." && isNewWorkspace(root, folder));
 }
 

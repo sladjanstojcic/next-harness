@@ -59,6 +59,25 @@ describe("loadConfig", () => {
     expect(expandWorkspaces(repo.root, loadConfig(repo.root))[0]?.tools).toBe(tools);
   });
 
+  it.each([
+    ["makerkit-app", undefined, "oxc"],
+    ["makerkit-feature", undefined, "oxc"],
+    ["next-modules", "oxc", "oxc"],
+    ["next-modules", undefined, "eslint-prettier"],
+    ["supabase", undefined, "eslint-prettier"],
+  ] as const)("gives an e2e workspace beside a %s workspace with tools %s the %s tool set", (shape, tools, expected) => {
+    const other = JSON.stringify({ path: "apps/web", shape, ...(tools === undefined ? {} : { tools }) });
+    const repo = makeRepo({ "harness.config.ts": `export default { workspaces: [${other}, { path: "apps/e2e", shape: "e2e" }] };\n` });
+    expect(expandWorkspaces(repo.root, loadConfig(repo.root))[1]?.tools).toBe(expected);
+  });
+
+  it("keeps an e2e workspace's own tools beside a Makerkit app", () => {
+    const repo = makeRepo({
+      "harness.config.ts": 'export default { workspaces: [{ path: "apps/web", shape: "makerkit-app" }, { path: "apps/e2e", shape: "e2e", tools: "eslint-prettier" }] };\n',
+    });
+    expect(expandWorkspaces(repo.root, loadConfig(repo.root))[1]?.tools).toBe("eslint-prettier");
+  });
+
   it.each(["eslint-prettier", "oxc", "none"] as const)("accepts tools: %s on an e2e workspace", (tools) => {
     const repo = makeRepo({ "harness.config.ts": `export default { workspaces: [{ path: "e2e", shape: "e2e", tools: "${tools}" }] };\n` });
     expect(expandWorkspaces(repo.root, loadConfig(repo.root))[0]?.tools).toBe(tools);

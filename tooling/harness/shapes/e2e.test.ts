@@ -70,13 +70,13 @@ describe("e2e shape", () => {
     expect(verdict("tests/account/account.spec.js")).toMatchObject({ ok: false, rule: "js-file" });
   });
 
-  it("runs ESLint and Prettier by default, takes oxc or none, and refuses a Next flag", () => {
+  it("runs oxc by default beside a Makerkit app, takes eslint-prettier or none, and refuses a Next flag", () => {
     expect(resolveHarness(repo().root).workspaces.find((workspace) => workspace.path === E2E)).toMatchObject({
       shape: "e2e",
-      tools: "eslint-prettier",
+      tools: "oxc",
       next: false,
     });
-    for (const tools of ["oxc", "none"]) expect(loadConfig(repo(`{ path: "${E2E}", shape: "e2e", tools: "${tools}" }`).root).workspaces).toHaveLength(2);
+    for (const tools of ["eslint-prettier", "none"]) expect(loadConfig(repo(`{ path: "${E2E}", shape: "e2e", tools: "${tools}" }`).root).workspaces).toHaveLength(2);
     expect(() => loadConfig(repo(`{ path: "${E2E}", shape: "e2e", next: true }`).root)).toThrow("must not be true for the e2e shape");
   });
 

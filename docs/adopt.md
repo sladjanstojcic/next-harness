@@ -77,8 +77,9 @@ blocked as `legacy-append`.
 A version where the `e2e` and `pocketbase` shapes default to ESLint and Prettier changes a workspace
 entry of either shape that sets no `tools`. Before, such an entry ran oxlint and oxfmt. Now init writes
 ESLint and Prettier configs into the folder, and the gates run both there. To keep the old behaviour,
-add `tools: "oxc"` to the entry; a Makerkit project must, since its kit installs neither tool. Otherwise
-run init, install the tools it prints and format the folder once with the printed command.
+add `tools: "oxc"` to the entry. A later version gives an `e2e` entry without `tools` oxc when another
+workspace uses oxc, so a Makerkit project's `apps/e2e` needs no `tools`. Otherwise run init, install the
+tools it prints and format the folder once with the printed command.
 `harness.config.ts` is locked, so the edit is yours, after `pnpm harness:unlock`.
 
 ## Before you commit to it

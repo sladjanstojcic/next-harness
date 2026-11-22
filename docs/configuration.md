@@ -30,8 +30,10 @@ export default defineHarness({
 - A file belongs to the workspace with the longest matching path, and its shape sees the path inside
   that workspace. A file in no workspace gets only the root layout rules.
 - In a configured workspace `next` defaults to false. `tools` follows the shape: `eslint-prettier` for
-  next-modules, package, electron-vite, vite-spa, node-service, pocketbase and e2e, `oxc` for the Makerkit shapes,
-  `none` for supabase. The pocketbase shape refuses `none`, which would drop its lint and type check.
+  next-modules, package, electron-vite, vite-spa, node-service and pocketbase, `oxc` for the Makerkit shapes,
+  `none` for supabase. An e2e workspace follows the repository: `oxc` when another workspace uses oxc, as the
+  Makerkit shapes do, and `eslint-prettier` otherwise. The pocketbase shape refuses `none`, which would drop its
+  lint and type check.
 - A file that starts a new folder under a `/*` workspace is checked against that workspace's shape
   before the folder exists.
 - Upstream files count neither towards a folder's size nor as a duplicate file name. Duplicate exports
@@ -179,7 +181,8 @@ through the real API.
 - Names are kebab-case with one optional role before the extension (`account.po.ts`). `utils/`,
   `helpers/` and the like are denied. Files and folders keep the size limits, and a spec file counts
   towards its folder.
-- The tool set is `eslint-prettier` by default; `oxc` and `none` are accepted. With `none` the line
+- The tool set is `oxc` when another workspace uses oxc and `eslint-prettier` otherwise; a `tools` of its own
+  wins, and `oxc`, `eslint-prettier` and `none` are accepted. With `none` the line
   limit, a lint rule, is not checked. The tests run in the gates only with `test: "<package script>"`.
 - With `eslint-prettier`, init writes the folder's `eslint.config.ts` with the preset's `e2e` layout,
   its `prettier.config.ts` and a `.prettierignore`. ESLint and Prettier leave `playwright-report/`,
