@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { CONFIG_FILE, type HarnessConfig } from "../config.ts";
+import { CONFIG_FILE, loadConfig, type HarnessConfig } from "../config.ts";
 
 const upstreamList = z.strictObject({ version: z.literal(1), files: z.array(z.string()) });
 
@@ -20,6 +20,30 @@ export function readUpstream(gitRoot: string, config: HarnessConfig): ReadonlySe
   }
   const result = upstreamList.safeParse(parsed);
   return new Set(result.success ? result.data.files : []);
+}
+
+export function isOwned(file: string, owned: readonly string[] | undefined): boolean {
+  if (owned === undefined) return true;
+  return owned.some((prefix) => (prefix.endsWith("/") ? file.startsWith(prefix) : file === prefix || file.startsWith(`${prefix}/`)));
+}
+
+/** With an upstream list a file is the project's own unless the kit shipped it; an `owned` prefix claims a kit path. */
+export const isKitFile = (file: string, upstream: ReadonlySet<string>, owned: readonly string[] | undefined): boolean =>
+  upstream.has(file) && !isOwned(file, owned ?? []);
+
+/**
+ * The kit's files inside a workspace, relative to it, which the workspace's ESLint and Prettier skip. Empty without an
+ * upstream list, so every file is linted and formatted as before.
+ */
+export function upstreamIn(gitRoot: string, workspacePath: string): string[] {
+  const config = loadConfig(gitRoot);
+  const upstream = readUpstream(gitRoot, config);
+  if (upstream === undefined) return [];
+  const prefix = workspacePath === "" ? "" : `${workspacePath}/`;
+  return [...upstream]
+    .filter((file) => file.startsWith(prefix) && isKitFile(file, upstream, config.owned))
+    .map((file) => file.slice(prefix.length))
+    .sort();
 }
 
 function listed(gitRoot: string, args: readonly string[]): string[] {

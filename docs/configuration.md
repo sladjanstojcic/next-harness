@@ -55,6 +55,11 @@ Each file has a class; [the reference](reference.md#four-classes-of-file) has th
 - Harness rules (paths, names, sizes, content) judge owned files only. On legacy files Done, CI and
   `pnpm run audit` report them as pre-existing without failing. Tool findings (types, lint, tests) on
   upstream and legacy files block in Done when the file is changed or affected.
+- In a workspace on ESLint and Prettier, neither tool reads the kit's files. The ESLint preset ignores
+  the workspace's files on the upstream list, and init adds them to the workspace's `.prettierignore`,
+  so `prettier --write .` leaves them as the kit ships them. Run init again after `upstream sync`; an
+  entry for a file the kit has since removed stays until you delete it. oxlint and oxfmt still check
+  the kit's files.
 - A lock breach, a growing or invalid legacy list, and a crashed tool always block.
 
 ## The legacy list

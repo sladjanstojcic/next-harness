@@ -5,6 +5,7 @@ import type { HarnessConfig } from "../config.ts";
 import type { PathRule } from "../shapes/shape.ts";
 import type { Finding } from "./audit/finding.ts";
 import { isVendoredIn, resolveHarness, type Harness } from "./path-check.ts";
+import { isKitFile, isOwned } from "./upstream.ts";
 
 export type PathClass = "owned" | "upstream" | "legacy" | "vendored";
 
@@ -62,18 +63,12 @@ export const ALWAYS_BLOCKS = (finding: Finding): boolean =>
     finding.rule,
   ) || finding.rule.endsWith("-failed");
 
-function isOwned(file: string, owned: readonly string[] | undefined): boolean {
-  if (owned === undefined) return true;
-  return owned.some((prefix) => (prefix.endsWith("/") ? file.startsWith(prefix) : file === prefix || file.startsWith(`${prefix}/`)));
-}
-
 export function classify(file: string, harness: Harness, legacy: ReadonlySet<string>): PathClass {
   if (isVendoredIn(harness, file)) return "vendored";
   if (legacy.has(file)) return "legacy";
   const { upstream } = harness;
   if (upstream === undefined) return isOwned(file, harness.config.owned) ? "owned" : "upstream";
-  // With an upstream list a file is the project's own unless the kit shipped it; an `owned` prefix claims a kit path.
-  return upstream.has(file) && !isOwned(file, harness.config.owned ?? []) ? "upstream" : "owned";
+  return isKitFile(file, upstream, harness.config.owned) ? "upstream" : "owned";
 }
 
 /**

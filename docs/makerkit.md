@@ -58,7 +58,9 @@ What an agent meets in a Makerkit project:
   size limits, no inline disables, package boundaries, and the harness's oxlint rules on top of the kit's.
 - **In kit files:** no harness rule. An edit is allowed; a new file in a kit folder is yours and is judged.
   The kit's files do not count towards that folder's size limit. The kit's own type check, lint and tests still
-  block when the changed file fails them.
+  block when the changed file fails them. In a workspace on ESLint and Prettier, such as `apps/e2e` without
+  `tools: "oxc"`, neither tool reads the kit's files; run init after each `upstream sync` to refresh the
+  folder's `.prettierignore`.
 - **In `apps/e2e`:** the kit's own Playwright tests are on the upstream list and are left alone. Your
   tests go in a suite folder, such as `apps/e2e/tests/access-api/`, with at most two levels of area
   folders inside it, kebab-case names and the usual size limits. Add an `apps/e2e/tsconfig.json` that

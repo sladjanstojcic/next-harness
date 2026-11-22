@@ -5,7 +5,7 @@ import { TOOL_CONFIG_NAMES } from "../../shapes/tool-config-names.ts";
 import { jscpdOutput } from "../../tools/analysis.ts";
 import { eslintPresetLines, exportedName, exportsCall, presetCall, presetImport } from "../../tools/eslint-preset.ts";
 import { isObject, readJson, starterSteps, writer, type Step } from "./files.ts";
-import { BUNDLE_IGNORED, developsHarness, gitignoreStep, IGNORED, prettierIgnored, ignoreEntriesStep, rootIgnored } from "./ignore-files.ts";
+import { BUNDLE_IGNORED, developsHarness, formatIgnored, gitignoreStep, IGNORED, ignoreEntriesStep, rootIgnored } from "./ignore-files.ts";
 import { typecheckProjects } from "../../tools/typescript.ts";
 import { tsconfigSteps } from "./tsconfig-step.ts";
 import { cruiserPreset, knipPreset, vitestLines, vitestText } from "./shape-presets/shape-presets.ts";
@@ -210,7 +210,7 @@ export function toolConfigSteps(root: string, workspace: WorkspaceEntry, force: 
     dependencyCruiserStep(root, workspace, force),
     ...tsconfigSteps(root, workspace, force, developsHarness(root) ? [] : presetConfigs(root, workspace)),
     ...(app ? [gitignoreStep(root, workspace.path, ignored)] : []),
-    ...(workspace.path === "" || !app ? [] : [ignoreEntriesStep(root, label(workspace, ".prettierignore"), prettierIgnored(workspace))]),
+    ...(workspace.path === "" || !app ? [] : [ignoreEntriesStep(root, label(workspace, ".prettierignore"), formatIgnored(root, workspace))]),
     ...(starter && workspace.shape === "next-modules" ? starterSteps(root, "next-modules", label(workspace, `${sourceRootOf(workspace)}shared/lib`)) : []),
     // The starter browser tests expect create-next-app's home page, with its heading; a monorepo's app writes its own.
     ...(starter && browser && workspace.path === "" ? starterSteps(root, "e2e", label(workspace, "e2e")) : []),
