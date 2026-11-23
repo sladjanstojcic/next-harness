@@ -46,6 +46,7 @@ const TODAY_ROOT_ENTRIES = [
   "README.md",
   "AGENTS.md",
   "CLAUDE.md",
+  "DESIGN_RULES.md",
   "LICENSE",
   "CHANGELOG.md",
 ];
@@ -53,6 +54,12 @@ const TODAY_ROOT_ENTRIES = [
 describe("root layout", () => {
   it("merges with the next-modules top level into today's root entries plus the tool config names init keeps", () => {
     expect(new Set([...rootEntries(DEFAULT_CONFIG).entries, ...nextModules.topEntries])).toEqual(new Set([...TODAY_ROOT_ENTRIES, ...ALL_TOOL_CONFIG_NAMES]));
+  });
+
+  it("accepts the design rules at the root and under docs/, and no other spelling", () => {
+    expect(checkPath("DESIGN_RULES.md")).toEqual({ ok: true });
+    expect(checkPath("docs/DESIGN_RULES.md")).toEqual({ ok: true });
+    expect(checkPath("design-rules.md")).toEqual(expect.objectContaining({ rule: "unknown-root" }));
   });
 
   it("accepts the legacy file at the root when the config names one", () => {

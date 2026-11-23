@@ -98,6 +98,49 @@ describe("code index", () => {
     expect(text).not.toContain("react-hook-form");
   });
 
+  const RULES =
+    "## Design rules\n\n- Read `DESIGN_RULES.md` before interface work and follow it. Before calling interface work done, check it in light and dark mode, at 390 px and with the keyboard.\n";
+  const RULES_FILE = { "DESIGN_RULES.md": "# Rules\n" };
+
+  it("points at the design rules first, before every workspace, and not at all when the project has none", () => {
+    expect(codeIndex(makeRepo(SHADCN).root)).not.toContain("Design rules");
+    const index = codeIndex(makeRepo({ ...SHADCN, ...RULES_FILE }).root);
+    expect(index).toContain(`their module.\n\n${RULES}\n## Interface\n`);
+    const inDocs = codeIndex(makeRepo({ ...SHADCN, "docs/DESIGN_RULES.md": "# Rules\n" }).root);
+    expect(inDocs).toContain(RULES.replace("`DESIGN_RULES.md`", "`docs/DESIGN_RULES.md`"));
+  });
+
+  it("points at them for a shape with an interface, also without components.json, and not for a project without one", () => {
+    expect(codeIndex(makeRepo({ ...SHARED, ...RULES_FILE }).root)).toContain(RULES);
+    const config = { workspaces: [{ path: "packages/billing", shape: "package" }] };
+    const packageOnly = makeRepo({
+      "harness.config.ts": `export default ${JSON.stringify(config)};\n`,
+      "packages/billing/package.json": "{}\n",
+      ...RULES_FILE,
+    });
+    expect(codeIndex(packageOnly.root)).not.toContain("Design rules");
+  });
+
+  it("keeps the pointer when the 8 KB cut falls in a long first workspace before the one with an interface", () => {
+    const config = {
+      workspaces: [
+        { path: "packages/billing", shape: "package" },
+        { path: "apps/web", shape: "next-modules" },
+      ],
+    };
+    const source = Array.from({ length: 1000 }, (_, index) => `export const export${index} = 1;`).join("\n");
+    const repo = makeRepo({
+      "harness.config.ts": `export default ${JSON.stringify(config)};\n`,
+      "packages/billing/src/index.ts": source,
+      "apps/web/components.json": "{}\n",
+      ...RULES_FILE,
+    });
+    const index = codeIndex(repo.root);
+    expect(index).toContain("[Code index truncated at 8 KB.");
+    expect(index).not.toContain("# apps/web");
+    expect(index).toContain(RULES);
+  });
+
   it.each(["dependencies", "devDependencies"])("names the form stack when react-hook-form is in the workspace's %s", (group) => {
     const repo = makeRepo({ ...SHADCN, "package.json": JSON.stringify({ [group]: { "react-hook-form": "7.0.0" } }) });
     const lines = section(codeIndex(repo.root));

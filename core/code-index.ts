@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import { usesShadcn } from "../presets/eslint-rules.ts";
+import { designRulesFile, hasInterface, uiFolder } from "./design-rules.ts";
 import { resolveHarness } from "./path-check.ts";
 
 const dependencyGroup = z.record(z.string(), z.unknown()).optional();
@@ -39,10 +40,20 @@ function interfaceGuidance(workspaceDir: string, ui: string): string[] {
 
 export function codeIndex(root: string): string {
   const lines = ["# Code index", "", "Reuse these public APIs before adding code. Module internals stay inside their module."];
-  for (const workspace of resolveHarness(root).workspaces) {
+  const { workspaces } = resolveHarness(root);
+  const rules = designRulesFile(root);
+  // Before every workspace, so no list of exports can push it past the 8 KB cut.
+  if (rules !== undefined && workspaces.some((workspace) => hasInterface(root, workspace)))
+    lines.push(
+      "",
+      "## Design rules",
+      "",
+      `- Read \`${rules}\` before interface work and follow it. Before calling interface work done, check it in light and dark mode, at 390 px and with the keyboard.`,
+    );
+  for (const workspace of workspaces) {
     if (workspace.path !== "") lines.push("", `# ${workspace.path}`);
     const dir = path.join(root, workspace.path);
-    const ui = workspace.shapeImpl.vendored.find((entry) => entry.endsWith("shared/ui/"));
+    const ui = uiFolder(workspace);
     // First in the workspace, so a long list of exports cannot push it past the 8 KB cut.
     if (ui !== undefined && usesShadcn(dir)) lines.push(...interfaceGuidance(dir, ui));
     lines.push(...workspace.shapeImpl.codeIndex(dir));
