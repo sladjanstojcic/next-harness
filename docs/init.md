@@ -53,6 +53,25 @@ prints a step to give it one that names `tests` and `playwright.config.ts`.
 **Agent rules.** `AGENTS.md` gets the harness's rules for the agent, and `CLAUDE.md` the line that
 brings them to Claude Code; see [below](#agentsmd-and-claudemd).
 
+**Design rules.** A project with an interface and neither `DESIGN_RULES.md` nor `docs/DESIGN_RULES.md`
+gets a default `DESIGN_RULES.md` at its root: what the interface never and always does, and the
+screenshots in light and dark mode and at 390 px to take before interface work is done. A project has
+an interface when one of its workspaces is `next-modules`, `vite-spa` or `electron-vite`, or has
+`components.json` at its top. Init never replaces the project's own file, also not with `--force`, and
+the file is not locked, so you change it as you like. A path init cannot read, such as a folder or a
+broken link, is reported and left alone:
+
+```text
+created DESIGN_RULES.md: default design rules
+kept DESIGN_RULES.md: your design rules stay
+kept docs/DESIGN_RULES.md: your design rules stay
+kept DESIGN_RULES.md: cannot be read (EISDIR); init leaves it alone
+```
+
+When both files exist, the root one counts. Only the repository root and its `docs/` count, also in a
+monorepo: an `apps/web/DESIGN_RULES.md` is not read. In a project with an interface, the code index
+starts with a line that tells the agent to read the file before interface work.
+
 **Tools.** Init prints one install line: only tools that are missing, or below the minimum the presets
 work with. An installed tool at or above the minimum stays, also when newer. The presets import no tool
 package; they load each tool from the workspace that calls them.

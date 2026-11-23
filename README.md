@@ -149,7 +149,9 @@ shrink. `node tooling/harness/cli.ts legacy prune` takes the files with no findi
 
 [AGENTS.md](AGENTS.md) is what the agent reads in this template: the shape, where each kind of code
 goes and when the checks run. Init writes the same rules into an adopting project's `AGENTS.md`, below
-its own text, and makes `CLAUDE.md` import them.
+its own text, and makes `CLAUDE.md` import them. A project with an interface and no design rules also
+gets a default `DESIGN_RULES.md`, and the code index tells the agent to read it before interface work.
+Init never replaces your own file.
 
 ## Daily use
 
@@ -169,7 +171,7 @@ good code is a bug in the harness, and you can mark such a block false.
 
 ```sh
 git subtree pull --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
-node tooling/harness/cli.ts init    # adds wiring the new version needs, refreshes the rules in AGENTS.md
+node tooling/harness/cli.ts init    # adds the new wiring, refreshes AGENTS.md, adds a missing DESIGN_RULES.md
 ```
 
 Run both in your own terminal, since `tooling/harness/` is locked for agents.

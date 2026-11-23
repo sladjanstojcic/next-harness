@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { agentsSizeNote, agentsStep, claudeStep } from "./agents/agents-block.ts";
+import { designRulesSteps } from "./design-rules/design-rules-step.ts";
 import { HARNESS_PACKAGE, managerCommands } from "./bootstrap.ts";
 import { codexHooksSetting, withHooksFeature } from "./codex-user.ts";
 import { compareHooks, hooksBlock, mergeHooks, type HooksBlock } from "./hooks-merge.ts";
@@ -211,6 +212,7 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
     prePushStep(root, force),
     agentsStep(root),
     claudeStep(root),
+    ...designRulesSteps(root, all),
     scriptsStep(root, "package.json", PACKAGE_SCRIPTS, { prepare: PREPARE, ...(atRoot === undefined ? {} : toolScripts(atRoot, root, starter)) }, force),
     ...(atRoot === undefined ? [gitignoreStep(root, "", rootIgnored(root))] : []),
     ...workspaces.flatMap((workspace) =>

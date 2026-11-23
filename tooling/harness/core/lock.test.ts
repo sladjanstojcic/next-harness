@@ -30,6 +30,8 @@ describe("harness lock", () => {
     "docs/review-rubric.md",
     "scripts/rename.ts",
     ".env.example",
+    "DESIGN_RULES.md",
+    "docs/DESIGN_RULES.md",
   ])("leaves %s open", (file) => {
     expect(isLocked(file)).toBe(false);
   });

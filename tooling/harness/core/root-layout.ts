@@ -18,6 +18,7 @@ const ROOT_ENTRIES: readonly string[] = [
   "README.md",
   "AGENTS.md",
   "CLAUDE.md",
+  "DESIGN_RULES.md",
   "LICENSE",
   "CHANGELOG.md",
 ];

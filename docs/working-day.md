@@ -23,8 +23,10 @@ One task, from the prompt to the push. The task: "add a monthly total to the inv
 
 Before your prompt, the agent receives a code index: the public exports of every module and of
 `shared/lib/`. It now knows that `formatNumber` exists in `shared/lib/format.ts` without having
-opened the file. In a workspace with `components.json`, an "Interface" section follows: build the
-interface from the shadcn components and layouts.
+opened the file. In a project with an interface and a `DESIGN_RULES.md` or `docs/DESIGN_RULES.md`,
+the index starts with a line to read that file first and to check light and dark mode, 390 px and the
+keyboard before calling the work done. In a workspace with `components.json`, an "Interface" section
+follows: build the interface from the shadcn components and layouts.
 
 ## 2. A write is refused
 
