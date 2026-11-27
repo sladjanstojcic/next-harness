@@ -1,5 +1,5 @@
 import path from "node:path";
-import { workspaceOf } from "../../config.ts";
+import { loadConfig, workspaceOf } from "../../config.ts";
 import { classify, legacyInvalidFindings, readLegacy } from "../classes.ts";
 import { INIT_FORCE_COMMAND, isLocked, lockReason, UNLOCK_COMMAND, unlocked } from "../lock.ts";
 import { isIgnored } from "../state/git-ignore.ts";
@@ -17,6 +17,8 @@ export interface Denial {
 const OPTIONS = String.raw`(?:\s+-{1,2}[\w-]+(?:[=\s]\S+)?)*`;
 const SUPABASE_CLI = String.raw`\bsupabase(?:@\S+)?\)?${OPTIONS}`;
 const POCKETBASE_MIGRATE = String.raw`(?:^|[\s/"'(;&|])pocketbase(?:\.exe)?${OPTIONS}\s+migrate${OPTIONS}`;
+/** Under `localDatabaseReset: "user"`: the local reset, and a stop that deletes the stack's data volumes. */
+const LOCAL_RESET = new RegExp(String.raw`${SUPABASE_CLI}\s+(?:db${OPTIONS}\s+reset\b|stop\b[^;&|\n]*--no-backup\b)`, "i");
 const shellGuards = [
   {
     guard: "destructive-prisma",
@@ -85,6 +87,13 @@ export function checkGuards(event: HookEvent, root: string): Denial | null {
       .replace(/["']/g, "");
     for (const guard of shellGuards) {
       if (guard.pattern.test(event.command) || guard.pattern.test(unquoted)) return { guard: guard.guard, reason: guard.reason };
+    }
+    if ((LOCAL_RESET.test(event.command) || LOCAL_RESET.test(unquoted)) && loadConfig(root).localDatabaseReset === "user") {
+      return {
+        guard: "supabase-local-reset",
+        reason:
+          "Only the user resets this project's local database; apply a new migration to the local stack with `supabase migration up` and give tests their own rows.",
+      };
     }
     if (removesOutside(event.command, event.cwd, root)) {
       return { guard: "rm-outside-repo", reason: "Remove files inside the checkout only; removals outside the repository or in .git belong to the user." };

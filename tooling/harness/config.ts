@@ -26,6 +26,7 @@ export interface HarnessConfig {
   upstream?: string;
   root?: { entries?: string[]; jsExceptions?: string[]; allow?: string[] };
   env?: "all" | "local";
+  localDatabaseReset?: "user";
   analysis?: AnalysisName[];
   /** Packages, or scopes ending in "/", that open a backend connection; added to the harness's own list. */
   backendPackages?: string[];
@@ -128,6 +129,7 @@ const schema = z.strictObject({
   upstream: z.string().min(1).exactOptional(),
   root: rootSchema,
   env: z.enum(["all", "local"]).exactOptional(),
+  localDatabaseReset: z.literal("user").exactOptional(),
   analysis: z.array(z.enum(ANALYSIS_NAMES)).exactOptional(),
   backendPackages: z.array(z.string().min(1)).exactOptional(),
   e2eDatabase: z

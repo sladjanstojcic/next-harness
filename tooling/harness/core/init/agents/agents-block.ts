@@ -18,6 +18,11 @@ const CODEX_LIMIT = 32 * 1024;
 /** Said once above several guide pairs, whose trees and paths are written from the workspace folder. */
 const PER_WORKSPACE = "Each pair of sections below is about the workspaces its headings name; the paths in it start at each of those folders.";
 
+/** The supabase guide's line under `localDatabaseReset: "user"`, where the guards deny the local reset. */
+const FRESH_DATABASE = /^- Need a fresh local database → .*$/m;
+const USER_RESETS =
+  "- Need a new migration on the local database → apply it with `supabase migration up`. Only the user resets the local database: `supabase db reset` and `supabase stop --no-backup` are denied.";
+
 /** One guide pair per guide the configured workspaces use; with several, the headings name the workspaces each pair is about. */
 export function harnessBlock(root: string): string {
   const harness = resolveHarness(root);
@@ -32,7 +37,7 @@ export function harnessBlock(root: string): string {
     groups.set(name, { ...group, paths: [...group.paths, where] });
   }
   const pairs = [...groups].map(([name, { shape, paths }]) => {
-    const guide = readGuide(name);
+    const guide = harness.config.localDatabaseReset === "user" ? readGuide(name).replace(FRESH_DATABASE, USER_RESETS) : readGuide(name);
     if (entries.length === 1) return guide;
     const where = paths.join(", ");
     return guide

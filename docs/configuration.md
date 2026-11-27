@@ -107,6 +107,11 @@ The legacy list is a ratchet: old code is tolerated, new and touched code is hel
   `..` and absolute paths are refused too.
 - **`env: "local"`** denies only `.env*.local` and allows the committed `.env`, `.env.development`,
   `.env.production` and `.env.test`. Without it every `.env*` but `.env.example` is denied.
+- **`localDatabaseReset: "user"`** says that only the user resets the local database, for a project
+  whose local data cannot be rebuilt quickly. The `supabase-local-reset` guard then denies an agent
+  `supabase db reset` and `supabase stop --no-backup`, which deletes the stack's data volumes; a plain
+  stop, a start, a local `supabase migration up` and `supabase test db` still pass. The Supabase guide
+  in AGENTS.md says the same after `init`. Without the field an agent may reset the local database.
 - **`analysis`** lists which of `depcruise`, `knip` and `jscpd` run in Done and CI, in each
   next-modules, package, electron-vite, vite-spa and node-service workspace's folder. All three run unless the field
   lists some; none runs in the Makerkit, supabase, e2e and pocketbase shapes.
