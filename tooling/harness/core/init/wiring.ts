@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+
 const CLAUDE_COMMAND = 'node "$CLAUDE_PROJECT_DIR/tooling/harness/cli.ts" hook claude';
 const CODEX_COMMAND = 'node "$(git rev-parse --show-toplevel)/tooling/harness/cli.ts" hook codex';
 
@@ -46,7 +49,7 @@ export const LINT_SCRIPT = "eslint . --max-warnings 0";
 
 /** With a legacy list CI compares with the remote default branch, which a shallow checkout does not hold. */
 /** `browsers` is the browser install for the smoke test, which runs only where the gates build a Next app. */
-export const ciSteps = (legacy: boolean, browsers?: string): string => `CI is not written. Add these steps to a job in .github/workflows/:
+const ciSteps = (legacy: boolean, browsers?: string): string => `CI is not written. Add these steps to a job in .github/workflows/:
       - uses: actions/checkout@v7${legacy ? "\n        with:\n          fetch-depth: 0" : ""}
       - uses: actions/setup-node@v7
         with:
@@ -54,3 +57,24 @@ export const ciSteps = (legacy: boolean, browsers?: string): string => `CI is no
       - uses: pnpm/action-setup@v6
       - run: pnpm install --frozen-lockfile${browsers === undefined ? "" : `\n      - run: ${browsers}`}
       - run: node tooling/harness/cli.ts check ci`;
+
+const WORKFLOWS = ".github/workflows";
+const GATE_COMMAND = "cli.ts check ci";
+
+/** The first workflow that runs the full gate, by the command the steps above end with. */
+function gateWorkflow(root: string): string | undefined {
+  try {
+    return fs
+      .readdirSync(path.join(root, WORKFLOWS))
+      .sort()
+      .find((name) => /\.ya?ml$/.test(name) && fs.readFileSync(path.join(root, WORKFLOWS, name), "utf8").includes(GATE_COMMAND));
+  } catch {
+    return undefined;
+  }
+}
+
+/** Init never writes CI: it prints the steps until a workflow runs the gate, and names that workflow from then on. */
+export function ciReport(root: string, legacy: boolean, browsers?: string): string {
+  const workflow = gateWorkflow(root);
+  return workflow === undefined ? ciSteps(legacy, browsers) : `unchanged ${WORKFLOWS}/${workflow}: runs the CI gate`;
+}

@@ -155,6 +155,15 @@ describe("init", () => {
     expect(WIRED.filter((file) => fs.existsSync(path.join(repo.root, file)))).toEqual([]);
   });
 
+  it("prints the CI steps until a workflow runs the gate, then names that workflow", () => {
+    const repo = consumer({ "package.json": "{}", ".github/workflows/deploy.yml": "jobs:\n  deploy:\n    steps:\n      - run: pnpm build\n" });
+    expect(initHarness(repo.root, { force: false, starter: false }).report).toContain("CI is not written");
+    repo.write(".github/workflows/check.yml", "jobs:\n  check:\n    steps:\n      - run: node tooling/harness/cli.ts check ci\n");
+    const report = initHarness(repo.root, { force: false, starter: false }).report;
+    expect(report).not.toContain("CI is not written");
+    expect(report).toContain("unchanged .github/workflows/check.yml: runs the CI gate");
+  });
+
   it("runs from the CLI and rejects unknown flags", () => {
     const repo = consumer({ "package.json": "{}" });
     const cli = path.resolve(import.meta.dirname, "../../cli.ts");

@@ -21,7 +21,7 @@ import { pocketbaseTodo } from "./pocketbase/pocketbase-steps.ts";
 import { viteTodo } from "./vite/vite-steps.ts";
 import { nodeTodo } from "./node/node-steps.ts";
 import { CONFIG_FILE, isConfigOnly, type WorkspaceEntry } from "../../config.ts";
-import { ciSteps, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH, PREPARE } from "./wiring.ts";
+import { ciReport, CLAUDE_HOOKS, CODEX_CONFIG, CODEX_HOOKS, HOOKS_PATH, PACKAGE_SCRIPTS, PRE_PUSH, PREPARE } from "./wiring.ts";
 
 function hooksStep(root: string, label: string, wanted: HooksBlock, force: boolean): Step {
   const file = path.join(root, label);
@@ -241,7 +241,7 @@ export function initHarness(root: string, { force, starter }: InitOptions): { re
       ...lines,
       ...formatted,
       ...agentsSizeNote(root),
-      ciSteps(harness.config.legacy !== undefined, browserCommand(root, workspaces, "install --with-deps chromium")),
+      ciReport(root, harness.config.legacy !== undefined, browserCommand(root, workspaces, "install --with-deps chromium")),
       ...nextSteps(root, harness, workspaces, steps, starter),
     ].join("\n"),
     ok: true,

@@ -15,8 +15,11 @@ and CI call the gate directly, so your script changes nothing there.
 **Wiring, in every project.** `.claude/settings.json` hooks, `.codex/hooks.json`, `.codex/config.toml`,
 `.githooks/pre-push`, `core.hooksPath` and the package scripts. It adds
 `"prepare": "git config core.hooksPath .githooks"` to the root `package.json`, so a fresh clone gets the
-pre-push hook on install; when a `prepare` script exists, it prints that command to add. It prints the CI
-steps to add.
+pre-push hook on install; when a `prepare` script exists, it prints that command to add. It never
+writes CI: it prints the steps to add until a file in `.github/workflows/` holds their last command,
+`cli.ts check ci`, and from then on a line such as
+`unchanged .github/workflows/check.yml: runs the CI gate`. A workflow that reaches the gate another way,
+as through `pnpm run check`, is not recognised, and the steps are printed again.
 
 **Ignore files.** The root `.gitignore` gets `tooling/harness/node_modules/`, since create-next-app
 ignores only `/node_modules`; the audit reports any committed `node_modules` file as
