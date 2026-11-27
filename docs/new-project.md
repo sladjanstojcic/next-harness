@@ -6,17 +6,34 @@ parent: Adopt it
 
 # A new project
 
-Start from this template when you have no code yet. You need Node 24 and pnpm.
+Start from this template when you have no code yet and the product is one Next.js app. You need Node
+24 and pnpm.
+
+The template keeps that app at the repository root. A product that will also have a worker, a second
+app or shared packages starts as [a monorepo](monorepo.md) instead. Nothing moves the template's app
+into `apps/` for you later.
 
 ## 1. Clone and install
 
 ```sh
 git clone https://github.com/sladjanstojcic/next-harness.git my-product && cd my-product
+rm -rf tooling/harness
+git commit -qam "Remove the template's copy of the harness"
+git subtree add --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
 pnpm install --frozen-lockfile
 ```
 
-The install must come first. Until `node_modules` exists, the hooks refuse every agent tool call
-except the install itself, and say so.
+The three lines between the clone and the install put the same harness files back through
+`git subtree`. The clone holds `tooling/harness/` as plain files, and git needs the record that
+`git subtree add` leaves before it can [update the harness](adopt.md#update-the-harness). Without that
+record the update stops with:
+
+```text
+fatal: can't squash-merge: 'tooling/harness' was never added.
+```
+
+Install before you let an agent in. Until `node_modules` exists, the hooks refuse every agent tool
+call except the install itself, and say so.
 
 The clone still points at the template and carries its history. Before your first push, point it at
 your own repository:
@@ -25,7 +42,14 @@ your own repository:
 git remote set-url origin <your repository>
 ```
 
-For a clean history instead, run `rm -rf .git && git init`, and repeat step 2 afterwards.
+For a clean history instead, start it right after the clone, before the three lines:
+
+```sh
+rm -rf .git && git init
+git add -A && git commit -qm "Start from the next-harness template"
+```
+
+A history started after the three lines loses the record again.
 
 ## 2. Enable the pre-push hook
 
@@ -93,7 +117,9 @@ named. Each step is also a script in `package.json`, such as `pnpm test`, if you
 
 `AGENTS.md` at the root is what the agent reads: the shape, where each kind of code goes and when
 the checks run. Add your product's own rules outside the harness markers as it grows; init rewrites
-only the part between them. `CLAUDE.md` imports the file for Claude Code.
+only the part between them. `CLAUDE.md` imports the file for Claude Code. `DESIGN_RULES.md` holds the
+default design rules, which the agent is told to read before interface work; the file is yours to
+change.
 
 ## shadcn
 

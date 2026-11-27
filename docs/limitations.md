@@ -61,7 +61,6 @@ parent: Reference
   `turbo prune` and Coolify were not tried. In a container, the root `prepare` script init adds
   (`git config core.hooksPath .githooks`) fails without git, so the image installs with
   `--ignore-scripts`.
-
 - By reading the step, not from a run: the Electron shadcn step leaves its empty `vite.config.ts`
   behind when `shadcn init` fails, and replaces a `vite.config.ts` that already exists.
 - The `AGENTS.md` block was run on create-vite projects, and written on create-next-app and
@@ -239,7 +238,8 @@ parent: Reference
   next-modules advice that application code belongs in `src/`.
 - `pnpm install` inside a subtree copy of `tooling/harness/` writes its own `pnpm-lock.yaml`. Whether a
   consumer commits it is not decided yet.
-- A cloned project keeps the harness version it was cloned with until the harness ships as a package.
+- A project cloned from the template updates with `git subtree pull` only after the three subtree lines
+  of [A new project](new-project.md#1-clone-and-install), run on five fresh clones, one to a full check.
 - The user-level Codex hook relies on Codex skipping project hooks in linked worktrees. If a later
   Codex loads them there, remove the user-level entries to avoid a double run.
 - A shell command that writes into another worktree (`cd ../other && ...`) is not seen by the session's

@@ -97,6 +97,9 @@ You need Node 24 and pnpm.
 
 ```sh
 git clone https://github.com/sladjanstojcic/next-harness.git my-product && cd my-product
+rm -rf tooling/harness
+git commit -qam "Remove the template's copy of the harness"
+git subtree add --prefix=tooling/harness https://github.com/sladjanstojcic/next-harness.git harness --squash
 pnpm install --frozen-lockfile
 pnpm run prepare                     # enables the pre-push hook
 pnpm rename --name my-product --port 3100 --title "My Product"
@@ -104,7 +107,12 @@ pnpm exec playwright install chromium
 pnpm dev
 ```
 
-No secrets are needed. `.env.example` documents the starting environment.
+The three lines after the clone add the harness back as a git subtree, so that
+[the update](#update-the-harness) works later. No secrets are needed. `.env.example` documents the
+starting environment.
+
+The template is one Next.js app at the repository root. A product with a worker, a second app or
+shared packages starts as [a monorepo](docs/monorepo.md) instead.
 
 ## Add it to an existing project
 
@@ -174,7 +182,9 @@ git subtree pull --prefix=tooling/harness https://github.com/sladjanstojcic/next
 node tooling/harness/cli.ts init    # adds the new wiring, refreshes AGENTS.md, adds a missing DESIGN_RULES.md
 ```
 
-Run both in your own terminal, since `tooling/harness/` is locked for agents.
+Run both in your own terminal, since `tooling/harness/` is locked for agents. A project that started
+from the template without the three subtree lines above runs them once in place of the pull:
+[docs/adopt.md](docs/adopt.md#update-the-harness).
 
 An `e2e` or `pocketbase` entry without `tools` now gets ESLint and Prettier, except an `e2e` entry beside
 a workspace on oxc, such as a Makerkit app, which gets oxc. Add `tools: "oxc"` to any other entry in

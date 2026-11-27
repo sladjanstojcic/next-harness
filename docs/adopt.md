@@ -66,6 +66,15 @@ node tooling/harness/cli.ts init    # adds wiring the new version needs, refresh
 Run both in your own terminal. `tooling/harness/` is locked for agents. Until init has run and its
 `AGENTS.md` change is committed, the Done gate, the pre-push hook and CI fail with `agents-block`.
 
+A project that started from the template without the three subtree lines of
+[its first step](new-project.md#1-clone-and-install) holds `tooling/harness/` as plain files, and the
+pull stops with `fatal: can't squash-merge: 'tooling/harness' was never added.` Run those three lines
+once in place of the pull, on a clean working tree, then `pnpm install` and init. The add brings the
+current harness, so it is this update too, and later updates use the pull. It replaces the folder: a
+change you made inside it stays only in the history. The first init of a project from the template
+also adds `tooling/harness` to the `exclude` of `tsconfig.json`, since the template type-checks the
+harness as its own code and your project does not.
+
 A version with the `ui-stack` rule also needs each app's shadcn setup, which brings `components.json`,
 before your next push. The pre-push hook and CI fail with `ui-stack` on an app without it, and init prints no setup
 steps for a project that is already adopted. Run the steps on the app's page:
