@@ -96,6 +96,49 @@ describe("supabase deploy guards (commands are inspected, never executed)", () =
   });
 });
 
+describe('local database reset under localDatabaseReset: "user"', () => {
+  const RESET_REASON =
+    "Only the user resets this project's local database; apply a new migration to the local stack with `supabase migration up` and give tests their own rows.";
+  const userResets = () => makerkitRepo({ "harness.config.ts": makerkitConfig().replace("root: ", 'localDatabaseReset: "user",\n  root: ') }).root;
+
+  it.each([
+    "supabase db reset",
+    "supabase db reset --local",
+    "npx supabase db reset",
+    "pnpm exec supabase db reset --no-seed",
+    "supabase --workdir apps/web db reset",
+    "supabase db --debug reset",
+    "cd apps/web && supabase db reset",
+    "supabase 'db' reset",
+    "supabase stop --no-backup",
+    "npx supabase --workdir apps/web stop --project-id web --no-backup",
+    "supabase stop --all --no-backup",
+  ])("denies %s", (command) => {
+    const root = userResets();
+    expect(checkGuards(shell(root, command), root)).toEqual({ guard: "supabase-local-reset", reason: RESET_REASON });
+  });
+
+  it.each(["supabase stop", "supabase start", "supabase migration up", "supabase migration up --local", "supabase test db", "supabase stop\necho --no-backup"])(
+    "allows %s",
+    (command) => {
+      const root = userResets();
+      expect(checkGuards(shell(root, command), root)).toBeNull();
+    },
+  );
+
+  it("keeps the linked-project guards first", () => {
+    const root = userResets();
+    expect(checkGuards(shell(root, "supabase db reset --linked"), root)?.guard).toBe("destructive-supabase");
+    expect(checkGuards(shell(root, "supabase db reset && supabase db push"), root)?.guard).toBe("supabase-push");
+  });
+
+  it("lets an agent reset the local database without the option", () => {
+    const { root } = makerkitRepo();
+    expect(checkGuards(shell(root, "supabase db reset"), root)).toBeNull();
+    expect(checkGuards(shell(root, "supabase stop --no-backup"), root)).toBeNull();
+  });
+});
+
 describe("env files under env: local", () => {
   it.each([".env.local", "apps/web/.env.production.local", ".env.development.local", "apps/web/.env.test.local"])("denies %s", (file) => {
     const { root } = makerkitRepo({ "harness.config.ts": makerkitConfig(undefined, "local") });

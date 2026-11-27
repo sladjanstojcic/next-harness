@@ -89,6 +89,12 @@ describe("loadConfig", () => {
     expect(() => loadConfig(wrong.root)).toThrow("harness.config.ts: e2eDatabase.supabase must name a workspace with the supabase shape");
   });
 
+  it('parses localDatabaseReset: "user" and refuses another value', () => {
+    const config = (value: string) => `export default { workspaces: [{ path: "a", shape: "next-modules" }], localDatabaseReset: "${value}" };\n`;
+    expect(loadConfig(makeRepo({ "harness.config.ts": config("user") }).root)).toMatchObject({ localDatabaseReset: "user" });
+    expect(() => loadConfig(makeRepo({ "harness.config.ts": config("agent") }).root)).toThrow(/^harness\.config\.ts: localDatabaseReset /);
+  });
+
   it("parses backendPackages", () => {
     const repo = makeRepo({ "harness.config.ts": 'export default { workspaces: [{ path: "a", shape: "next-modules" }], backendPackages: ["my-sdk"] };\n' });
     expect(loadConfig(repo.root)).toMatchObject({ backendPackages: ["my-sdk"] });

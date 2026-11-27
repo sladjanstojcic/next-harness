@@ -50,6 +50,20 @@ describe("harnessBlock", () => {
     expect(count(block, "## Architecture and why: apps/web, apps/docs (next-modules)\n")).toBe(1);
     expect(count(block, "## Where code goes: apps/web, apps/docs\n")).toBe(1);
   });
+
+  it('tells the agent that only the user resets the local database under localDatabaseReset: "user"', () => {
+    const config = (extra: string) =>
+      `export default { workspaces: [{ path: "web", shape: "next-modules" }, { path: "supabase", shape: "supabase" }]${extra} };\n`;
+    const fresh = "- Need a fresh local database → reset the local stack with `supabase db reset`.";
+    const userLine =
+      "- Need a new migration on the local database → apply it with `supabase migration up`. Only the user resets the local database: `supabase db reset` and `supabase stop --no-backup` are denied.";
+    const agentBlock = harnessBlock(makeRepo({ "harness.config.ts": config("") }).root);
+    expect(agentBlock).toContain(fresh);
+    expect(agentBlock).not.toContain(userLine);
+    const userBlock = harnessBlock(makeRepo({ "harness.config.ts": config(', localDatabaseReset: "user"') }).root);
+    expect(userBlock).toContain(userLine);
+    expect(userBlock).not.toContain(fresh);
+  });
 });
 
 describe("blockIn", () => {
